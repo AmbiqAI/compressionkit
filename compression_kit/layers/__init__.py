@@ -1,0 +1,3 @@
+from .vector_quantizer import VectorQuantizer
+from .residual_vector_quantizer import ResidualVectorQuantizer
+from .gumbel_softmax_bottleneck import GumbelSoftmaxBottleneck

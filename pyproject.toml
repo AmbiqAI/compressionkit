@@ -1,12 +1,43 @@
 [project]
 name = "compression-kit"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-powered compression toolkit focused for edge, IoT applications."
+authors = [
+    {name = "Ambiq AI", email = "support.aitg@ambiq.com"},
+]
 readme = "README.md"
+
 requires-python = ">=3.11"
+
 dependencies = [
     "keras>=3.12.0",
+    "neuralspot-edge>=0.2.2",
+    "notebook>=7.4.7",
     "numpy>=2.3.4",
     "tensorflow>=2.18.0,<3.0",
     "tensorflow-metal>=1.1.0,<2.0; sys_platform == 'darwin'",
 ]
+
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where  = ["."]
+include = ["compression_kit", "compression_kit.*"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.uv]
+package = true
