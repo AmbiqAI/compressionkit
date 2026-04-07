@@ -27,7 +27,7 @@ dependencies = [
     "onnx<1.16",
     "tf2onnx>=1.8.4",
     "wandb>=0.17",
-    "helia-edge>=0.4.0",
+    "helia-edge @ git+https://github.com/AmbiqAI/helia-edge@main",
 ]
 
 
@@ -66,6 +66,3 @@ ignore = []
 
 [tool.uv]
 package = true
-
-[tool.uv.sources]
-helia-edge = { path = "/home/vscode/helia-edge", editable = true }
