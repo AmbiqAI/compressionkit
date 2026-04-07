@@ -1,0 +1,30 @@
+/* compressionKIT brand palette
+ *
+ * Light mode:  primary green  #21DF1D  |  accent gold  #F9C80E
+ * Dark  mode:  primary green  #21DF1D  |  accent yellow #FDFE00
+ */
+
+/* ── Shared tokens ───────────────────────────────────────────── */
+:root {
+  --ck-green:  #21DF1D;
+  --ck-yellow: #FDFE00;
+  --ck-gold:   #F9C80E;
+}
+
+/* ── Light mode ── [data-md-color-scheme="default"] ─────────── */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:          #1a7a18;   /* darker green for readability on white */
+  --md-primary-fg-color--light:   var(--ck-green);
+  --md-primary-fg-color--dark:    #0f5c0d;
+  --md-accent-fg-color:           var(--ck-gold);
+  --md-accent-fg-color--transparent: #F9C80E26;
+}
+
+/* ── Dark mode ── [data-md-color-scheme="slate"] ────────────── */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:          var(--ck-green);
+  --md-primary-fg-color--light:   #5ff55c;
+  --md-primary-fg-color--dark:    #1a7a18;
+  --md-accent-fg-color:           var(--ck-yellow);
+  --md-accent-fg-color--transparent: #FDFE0026;
+}

@@ -7,17 +7,39 @@ authors = [
 ]
 readme = "README.md"
 
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
 
 dependencies = [
     "keras>=3.12.0",
-    "neuralspot-edge>=0.2.2",
     "notebook>=7.4.7",
-    "numpy>=2.3.4",
+    "numpy>=2.0,<2.5",
+    "pandas>=2.2.0",
+    "matplotlib>=3.9.0",
+    "h5py>=3.12.1",
+    "pyyaml>=6.0.1",
+    "pywavelets>=1.6.0",
+    "physiokit>=0.9.0",
+    "pyedflib>=0.1.42",
     "tensorflow>=2.18.0,<3.0",
     "tensorflow-metal>=1.1.0,<2.0; sys_platform == 'darwin'",
+    "pydantic>=2.12.4",
+    "ai-edge-litert>=2.1.2",
+    "onnx<1.16",
+    "tf2onnx>=1.8.4",
+    "wandb>=0.17",
+    "helia-edge>=0.4.0",
 ]
 
+
+[dependency-groups]
+docs = [
+    "zensical>=0.0.31",
+    "mkdocs-material>=9.6.0",
+    "mkdocstrings[python]>=0.29.0",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.0",
+    "mkdocs-section-index>=0.3.9",
+]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -26,9 +48,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 include-package-data = true
 
+[project.scripts]
+train-ppg-rvq = "compressionkit.cli.train_ppg_rvq:main"
+
 [tool.setuptools.packages.find]
 where  = ["."]
-include = ["compression_kit", "compression_kit.*"]
+include = ["compressionkit", "compressionkit.*"]
 
 [tool.ruff]
 line-length = 120
@@ -41,3 +66,6 @@ ignore = []
 
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+helia-edge = { path = "/home/vscode/helia-edge", editable = true }

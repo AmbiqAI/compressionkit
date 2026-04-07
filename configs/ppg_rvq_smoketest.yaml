@@ -1,0 +1,64 @@
+# Smoke-test config (2x, 2 steps, 1 epoch) — do not commit
+run_name: ppg_rvq_02x_smoketest
+
+data:
+  datasets_dir: /home/vscode/datasets
+  dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
+  sampling_rate: 64
+  frame_size: 320
+  segment_samples: 640
+  offset_samples: 192
+  target_label: Pleth
+  batch_size: 64
+  buffer_size: 100
+  steps_per_epoch: 2
+  epochs: 1
+  epsilon: 0.001
+  gaussian_noise: [0.01, 0.1]
+  shuffle_seed: 42
+  cache:
+    enabled: true
+    cache_root: datasets/ppg_tfrecord_cache
+    auto_build: false
+    force_rebuild: false
+    min_segment_scale: 1.2
+    windows_per_subject_train: 512
+    windows_per_subject_val: 512
+    train_ratio: 0.8
+    val_ratio: 0.2
+
+model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 1
+  base_filters: 32
+  multiplier: 1.25
+  beta: 0.25
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 2
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  val_metric: mse
+  val_mode: min
+  early_stop_patience: 25
+  reduce_lr_on_plateau: false
+  selection_metric: val_mse
+  validation_steps: 1
+
+evaluation:
+  num_samples: 2
+  input_bit_depth: 16
+  tflite_rep_batches: 1
+
+output:
+  results_root: results/smoketest
+  tensorboard: false
+  wandb:
+    enabled: false

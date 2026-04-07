@@ -1,0 +1,133 @@
+[project]
+site_name = "compressionKIT"
+site_description = "AI-powered compression toolkit for physiological signals targeting edge and wearable devices."
+site_author = "Ambiq AI"
+# site_url = "https://ambiqai.github.io/compressionkit/"
+copyright = "Copyright &copy; 2026 Ambiq AI"
+
+nav = [
+  { "Overview" = [
+    { "Home" = "index.md" },
+    { "Getting Started" = "getting-started.md" },
+  ]},
+  { "Signals" = [
+    { "Overview" = "signals/index.md" },
+    { "PPG" = [
+      { "Overview" = "signals/ppg.md" },
+      { "Workflow" = "signals/ppg-workflow.md" },
+      { "2x-16x Examples" = "signals/ppg-v1-examples.md" },
+    ]},
+    { "ECG" = [
+      { "Overview" = "signals/ecg.md" },
+    ]},
+  ]},
+  { "Methods" = [
+    { "Overview" = "methods/index.md" },
+    { "RVQ Autoencoder" = "methods/rvq.md" },
+  ]},
+  { "Reference" = [
+    { "CLI" = "cli.md" },
+    { "API" = [
+      { "Configs" = "api/configs.md" },
+      { "Datasets" = "api/datasets.md" },
+      { "Preprocessing" = "api/preprocessing.md" },
+      { "Models" = "api/models.md" },
+      { "Evaluation" = "api/evaluation.md" },
+      { "Export" = "api/export.md" },
+    ]},
+  ]},
+  { "Demo" = [
+    { "PPG Codec Demo" = "demo/ppg-codec.md" },
+  ]},
+]
+
+extra_css = [
+  "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css",
+  "stylesheets/brand.css",
+  "stylesheets/custom.css",
+]
+
+extra_javascript = [
+  "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js",
+  "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js",
+  "javascripts/math.js",
+]
+
+[project.theme]
+language = "en"
+logo = "assets/compressionkit-icon.png"
+favicon = "assets/favicon.png"
+custom_dir = "docs/overrides"
+
+features = [
+    "content.code.annotate",
+    "content.code.copy",
+    "content.code.select",
+    "content.tabs.link",
+    "content.tooltips",
+    "navigation.footer",
+    "navigation.indexes",
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    "navigation.path",
+    "navigation.sections",
+    "navigation.top",
+    "navigation.tracking",
+    "search.highlight",
+]
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/AmbiqAI/compressionkit"
+
+[project.extra]
+repo_url = "https://github.com/AmbiqAI/compressionkit"
+repo_name = "AmbiqAI/compressionkit"
+
+# ---------------------------------------------------------------------------
+# Markdown extensions
+# ---------------------------------------------------------------------------
+[project.markdown_extensions]
+
+# Python-Markdown extensions
+toc = { permalink = true }
+admonition = {}
+attr_list = {}
+md_in_html = {}
+tables = {}
+
+# PyMdown extensions
+"pymdownx.details" = {}
+"pymdownx.superfences" = { custom_fences = [{ name = "mermaid", class = "mermaid" }] }
+"pymdownx.highlight" = { anchor_linenums = true, line_spans = "__span", pygments_lang_class = true }
+"pymdownx.inlinehilite" = {}
+"pymdownx.tabbed" = { alternate_style = true }
+"pymdownx.arithmatex" = { generic = true }
+"pymdownx.emoji" = { emoji_generator = "zensical.extensions.emoji.to_svg", emoji_index = "zensical.extensions.emoji.twemoji" }
+"pymdownx.tasklist" = { custom_checkbox = true }
+
+# ---------------------------------------------------------------------------
+# Plugins
+# ---------------------------------------------------------------------------
+[[project.plugins]]
+mkdocstrings = { handlers.python.options.show_source = true, handlers.python.options.docstring_style = "google" }
+
+[[project.plugins]]
+search = {}

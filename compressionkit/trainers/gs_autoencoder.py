@@ -1,5 +1,5 @@
 import keras
-from compression_kit.layers.gumbel_softmax_bottleneck import GumbelSoftmaxBottleneck
+from compressionkit.layers.gumbel_softmax_bottleneck import GumbelSoftmaxBottleneck
 
 class GSAutoencoder(keras.Model):
     """

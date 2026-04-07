@@ -59,9 +59,10 @@ class VectorQuantizer(keras.layers.Layer):
         one_hot = keras.ops.one_hot(idx, self.K)
         probs   = keras.ops.mean(one_hot, axis=0)
         eps     = keras.ops.convert_to_tensor(1e-10, dtype=self.compute_dtype)
-        log2    = keras.ops.log(keras.ops.convert_to_tensor(2.0, dtype=self.compute_dtype))
-        H       = -keras.ops.sum(probs * (keras.ops.log(probs + eps) / log2))   # bits/index
-        perplex = keras.ops.exp(H * log2)                                       # 2**H
+        log_probs = keras.ops.log2(probs + eps)
+        H       = -keras.ops.sum(probs * log_probs)                             # bits/index
+        ln2     = keras.ops.log(keras.ops.convert_to_tensor(2.0, dtype=self.compute_dtype))
+        perplex = keras.ops.exp(H * ln2)                                        # 2**H
         usage   = keras.ops.sum(keras.ops.cast(probs > 0, self.compute_dtype)) / float(self.K)
         self._perplexity.update_state(perplex)
         self._bpi.update_state(H)

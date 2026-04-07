@@ -1,6 +1,6 @@
 from __future__ import annotations
 import keras
-from compression_kit.layers.vector_quantizer import VectorQuantizer
+from compressionkit.layers.vector_quantizer import VectorQuantizer
 
 
 class VQAutoencoder(keras.Model):
