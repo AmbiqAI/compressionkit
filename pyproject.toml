@@ -24,8 +24,6 @@ dependencies = [
     "tensorflow-metal>=1.1.0,<2.0; sys_platform == 'darwin'",
     "pydantic>=2.12.4",
     "ai-edge-litert>=2.1.2",
-    "onnx<1.16",
-    "tf2onnx>=1.8.4",
     "wandb>=0.17",
     "helia-edge @ git+https://github.com/AmbiqAI/helia-edge@main",
 ]

@@ -339,7 +339,6 @@ dependencies = [
     { name = "matplotlib" },
     { name = "notebook" },
     { name = "numpy" },
-    { name = "onnx" },
     { name = "pandas" },
     { name = "physiokit" },
     { name = "pydantic" },
@@ -348,7 +347,6 @@ dependencies = [
     { name = "pyyaml" },
     { name = "tensorflow" },
     { name = "tensorflow-metal", marker = "sys_platform == 'darwin'" },
-    { name = "tf2onnx" },
     { name = "wandb" },
 ]
 
@@ -371,7 +369,6 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.9.0" },
     { name = "notebook", specifier = ">=7.4.7" },
     { name = "numpy", specifier = ">=2.0,<2.5" },
-    { name = "onnx", specifier = "<1.16" },
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "physiokit", specifier = ">=0.9.0" },
     { name = "pydantic", specifier = ">=2.12.4" },
@@ -380,7 +377,6 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.1" },
     { name = "tensorflow", specifier = ">=2.18.0,<3.0" },
     { name = "tensorflow-metal", marker = "sys_platform == 'darwin'", specifier = ">=1.1.0,<2.0" },
-    { name = "tf2onnx", specifier = ">=1.8.4" },
     { name = "wandb", specifier = ">=0.17" },
 ]
 
@@ -1486,16 +1482,6 @@ wheels = [
 ]
 
 [[package]]
-name = "onnx"
-version = "1.15.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "protobuf" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/6e/2b2963f9e3a7201c8c3a30656f9c81bc9d32d198a88a747456ab2874166a/onnx-1.15.0.tar.gz", hash = "sha256:b18461a7d38f286618ca2a6e78062a2a9c634ce498e631e708a8041b00094825", size = 12262101, upload-time = "2023-10-26T18:30:51.019Z" }
-
-[[package]]
 name = "opt-einsum"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2303,21 +2289,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8a/11/965c6fd8e5cc254f1fe142d547387da17a8ebfd75a3455f637c663fb38a0/terminado-0.18.1.tar.gz", hash = "sha256:de09f2c4b85de4765f7714688fff57d3e75bad1f909b589fde880460c753fd2e", size = 32701, upload-time = "2024-03-12T14:34:39.026Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6a/9e/2064975477fdc887e47ad42157e214526dcad8f317a948dee17e1659a62f/terminado-0.18.1-py3-none-any.whl", hash = "sha256:a4468e1b37bb318f8a86514f65814e1afc977cf29b3992a4500d9dd305dcceb0", size = 14154, upload-time = "2024-03-12T14:34:36.569Z" },
-]
-
-[[package]]
-name = "tf2onnx"
-version = "1.8.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flatbuffers" },
-    { name = "numpy" },
-    { name = "onnx" },
-    { name = "requests" },
-    { name = "six" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/32/33ce509a79c207a39cf04bfa3ec3353da15d1e6553a6ad912f117cc29130/tf2onnx-1.8.4-py3-none-any.whl", hash = "sha256:1ebabb96c914da76e23222b6107a8b248a024bf259d77f027e6690099512d457", size = 345298, upload-time = "2021-03-17T19:37:21.224Z" },
 ]
 
 [[package]]
