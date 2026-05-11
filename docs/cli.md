@@ -77,7 +77,7 @@ python -m compressionkit.recipes.train_ppg_rvq --config <path-to-yaml>
 ### Example
 
 ```bash
-train-ppg-rvq --config configs/ppg_rvq_08x_ds8_l2.yaml
+train-ppg-rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
 ```
 
 ### Configuration

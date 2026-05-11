@@ -55,13 +55,13 @@ The workflow does not stop at training. It produces deployment artifacts, evalua
 Use the CLI when you want reproducible runs from config files:
 
 ```bash
-train-ppg-rvq --config configs/ppg_rvq_08x.yaml
+train-ppg-rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
 ```
 
 Or call the module directly:
 
 ```bash
-python -m compressionkit.recipes.train_ppg_rvq --config configs/ppg_rvq_08x.yaml
+python -m compressionkit.recipes.train_ppg_rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
 ```
 
 ## Four Reference Operating Points
