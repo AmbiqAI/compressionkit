@@ -69,6 +69,11 @@ compressionkit = "compressionkit.recipes:dispatch"
 train-ecg-rvq = "compressionkit.recipes.train_ecg_rvq:main"
 train-ppg-rvq = "compressionkit.recipes.train_ppg_rvq:main"
 
+[project.optional-dependencies]
+hf = [
+    "huggingface-hub>=0.25",
+]
+
 [tool.uv]
 package = true
 
