@@ -26,30 +26,57 @@ The ECG waveform consists of the characteristic P-QRS-T complex, where the sharp
 
 ## ECG in compressionKIT
 
-!!! note "TODO"
-    ECG support is currently tracked as follow-on work. Some earlier experimentation remains available in `legacy/`, and a modular pipeline matching the PPG architecture is planned.
+ECG compression uses the same RVQ autoencoder architecture as PPG, with parameters tuned for the higher sampling rate and sharper morphology of ECG signals.
 
-### Current State
+### Pipeline
 
-The currently documented ECG path is not yet at parity with PPG, but the earlier ECG experiments used the same broad RVQ autoencoder approach:
+- **Data source**: [PTB-XL](https://physionet.org/content/ptb-xl/1.0.3/) — 21,799 12-lead ECG recordings
+- **Preprocessing**: Resample 500 → 256 Hz, Lead II (`lead_index=1`), layer normalization
+- **Model**: Conv2D encoder/decoder + EMA RVQ bottleneck (256-entry codebooks)
+- **Compression range**: 2× – 32× (five golden configs)
+- **Loss**: MSE + derivative loss (weight 0.1)
 
-- **Data source**: HDF5 files with pre-segmented ECG arrays
-- **Configurations available**: 8× to 64× compression ratios
-- **Model**: Same Conv2D encoder/decoder + RVQ bottleneck
+### Golden Models
 
-### Reference Configurations
+See **[ECG Models (v1.0)](../models/ecg.md)** for the full results table, architecture breakdown, and training instructions.
 
-| Config | Stages | Levels | Compression | Notes |
-|--------|--------|--------|-------------|-------|
-| `ecg_rvq_08x_ds16_l4` | 4 | 4 | 8× | High quality |
-| `ecg_rvq_16x_ds16_l2` | 4 | 2 | 16× | Balanced |
-| `ecg_rvq_32x_ds16_l1` | 4 | 1 | 32× | High compression |
-| `ecg_rvq_64x_ds32_l1` | 5 | 1 | 64× | Maximum compression |
+| Model | CR | PRD (%) | Cosine |
+|-------|----|---------|--------|
+| ecg-rvq-02x | 2× | 2.60 | 0.9997 |
+| ecg-rvq-04x | 4× | 3.34 | 0.9994 |
+| ecg-rvq-08x | 8× | 6.21 | 0.9981 |
+| ecg-rvq-16x | 16× | 10.39 | 0.9945 |
+| ecg-rvq-32x | 32× | 14.39 | 0.9895 |
 
-### Planned Improvements
+### Training
 
-- [ ] Migrate to modular `compressionkit.datasets.ecg` module
-- [ ] Add Pydantic config (`EcgRvqConfig`)
-- [ ] CLI entry point (`train-ecg-rvq`)
-- [ ] QRS-aware loss functions
-- [ ] Wearable single-lead ECG support
+```bash
+python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
+```
+
+### Stitching evaluation
+
+At higher compression ratios, frame-by-frame reconstruction can introduce
+visible seams at frame boundaries. `compressionkit.evaluation.stitching`
+provides four comparable strategies so the impact can be measured:
+
+| Method | Window | Notes |
+| --- | --- | --- |
+| `hard_concat` | rectangular, no overlap | baseline (worst seams) |
+| `overlap_add` | Hann, 50 % overlap | canonical default |
+| `linear_crossfade` | triangular, 50 % overlap | LUT-free alternative |
+| `tukey_overlap_add` | Tukey(α=0.25) | minimal taper knob |
+
+The helper `seam_discontinuity_ratio` reports a first-difference RMS
+ratio at seam neighbourhoods versus the rest of the signal — a scalar
+that complements HR/HRV for driving future stitching work.
+
+Enable it in any ECG RVQ YAML under `evaluation.stitching:` (see
+[configs/ecg_rvq_256hz_32x_golden.yaml](../../configs/ecg_rvq_256hz_32x_golden.yaml)),
+or run it against an already-trained model without retraining:
+
+```bash
+uv run python scripts/eval_ecg_stitching.py \
+    --run-dir results/ecg_rvq_256hz_32x_golden \
+    --duration-sec 30 --num-recordings 10
+```

@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Ruff lint
+        run: uv run ruff check compressionkit/ tests/ scripts/
+
+      - name: Ruff format check
+        run: uv run ruff format --check compressionkit/ tests/ scripts/
+
+      - name: Pytest
+        run: uv run pytest tests/ -ra
+
+      - name: Shell script syntax
+        run: |
+          for f in scripts/*.sh scripts/**/*.sh; do
+            [ -f "$f" ] && bash -n "$f"
+          done

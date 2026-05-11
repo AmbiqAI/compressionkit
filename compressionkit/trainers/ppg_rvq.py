@@ -6,7 +6,6 @@ and export into one coherent flow driven by a ``PpgRvqConfig``.
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -14,9 +13,8 @@ from typing import Any
 import keras
 import numpy as np
 import tensorflow as tf
-from helia_edge.layers import ResidualVectorQuantizer
 
-from compressionkit.configs.ppg_rvq import PpgRvqConfig
+from compressionkit.configs.ppg_rvq import PpgRvqConfig, TransformConfig
 from compressionkit.datasets.ppg import (
     bandpass_filter_batch,
     build_ppg_tfrecord_cache,
@@ -33,56 +31,142 @@ from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
     summarize_physiokit_alignment,
 )
-from compressionkit.export.tflite import export_encoder_tflite
-from compressionkit.logging.wandb_utils import (
-    build_wandb_callbacks,
-    finalize_wandb_run,
-    init_wandb_run,
-)
+from compressionkit.evaluation.overlap_add import evaluate_long_recordings
 from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,
     compute_compression_stats,
 )
 from compressionkit.preprocessing.ppg import (
-    build_augmenter,
-    build_preprocessor,
     generate_synthetic_ppg_batch,
+)
+from compressionkit.preprocessing.augmentations import (
+    PPGAugmenter,
+    build_noise_bank_from_h5,
+)
+from compressionkit.losses import (
+    build_derivative_loss as _build_derivative_loss,
+    build_multi_scale_spectral_loss as _build_multi_scale_spectral_loss,
+)
+from compressionkit.trainers.utils import (
+    build_learning_rate,
 )
 
 logger = logging.getLogger("ppg-rvq-trainer")
 
 
 # ---------------------------------------------------------------------------
-# Learning rate builder
+# DWT transform wrapping
 # ---------------------------------------------------------------------------
 
-def build_learning_rate(
-    cfg: PpgRvqConfig,
-    *,
-    steps_per_epoch: int,
-) -> float | keras.optimizers.schedules.LearningRateSchedule:
-    """Build optimizer learning rate or schedule from config."""
-    lr_cfg = cfg.training.lr_schedule
-    if not lr_cfg.enabled:
-        return float(cfg.training.learning_rate)
 
-    stype = lr_cfg.type.strip().lower()
-    if stype != "cosine_restarts":
-        raise ValueError(f"Unsupported lr_schedule.type: {stype}")
+def _wrap_dataset_with_dwt(
+    ds: tf.data.Dataset,
+    transform_cfg: TransformConfig,
+    frame_size: int,
+) -> tf.data.Dataset:
+    """Apply DWT forward transform to both input and target tensors.
 
-    first_decay_steps = lr_cfg.first_decay_steps
-    if first_decay_steps is None:
-        first_decay_steps = max(1, steps_per_epoch)
-    else:
-        first_decay_steps = max(1, first_decay_steps)
+    Input/output shape: ``(B, 1, frame_size, 1)`` — same shape, packed
+    wavelet coefficients replace raw time-domain samples.
+    """
+    domain = transform_cfg.domain.strip().lower()
+    if domain == "raw":
+        return ds
 
-    return keras.optimizers.schedules.CosineDecayRestarts(
-        initial_learning_rate=float(cfg.training.learning_rate),
-        first_decay_steps=first_decay_steps,
-        t_mul=lr_cfg.t_mul,
-        m_mul=lr_cfg.m_mul,
-        alpha=lr_cfg.alpha,
+    if domain != "dwt":
+        raise ValueError(f"PPG RVQ only supports 'raw' or 'dwt' domain, got: {domain!r}")
+
+    from compressionkit.dsp.transforms import DwtConfig, dwt_pack
+
+    dwt_cfg = DwtConfig(levels=transform_cfg.dwt_levels, wavelet=transform_cfg.dwt_wavelet)
+
+    def _dwt_forward_batch(x: np.ndarray) -> np.ndarray:
+        B = x.shape[0]
+        out = np.empty_like(x)
+        for i in range(B):
+            out[i, 0, :, 0] = dwt_pack(x[i, 0, :, 0], dwt_cfg)
+        return out
+
+    def _apply_dwt(inp, target):
+        inp_t = tf.numpy_function(_dwt_forward_batch, [inp], tf.float32)
+        tgt_t = tf.numpy_function(_dwt_forward_batch, [target], tf.float32)
+        inp_t.set_shape(inp.shape)
+        tgt_t.set_shape(target.shape)
+        return inp_t, tgt_t
+
+    return ds.map(_apply_dwt, num_parallel_calls=tf.data.AUTOTUNE)
+
+
+# ---------------------------------------------------------------------------
+# Tier-1 augmentation wrapping (input-only for denoising)
+# ---------------------------------------------------------------------------
+
+
+def _build_ppg_augmenter(cfg: PpgRvqConfig) -> PPGAugmenter | None:
+    """Build Tier-1 augmenter from config, including noise bank."""
+    aug_cfg = cfg.data.augmentation
+    if not aug_cfg.enabled:
+        return None
+
+    # Build noise bank from configured sources
+    noise_bank = None
+    if aug_cfg.noise_bank_sources:
+        import glob as glob_mod
+
+        h5_paths: list[str] = []
+        for slug in aug_cfg.noise_bank_sources:
+            pattern = f"{aug_cfg.noise_bank_root}/{slug}/*.h5"
+            h5_paths.extend(sorted(glob_mod.glob(pattern)))
+
+        if h5_paths:
+            logger.info("Building noise bank from %d h5 files...", len(h5_paths))
+            noise_bank = build_noise_bank_from_h5(
+                h5_paths,
+                target_fs=cfg.data.sampling_rate,
+                window_size=cfg.data.frame_size,
+                max_segments=aug_cfg.noise_bank_max_segments,
+            )
+            logger.info("Noise bank: %d segments", len(noise_bank))
+
+    return PPGAugmenter(
+        sample_rate=cfg.data.sampling_rate,
+        baseline_wander_prob=aug_cfg.baseline_wander_prob,
+        motion_artifact_prob=aug_cfg.motion_artifact_prob,
+        motion_snr_range=aug_cfg.motion_snr_range,
+        beat_scale_prob=aug_cfg.beat_scale_prob,
+        time_warp_prob=aug_cfg.time_warp_prob,
+        empirical_noise_prob=aug_cfg.empirical_noise_prob,
+        empirical_snr_range=aug_cfg.empirical_snr_range,
+        noise_bank=noise_bank,
+        seed=cfg.data.shuffle_seed,
     )
+
+
+def _wrap_dataset_with_augmentation(
+    ds: tf.data.Dataset,
+    augmenter: PPGAugmenter,
+    frame_size: int,
+) -> tf.data.Dataset:
+    """Apply Tier-1 augmentation to input only (target stays clean).
+
+    This creates a denoising objective: model learns to reconstruct clean
+    signal from corrupted input.
+    """
+
+    def _augment_input_batch(inp: np.ndarray) -> np.ndarray:
+        B = inp.shape[0]
+        out = np.empty_like(inp)
+        for i in range(B):
+            signal = inp[i, 0, :, 0]
+            out[i, 0, :, 0] = augmenter.augment(signal)
+        return out
+
+    def _apply_augmentation(inp, target):
+        aug_inp = tf.numpy_function(_augment_input_batch, [inp], tf.float32)
+        aug_inp.set_shape(inp.shape)
+        return aug_inp, target
+
+    return ds.map(_apply_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
 
 
 # ---------------------------------------------------------------------------
@@ -110,14 +194,63 @@ def build_datasets(
 
     cache_cfg = data.cache
     streaming_cfg = data.streaming
+    unified_cfg = data.unified_cache
 
-    if cache_cfg.enabled and streaming_cfg.enabled:
-        raise ValueError("Enable only one of data.cache.enabled or data.streaming.enabled.")
+    enabled_modes = sum([cache_cfg.enabled, streaming_cfg.enabled, unified_cfg.enabled])
+    if enabled_modes > 1:
+        raise ValueError(
+            "Enable at most one of data.cache, data.streaming, or data.unified_cache."
+        )
 
     input_filter_dict = data.input_filter.model_dump() if data.input_filter.enabled else {}
     target_filter_dict = data.target_filter.model_dump() if data.target_filter.enabled else {}
 
-    if cache_cfg.enabled:
+    if unified_cfg.enabled:
+        # ---- Unified multi-source TFRecord cache mode ----
+        from compressionkit.datasets.ppg_cache import (
+            SourceWeight,
+            load_cache_metadata,
+            make_cached_ppg_dataset,
+        )
+
+        info["mode"] = "unified_cache"
+        source_weights = [
+            SourceWeight(slug=s.slug, weight=s.weight) for s in unified_cfg.sources
+        ]
+        cache_root = Path(unified_cfg.cache_root)
+        if not cache_root.is_absolute():
+            cache_root = cache_root.resolve()
+
+        train_ds, train_info = make_cached_ppg_dataset(
+            source_weights,
+            cache_root=cache_root,
+            frame_size=data.frame_size,
+            batch_size=data.batch_size,
+            shuffle_buffer=unified_cfg.shuffle_buffer,
+            epsilon=data.epsilon,
+            split="train",
+            seed=data.shuffle_seed,
+        )
+        val_ds, val_info = make_cached_ppg_dataset(
+            source_weights,
+            cache_root=cache_root,
+            frame_size=data.frame_size,
+            batch_size=data.batch_size,
+            shuffle_buffer=0,
+            epsilon=data.epsilon,
+            split="val",
+            seed=data.shuffle_seed,
+        )
+        info["unified_sources"] = train_info["sources"]
+
+        if validation_steps is None:
+            total_val = sum(
+                load_cache_metadata(cache_root, s.slug)["val_examples"]
+                for s in unified_cfg.sources
+            )
+            validation_steps = max(1, total_val // data.batch_size)
+
+    elif cache_cfg.enabled:
         info["mode"] = "cache"
         min_segment_scale = cache_cfg.min_segment_scale
         effective_segment_samples = max(
@@ -191,19 +324,19 @@ def build_datasets(
         )
         logger.info("Streaming subject split: train=%d, val=%d", len(train_files), len(val_files))
 
-        stream_kwargs: dict[str, Any] = dict(
-            frame_size=data.frame_size,
-            window_samples=data.segment_samples,
-            batch_size=data.batch_size,
-            interleave_cycle_length=streaming_cfg.interleave_cycle_length,
-            target_rate=data.sampling_rate,
-            target_label=data.target_label,
-            offset_samples=data.offset_samples,
-            preprocessor=preprocessor,
-            input_filter_cfg=input_filter_dict if data.input_filter.enabled else None,
-            target_filter_cfg=target_filter_dict if data.target_filter.enabled else None,
-            seed=data.shuffle_seed,
-        )
+        stream_kwargs: dict[str, Any] = {
+            "frame_size": data.frame_size,
+            "window_samples": data.segment_samples,
+            "batch_size": data.batch_size,
+            "interleave_cycle_length": streaming_cfg.interleave_cycle_length,
+            "target_rate": data.sampling_rate,
+            "target_label": data.target_label,
+            "offset_samples": data.offset_samples,
+            "preprocessor": preprocessor,
+            "input_filter_cfg": input_filter_dict if data.input_filter.enabled else None,
+            "target_filter_cfg": target_filter_dict if data.target_filter.enabled else None,
+            "seed": data.shuffle_seed,
+        }
         train_ds = make_ppg_stream_dataset(
             train_files,
             subject_buffer_size=streaming_cfg.subject_buffer_size,
@@ -309,69 +442,24 @@ def build_datasets(
             augmenter=augmenter, target_data=val_target_data, shuffle=False,
         )
 
+    # Apply Tier-1 augmentation (input-only corruption for denoising)
+    tier1_augmenter = _build_ppg_augmenter(cfg)
+    if tier1_augmenter is not None:
+        logger.info("Applying Tier-1 augmentations to training inputs (denoising mode)")
+        train_ds = _wrap_dataset_with_augmentation(train_ds, tier1_augmenter, data.frame_size)
+
+    # Apply DWT transform if configured
+    transform_cfg = data.transform
+    if transform_cfg.domain.strip().lower() != "raw":
+        logger.info("Applying %s transform (levels=%d, wavelet=%s)",
+                    transform_cfg.domain, transform_cfg.dwt_levels, transform_cfg.dwt_wavelet)
+        train_ds = _wrap_dataset_with_dwt(train_ds, transform_cfg, data.frame_size)
+        val_ds = _wrap_dataset_with_dwt(val_ds, transform_cfg, data.frame_size)
+
     return train_ds, val_ds, validation_steps, info
 
 
-# ---------------------------------------------------------------------------
-# Callback builder
-# ---------------------------------------------------------------------------
-
-def build_callbacks(
-    cfg: PpgRvqConfig,
-    *,
-    run_dir: Path,
-    lr_value: float | keras.optimizers.schedules.LearningRateSchedule,
-    wandb_run: Any,
-) -> list[keras.callbacks.Callback]:
-    """Build the list of Keras training callbacks from config."""
-    tcfg = cfg.training
-    selection_monitor = tcfg.selection_metric if tcfg.selection_metric.startswith("val_") else f"val_{tcfg.selection_metric}"
-    best_ckpt_path = run_dir / "best_model.weights.h5"
-
-    callbacks: list[keras.callbacks.Callback] = [
-        keras.callbacks.ModelCheckpoint(
-            filepath=best_ckpt_path,
-            monitor=selection_monitor,
-            mode=tcfg.val_mode,
-            save_best_only=True,
-            save_weights_only=True,
-            verbose=1,
-        ),
-        keras.callbacks.EarlyStopping(
-            monitor=f"val_{tcfg.val_metric}",
-            patience=tcfg.early_stop_patience,
-            mode=tcfg.val_mode,
-            restore_best_weights=True,
-        ),
-        keras.callbacks.CSVLogger(run_dir / f"training_history_{cfg.run_name}.csv"),
-    ]
-
-    using_schedule = isinstance(lr_value, keras.optimizers.schedules.LearningRateSchedule)
-    if tcfg.reduce_lr_on_plateau and not using_schedule:
-        callbacks.append(
-            keras.callbacks.ReduceLROnPlateau(
-                monitor=f"val_{tcfg.val_metric}",
-                factor=tcfg.reduce_lr_factor,
-                patience=tcfg.reduce_lr_patience,
-                mode=tcfg.val_mode,
-                min_lr=tcfg.reduce_lr_min_lr,
-                verbose=1,
-            )
-        )
-
-    if cfg.output.tensorboard:
-        tb_dir = run_dir / "tensorboard"
-        tb_dir.mkdir(parents=True, exist_ok=True)
-        callbacks.append(
-            keras.callbacks.TensorBoard(
-                log_dir=tb_dir, write_graph=False, write_images=False, update_freq="epoch",
-            )
-        )
-
-    callbacks.extend(
-        build_wandb_callbacks(run=wandb_run, log_model=cfg.output.wandb.log_model)
-    )
-    return callbacks
+# NOTE: build_callbacks is imported from compressionkit.trainers.utils
 
 
 # ---------------------------------------------------------------------------
@@ -393,14 +481,32 @@ def run_evaluation(
     sample_inputs, sample_targets = collect_random_samples(val_ds, eval_cfg.num_samples, rng)
     reconstructions = model.predict(sample_inputs, verbose=0)
 
+    # If DWT domain, inverse-transform for time-domain metrics
+    transform_cfg = data.transform
+    if transform_cfg.domain.strip().lower() == "dwt":
+        from compressionkit.dsp.transforms import DwtConfig, dwt_unpack
+
+        dwt_cfg = DwtConfig(levels=transform_cfg.dwt_levels, wavelet=transform_cfg.dwt_wavelet)
+        N = sample_targets.shape[0]
+        for i in range(N):
+            sample_targets[i, 0, :, 0] = dwt_unpack(
+                sample_targets[i, 0, :, 0], dwt_cfg, data.frame_size
+            )
+            reconstructions[i, 0, :, 0] = dwt_unpack(
+                reconstructions[i, 0, :, 0], dwt_cfg, data.frame_size
+            )
+
     band_cfg = eval_cfg.band_metrics
     physio_cfg = eval_cfg.physiokit_metrics
+    long_cfg = eval_cfg.long_recording
 
     band_sample_targets = None
     band_reconstructions = None
     best_band_metrics = None
     best_physiokit_metrics = None
     best_physio_per_sample: list[dict[str, Any] | None] = []
+    best_long_recording_metrics = None
+    best_long_per_recording: list[dict[str, Any] | None] = []
 
     if band_cfg.enabled:
         targets_seq = sample_targets.reshape(sample_targets.shape[0], -1).astype(np.float32)
@@ -425,12 +531,40 @@ def run_evaluation(
             order=physio_cfg.order, min_peaks=physio_cfg.min_peaks,
         )
 
+    if long_cfg.enabled and physio_cfg.enabled:
+        logger.info(
+            "Running long-recording overlap-add evaluation "
+            "(%.0fs, %d recordings, hop=%.0f%%)...",
+            long_cfg.duration_sec, long_cfg.num_recordings, long_cfg.hop_ratio * 100,
+        )
+        best_long_recording_metrics, best_long_per_recording = evaluate_long_recordings(
+            model,
+            datasets_dir=Path(data.datasets_dir),
+            dataset_glob=data.dataset_glob,
+            frame_size=data.frame_size,
+            sample_rate=data.sampling_rate,
+            target_label=data.target_label,
+            offset_samples=data.offset_samples,
+            duration_sec=long_cfg.duration_sec,
+            epsilon=data.epsilon,
+            hop_ratio=long_cfg.hop_ratio,
+            num_recordings=long_cfg.num_recordings,
+            physiokit_low_hz=physio_cfg.low_hz,
+            physiokit_high_hz=physio_cfg.high_hz,
+            physiokit_order=physio_cfg.order,
+            physiokit_min_peaks=physio_cfg.min_peaks,
+            batch_size=long_cfg.batch_size,
+            seed=data.shuffle_seed,
+        )
+
+    plot_cap = max(0, min(eval_cfg.num_plot_samples, len(sample_targets)))
     sample_results = {
         str(idx): save_sample_artifacts(
             idx, target.squeeze(), recon.squeeze(), data.sampling_rate, run_dir,
             band_original=None if band_sample_targets is None else band_sample_targets[idx],
             band_reconstructed=None if band_reconstructions is None else band_reconstructions[idx],
             physiokit_metrics=None if not best_physio_per_sample else best_physio_per_sample[idx],
+            save_plot=(idx < plot_cap),
         )
         for idx, (target, recon) in enumerate(zip(sample_targets, reconstructions))
     }
@@ -438,51 +572,29 @@ def run_evaluation(
     return {
         "samples": sample_results,
         "sample_inputs": sample_inputs,
+        "sample_targets": sample_targets,
+        "sample_reconstructions": reconstructions,
         "band_metrics": best_band_metrics,
         "physiokit_metrics": best_physiokit_metrics,
+        "long_recording_metrics": best_long_recording_metrics,
+        "long_recording_per_recording": best_long_per_recording,
     }
 
 
 # ---------------------------------------------------------------------------
-# Main training entrypoint
+# Model build & compile
 # ---------------------------------------------------------------------------
 
-def train(cfg: PpgRvqConfig) -> dict[str, Any]:
-    """Run the full PPG RVQ training pipeline.
 
-    Args:
-        cfg: Validated pipeline configuration.
+def build_model(cfg: PpgRvqConfig) -> keras.Model:
+    """Build the RVQ autoencoder from the model section of *cfg*.
 
-    Returns:
-        Summary dictionary with metrics, compression stats, and artifact paths.
+    Returns the trainable model; encoder / decoder / RVQ are accessible as
+    ``model.encoder`` / ``model.decoder`` / ``model.vq``.
     """
-    # Setup output directory
-    results_root = Path(cfg.output.results_root).resolve()
-    run_dir = results_root / cfg.run_name
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    _setup_logger(run_dir, cfg.output.log_file)
-    logger.info("Results directory: %s", run_dir)
-
-    # Save config
-    cfg_dump = cfg.model_dump()
-    with (run_dir / "config.json").open("w") as f:
-        json.dump(cfg_dump, f, indent=2)
-
-    wandb_run = init_wandb_run(cfg=cfg_dump, run_name=cfg.run_name, run_dir=run_dir)
-
-    # Build preprocessing
     data = cfg.data
-    preprocessor = build_preprocessor(frame_size=data.frame_size, epsilon=data.epsilon)
-    augmenter = build_augmenter(tuple(data.gaussian_noise))
-
-    # Build datasets
-    train_ds, val_ds, validation_steps, ds_info = build_datasets(cfg, preprocessor, augmenter)
-    logger.info("Dataset mode: %s", ds_info["mode"])
-
-    # Build model
     mcfg = cfg.model
-    enc, rvq, dec, model = build_rvq_autoencoder(
+    _enc, _rvq, _dec, model = build_rvq_autoencoder(
         frame_size=data.frame_size,
         embedding_dim=mcfg.embedding_dim,
         latent_width=mcfg.latent_width,
@@ -495,126 +607,115 @@ def train(cfg: PpgRvqConfig) -> dict[str, Any]:
         encoder_head_norm=mcfg.encoder_head_norm,
         decoder_block_norm=mcfg.decoder_block_norm,
         decoder_head_norm=mcfg.decoder_head_norm,
+        use_ema=mcfg.use_ema,
+        ema_decay=mcfg.ema_decay,
+        revive_dead_codes=mcfg.revive_dead_codes,
+        revive_threshold=mcfg.revive_threshold,
+        codebook_sizes=mcfg.codebook_sizes,
+    )
+    return model
+
+
+def build_extra_losses(cfg: PpgRvqConfig) -> list[callable]:
+    """Assemble the optional auxiliary losses enabled in *cfg*."""
+    extra: list[callable] = []
+
+    dloss = cfg.training.derivative_loss
+    if dloss.enabled:
+        extra.append(_build_derivative_loss(dloss.weight))
+        logger.info("Derivative loss enabled, weight=%.4f", dloss.weight)
+
+    sloss = cfg.training.spectral_loss
+    if sloss.enabled:
+        extra.append(
+            _build_multi_scale_spectral_loss(weight=sloss.weight, fft_sizes=sloss.fft_sizes)
+        )
+        logger.info(
+            "Multi-scale spectral loss enabled, weight=%.2f, fft_sizes=%s",
+            sloss.weight, sloss.fft_sizes,
+        )
+    return extra
+
+
+def compile_model(
+    model: keras.Model,
+    cfg: PpgRvqConfig,
+    *,
+    learning_rate: float | keras.optimizers.schedules.LearningRateSchedule,
+) -> None:
+    """Compile *model* with the optimizer, metrics and losses implied by *cfg*."""
+    extra = build_extra_losses(cfg)
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate),
+        loss=keras.losses.MeanSquaredError(),
+        metrics=[
+            keras.metrics.MeanSquaredError(name="mse"),
+            keras.metrics.CosineSimilarity(name="cos", axis=-2),
+            TruePRD(name="prd"),
+        ],
+        extra_losses=extra or None,
     )
 
-    # Compile
-    lr_value = build_learning_rate(cfg, steps_per_epoch=data.steps_per_epoch)
-    optimizer = keras.optimizers.Adam(lr_value)
-    metrics = [
-        keras.metrics.MeanSquaredError(name="mse"),
-        keras.metrics.CosineSimilarity(name="cos", axis=-2),
-        TruePRD(name="prd"),
-    ]
-    model.compile(optimizer=optimizer, loss=keras.losses.MeanSquaredError(), metrics=metrics)
 
-    # Callbacks
-    callbacks = build_callbacks(cfg, run_dir=run_dir, lr_value=lr_value, wandb_run=wandb_run)
+# ---------------------------------------------------------------------------
+# Summary assembly
+# ---------------------------------------------------------------------------
 
-    # Train
-    history = model.fit(
-        train_ds,
-        steps_per_epoch=data.steps_per_epoch,
-        epochs=data.epochs,
-        validation_data=val_ds,
-        validation_steps=validation_steps,
-        verbose=2,
-        callbacks=callbacks,
-    )
 
-    # Reload best weights onto the model.
-    # EarlyStopping(restore_best_weights=True) already restores in-memory,
-    # but we also explicitly load the checkpoint for safety.
-    best_ckpt_path = run_dir / "best_model.weights.h5"
-    if best_ckpt_path.exists():
-        model.load_weights(best_ckpt_path)
-    else:
-        logger.warning("Best checkpoint not found; using current model state.")
-
-    best_model = model
-
-    # Save artifacts — encoder/decoder are standard Functional models (serializable).
-    best_enc = best_model.encoder
-    best_dec = best_model.decoder
-    best_rvq = best_model.vq
-    best_enc.save(run_dir / "encoder.keras")
-    best_dec.save(run_dir / "decoder.keras")
-    model.save_weights(run_dir / "model.weights.h5")
-    rvq_weights = best_rvq.get_weights()
-    np.savez(run_dir / "rvq_weights.npz", *rvq_weights)
-
-    # Evaluation
-    eval_results = run_evaluation(
-        cfg, model=best_model, val_ds=val_ds, run_dir=run_dir,
-        validation_steps=validation_steps,
-    )
-
-    # Metrics summary
-    history_dict = history.history
-    selection_metric = cfg.training.selection_metric
-    if selection_metric not in history_dict:
-        logger.warning("Selection metric '%s' not in history, falling back to 'val_loss'.", selection_metric)
-        selection_metric = "val_loss"
-    metric_series = np.asarray(history_dict[selection_metric], dtype=np.float64)
-    best_idx = int(np.argmin(metric_series))
-    best_epoch = best_idx + 1
-
-    best_metrics = {
-        key: float(values[best_idx])
-        for key, values in history_dict.items()
-        if isinstance(values, list) and len(values) > best_idx
-    }
-    final_metrics = {
-        "final_loss": float(history_dict["loss"][-1]),
-        "final_val_loss": float(history_dict["val_loss"][-1]),
-        "final_val_mse": float(history_dict.get("val_mse", [0])[-1]),
-    }
-
+def build_compression_stats(cfg: PpgRvqConfig) -> dict[str, Any]:
+    """Compute the compression ratio / bit budget for *cfg*."""
+    data = cfg.data
+    mcfg = cfg.model
     downsample_factor = 2 ** mcfg.num_stages
-    compression = compute_compression_stats(
-        data.frame_size, bit_depth=cfg.evaluation.input_bit_depth,
-        latent_width=mcfg.latent_width, num_levels=mcfg.num_levels,
+    stats = compute_compression_stats(
+        data.frame_size,
+        bit_depth=cfg.evaluation.input_bit_depth,
+        latent_width=mcfg.latent_width,
+        num_levels=mcfg.num_levels,
         downsample_factor=downsample_factor,
+        codebook_sizes=mcfg.codebook_sizes,
     )
-    compression["configured_num_stages"] = mcfg.num_stages
-    compression["effective_downsample_factor"] = downsample_factor
+    stats["configured_num_stages"] = mcfg.num_stages
+    stats["effective_downsample_factor"] = downsample_factor
+    return stats
 
-    # TFLite export
-    rep_batches_limit = max(1, cfg.evaluation.tflite_rep_batches)
-    rep_batches: list[np.ndarray] = []
-    for batch, _ in val_ds.take(rep_batches_limit):
-        rep_batches.append(batch.numpy())
-    rep_dataset = np.concatenate(rep_batches, axis=0) if rep_batches else eval_results["sample_inputs"].astype(np.float32)
-    export_encoder_tflite(best_enc, rep_dataset=rep_dataset, output_dir=run_dir)
 
-    # Build summary
+def assemble_summary(
+    cfg: PpgRvqConfig,
+    *,
+    cfg_dump: dict[str, Any],
+    history: dict[str, list[float]],
+    eval_results: dict[str, Any],
+    ds_info: dict[str, Any],
+    compression: dict[str, Any],
+    deploy_artifacts: dict[str, Any],
+    model_artifacts: dict[str, str],
+    best_epoch: int,
+    best_metrics: dict[str, float],
+    final_metrics: dict[str, float],
+    selection_metric: str,
+    validation_steps: int | None,
+) -> dict[str, Any]:
+    """Build the run-summary dictionary that gets serialized to ``summary.json``."""
     summary: dict[str, Any] = {
         "config": cfg_dump,
         "metrics": {
-            "history": history_dict,
+            "history": history,
             "selection_metric": selection_metric,
             "best_epoch": best_epoch,
             "best": best_metrics,
             "final": final_metrics,
             "dataset_mode": ds_info["mode"],
-            "synthetic_mix_num_added": ds_info["synthetic_added"],
-            "synthetic_mix_fraction_effective": ds_info["synthetic_fraction_effective"],
-            "cache_dir": ds_info["cache_dir"],
+            "synthetic_mix_num_added": ds_info.get("synthetic_added", 0),
+            "synthetic_mix_fraction_effective": ds_info.get("synthetic_fraction_effective", 0.0),
+            "cache_dir": ds_info.get("cache_dir"),
             "validation_steps": validation_steps,
         },
         "compression": compression,
         "samples": eval_results["samples"],
-        "artifacts": {
-            "model": "model.keras",
-            "encoder": "encoder.keras",
-            "decoder": "decoder.keras",
-            "best_model": best_ckpt_path.name,
-            "rvq_weights": "rvq_weights.npz",
-            "encoder_tflite": "encoder.tflite",
-            "encoder_header": "encoder.h",
-        },
+        "artifacts": {**model_artifacts, "deploy": deploy_artifacts},
     }
 
-    # Add band / physiokit metrics to summary
     band_cfg = cfg.evaluation.band_metrics
     if band_cfg.enabled and eval_results["band_metrics"] is not None:
         bm = eval_results["band_metrics"]
@@ -625,48 +726,27 @@ def train(cfg: PpgRvqConfig) -> dict[str, Any]:
             "band_prd_percent": bm["prd_percent"],
             "band_cosine_similarity": bm["cosine_similarity"],
         }
+
     physio_cfg = cfg.evaluation.physiokit_metrics
     if physio_cfg.enabled and eval_results["physiokit_metrics"] is not None:
         summary["metrics"]["physiokit_metrics_config"] = physio_cfg.model_dump()
         summary["metrics"]["best_physiokit"] = eval_results["physiokit_metrics"]
 
-    summary_path = run_dir / "summary.json"
-    with summary_path.open("w") as f:
-        json.dump(summary, f, indent=2)
-    logger.info(
-        "Best epoch by %s: %d (value=%.6f)",
-        selection_metric, best_epoch, best_metrics[selection_metric],
-    )
-
-    # Finalize W&B
-    finalize_wandb_run(
-        run=wandb_run, summary=summary, run_dir=run_dir,
-        artifact_summary_only=cfg.output.wandb.artifact_summary_only,
-    )
+    long_cfg = cfg.evaluation.long_recording
+    if long_cfg.enabled and eval_results["long_recording_metrics"] is not None:
+        summary["metrics"]["long_recording_config"] = long_cfg.model_dump()
+        summary["metrics"]["long_recording_physiokit"] = eval_results["long_recording_metrics"]
 
     return summary
 
 
-# ---------------------------------------------------------------------------
-# Logger setup
-# ---------------------------------------------------------------------------
-
-def _setup_logger(run_dir: Path, log_file: str | None) -> None:
-    """Configure file and stream handlers for the module logger."""
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    if not logger.handlers:
-        sh = logging.StreamHandler()
-        sh.setFormatter(formatter)
-        logger.addHandler(sh)
-    if log_file:
-        log_path = Path(log_file)
-        if not log_path.is_absolute():
-            log_path = run_dir / log_path
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        fh = logging.FileHandler(log_path, mode="a")
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-
-
-__all__ = ["build_datasets", "build_learning_rate", "train"]
+__all__ = [
+    "assemble_summary",
+    "build_compression_stats",
+    "build_datasets",
+    "build_extra_losses",
+    "build_learning_rate",
+    "build_model",
+    "compile_model",
+    "run_evaluation",
+]

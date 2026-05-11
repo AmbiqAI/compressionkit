@@ -1,0 +1,73 @@
+# Canonical-h5 PPG RVQ baseline.
+# Mixes BIDMC, BUT-PPG, PPG-DaLiA, and WESAD.
+run_name: ppg_h5_rvq_4x_baseline
+
+data:
+  root: /home/vscode/datasets
+  sources:
+    - slug: bidmc
+    - slug: butppg
+      butppg_quality_only: true
+    - slug: ppg_dalia
+    - slug: wesad
+  target_fs: 64
+  window_seconds: 4.0
+  hop_seconds: null            # non-overlapping
+  batch_size: 64
+  shuffle_buffer: 4096
+  steps_per_epoch: 200
+  epochs: 30
+  normalize: true
+  sanitize:
+    enabled: true
+    min_std: 1.0e-4
+    max_saturation_frac: 0.10
+    max_abs_z: 8.0
+    max_outlier_frac: 0.02
+  split:
+    train_frac: 0.8
+    val_frac: 0.1
+    seed: 1337
+
+model:
+  embedding_dim: 8
+  latent_width: 256            # 8 bits/index
+  num_levels: 2                # 2 RVQ stages
+  num_stages: 2                # 4× temporal downsample → 64 latent positions
+  base_filters: 16
+  multiplier: 1.25
+  beta: 0.25
+  encoder_block_norm: batch
+  encoder_head_norm: none
+  decoder_block_norm: none
+  decoder_head_norm: layer
+  use_ema: true
+  ema_decay: 0.99
+
+training:
+  learning_rate: 1.0e-3
+  lr_schedule:
+    enabled: false
+  selection_metric: val_mse
+  val_metric: mse
+  val_mode: min
+  early_stop_patience: 8
+  reduce_lr_on_plateau: true
+  reduce_lr_factor: 0.5
+  reduce_lr_patience: 4
+  reduce_lr_min_lr: 1.0e-5
+  derivative_loss:
+    enabled: false
+  spectral_loss:
+    enabled: false
+  validation_steps: 100
+
+evaluation:
+  num_samples: 200
+  num_plot_samples: 10
+  input_bit_depth: 16
+
+output:
+  results_root: results
+  log_file: train.log
+  tensorboard: true

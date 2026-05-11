@@ -6,16 +6,25 @@ icon: lucide/monitor-play
 
 The compressionKIT PPG Codec Demo shows what the codec looks like when it is used as part of a complete product evaluation workflow. It combines trained RVQ models, Ambiq hardware integration, browser-based visualization, and live quality metrics in a single interface.
 
-<div class="ck-callout-grid" markdown="1">
+<div class="grid cards" markdown>
 
-- **Live demo**
-  [Open the browser demo](https://ambiqai.github.io/compressionkit-demo/)
+-   :material-monitor-dashboard:{ .lg .middle } **Live demo**
 
-- **Primary signal**
-  64 Hz PPG in fixed 4 second processing windows
+    ---
 
-- **Operating points**
-  2×, 4×, 8×, and 16× compression options
+    [Open the browser demo](https://ambiqai.github.io/compressionkit-demo/)
+
+-   :material-heart-pulse:{ .lg .middle } **Primary signal**
+
+    ---
+
+    64 Hz PPG in fixed 4-second processing windows
+
+-   :material-compress:{ .lg .middle } **Operating points**
+
+    ---
+
+    2×, 4×, 8×, and 16× compression options
 
 </div>
 

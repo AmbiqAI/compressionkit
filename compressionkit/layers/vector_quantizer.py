@@ -1,5 +1,6 @@
 import keras
 
+
 class VectorQuantizer(keras.layers.Layer):
     """
     Vector-quantization bottleneck (VQ-VAE style) with straight-through estimator.

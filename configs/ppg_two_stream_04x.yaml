@@ -1,0 +1,114 @@
+# Two-stream PPG codec — ~4× combined compression
+# Higher fidelity, lower compression
+
+run_name: ppg_two_stream_04x
+
+data:
+  datasets_dir: /home/vscode/datasets
+  dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
+  sampling_rate: 64
+  frame_size: 320
+  segment_samples: 640
+  offset_samples: 192
+  target_label: Pleth
+  batch_size: 64
+  buffer_size: 10000
+  steps_per_epoch: 50
+  epochs: 400
+  shuffle_seed: 42
+  gaussian_noise: [0.005, 0.05]
+  decompose:
+    baseline_cutoff_hz: 0.5
+    filter_order: 3
+    epsilon: 1.0e-6
+  cache_enabled: true
+  cache_root: datasets/ppg_tfrecord_cache
+  windows_per_subject_train: 512
+  windows_per_subject_val: 512
+  train_ratio: 0.8
+  val_ratio: 0.2
+
+# Baseline: boosted codec (still cheap at 80 bits/frame)
+baseline_model:
+  downsample_factor: 16
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 2
+  base_filters: 32
+  multiplier: 1.25
+  beta: 0.25
+  use_ema: true
+  ema_decay: 0.99
+  encoder_block_norm: batch
+  decoder_block_norm: none
+  decoder_head_norm: layer
+
+# Pulsatile: 4x (ds4, l2, k256) — less aggressive
+pulsatile_model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 2
+  base_filters: 64
+  multiplier: 1.25
+  beta: 0.25
+  use_ema: true
+  ema_decay: 0.99
+  encoder_block_norm: batch
+  encoder_head_norm: none
+  decoder_block_norm: none
+  decoder_head_norm: layer
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 2000
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  derivative_loss:
+    enabled: true
+    weight: 0.1
+  filtered_loss:
+    enabled: true
+    weight: 1.0
+    cutoff_hz: 8.0
+    num_taps: 65
+  baseline_loss_weight: 1.0
+  pulsatile_loss_weight: 1.0
+  early_stop_patience: 100
+  reduce_lr_on_plateau: true
+  selection_metric: val_loss
+
+evaluation:
+  num_samples: 200
+  num_plot_samples: 20
+  input_bit_depth: 16
+  physiokit_metrics:
+    enabled: true
+    low_hz: 0.5
+    high_hz: 8.0
+    order: 3
+    min_peaks: 5
+  spectral_metrics:
+    enabled: true
+    bands:
+      - [0.0, 0.5]
+      - [0.5, 2.0]
+      - [2.0, 4.0]
+      - [4.0, 8.0]
+      - [8.0, 32.0]
+  stitching:
+    enabled: true
+    methods: [hard_concat, overlap_add, linear_crossfade]
+    hop_ratio: 0.5
+    duration_sec: 60.0
+    num_recordings: 50
+    batch_size: 32
+
+output:
+  results_root: results
+  tensorboard: true

@@ -1,12 +1,12 @@
 [project]
 name = "compression-kit"
 version = "0.1.0"
-description = "AI-powered compression toolkit focused for edge, IoT applications."
+description = "AI-powered compression toolkit for physiological signals targeting edge and wearable devices."
 authors = [
     {name = "Ambiq AI", email = "support.aitg@ambiq.com"},
 ]
 readme = "README.md"
-
+license = {text = "Proprietary"}
 requires-python = ">=3.12,<3.13"
 
 dependencies = [
@@ -25,11 +25,25 @@ dependencies = [
     "pydantic>=2.12.4",
     "ai-edge-litert>=2.1.2",
     "wandb>=0.17",
-    "helia-edge @ git+https://github.com/AmbiqAI/helia-edge@main",
+    "helia-edge>=0.6.0",
+    "plotly>=6.6.0",
+    "mkdocs-plotly-plugin>=0.1.3",
 ]
 
-
 [dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "pre-commit>=3.7",
+]
+ingest = [
+    # Used by scripts/datasets/* to fetch + convert public datasets into the
+    # canonical h5 layout. Not required at training/inference time.
+    "wfdb>=4.1",
+    "requests>=2.32",
+    "tqdm>=4.66",
+]
 docs = [
     "zensical>=0.0.31",
     "mkdocs-material>=9.6.0",
@@ -46,21 +60,94 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 include-package-data = true
 
-[project.scripts]
-train-ppg-rvq = "compressionkit.cli.train_ppg_rvq:main"
-
 [tool.setuptools.packages.find]
-where  = ["."]
+where = ["."]
 include = ["compressionkit", "compressionkit.*"]
 
-[tool.ruff]
-line-length = 120
-
-[tool.ruff.lint]
-ignore = []
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
+[project.scripts]
+compressionkit = "compressionkit.recipes:dispatch"
+train-ecg-rvq = "compressionkit.recipes.train_ecg_rvq:main"
+train-ppg-rvq = "compressionkit.recipes.train_ppg_rvq:main"
 
 [tool.uv]
 package = true
+
+# ───────────────────────────────────────────────────────────────
+# Ruff — linter + formatter
+# ───────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["legacy", "site", "slides", ".venv", "results"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",   # line-too-long (formatter handles)
+    "E741",   # ambiguous-variable-name (l, I etc. in legacy code)
+    "B008",   # function-call-in-default-argument (common in Keras configs)
+    "B905",   # zip-without-explicit-strict (noisy; default strict=False is fine)
+    "SIM108", # ternary instead of if/else (readability preference)
+    "SIM117", # multiple-with-statements (readability preference)
+    "RUF001", # ambiguous-unicode-character-string (we use ×, – intentionally)
+    "RUF002", # ambiguous-unicode-character-docstring
+    "RUF003", # ambiguous-unicode-character-comment
+    "RUF059", # unused-unpacked-variable (common in tensor shape unpacking)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"scripts/**" = ["E402"]
+"tests/**" = ["B011"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["compressionkit"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ───────────────────────────────────────────────────────────────
+# Pytest
+# ───────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+markers = [
+    "slow: tests that are slow to run (e.g., real training runs)",
+    "gpu: tests that require a GPU",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:tensorflow.*",
+    "ignore::DeprecationWarning:keras.*",
+]
+
+# ───────────────────────────────────────────────────────────────
+# Coverage
+# ───────────────────────────────────────────────────────────────
+[tool.coverage.run]
+source = ["compressionkit"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

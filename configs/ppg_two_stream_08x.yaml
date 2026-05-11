@@ -1,0 +1,126 @@
+# Two-stream PPG codec — ~8× combined compression
+# Baseline (trend) channel: tiny codec, very high CR
+# Pulsatile (residual) channel: standard RVQ, preserves pulse morphology
+#
+# Designed to fix stitching issues in the single-stream golden pipeline
+# by separating the smooth drift from the bounded pulsatile signal.
+
+run_name: ppg_two_stream_08x
+
+data:
+  datasets_dir: /home/vscode/datasets
+  dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
+  sampling_rate: 64
+  frame_size: 320
+  segment_samples: 640
+  offset_samples: 192
+  target_label: Pleth
+  batch_size: 64
+  buffer_size: 10000
+  steps_per_epoch: 50
+  epochs: 200
+  shuffle_seed: 42
+  gaussian_noise: [0.01, 0.1]
+  decompose:
+    baseline_cutoff_hz: 0.5
+    filter_order: 3
+    epsilon: 1.0e-6
+  cache_enabled: true
+  cache_root: datasets/ppg_tfrecord_cache
+  windows_per_subject_train: 512
+  windows_per_subject_val: 512
+  train_ratio: 0.8
+  val_ratio: 0.2
+
+# Baseline stream: boosted codec (80 bits/frame vs 30 before)
+baseline_model:
+  downsample_factor: 16
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 2
+  base_filters: 32
+  multiplier: 1.25
+  beta: 0.25
+  use_ema: true
+  ema_decay: 0.99
+  encoder_block_norm: batch
+  decoder_block_norm: none
+  decoder_head_norm: layer
+
+# Pulsatile stream: standard 8x (ds8, l2, k256)
+# Same architecture as ppg_rvq_64hz_08x_golden but with cleaner input
+pulsatile_model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 3
+  base_filters: 64
+  multiplier: 1.25
+  beta: 0.25
+  use_ema: true
+  ema_decay: 0.99
+  encoder_block_norm: batch
+  encoder_head_norm: none
+  decoder_block_norm: none
+  decoder_head_norm: layer
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 200
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  derivative_loss:
+    enabled: true
+    weight: 0.1
+  filtered_loss:
+    enabled: true
+    weight: 1.0
+    cutoff_hz: 8.0
+    num_taps: 65
+  spectral_loss:
+    enabled: false
+  baseline_loss_weight: 1.0
+  pulsatile_loss_weight: 1.0
+  val_metric: mse
+  val_mode: min
+  early_stop_patience: 50
+  reduce_lr_on_plateau: true
+  reduce_lr_factor: 0.5
+  reduce_lr_patience: 8
+  reduce_lr_min_lr: 1.0e-5
+  selection_metric: val_loss
+
+evaluation:
+  num_samples: 200
+  num_plot_samples: 20
+  input_bit_depth: 16
+  physiokit_metrics:
+    enabled: true
+    low_hz: 0.5
+    high_hz: 8.0
+    order: 3
+    min_peaks: 5
+  spectral_metrics:
+    enabled: true
+    bands:
+      - [0.0, 0.5]
+      - [0.5, 2.0]
+      - [2.0, 4.0]
+      - [4.0, 8.0]
+      - [8.0, 32.0]
+  stitching:
+    enabled: true
+    methods: [hard_concat, overlap_add, linear_crossfade]
+    hop_ratio: 0.5
+    duration_sec: 60.0
+    num_recordings: 50
+    batch_size: 32
+
+output:
+  results_root: results
+  tensorboard: true

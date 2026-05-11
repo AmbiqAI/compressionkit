@@ -1,0 +1,71 @@
+# 256 Hz CR sweep: 4× compression (ds=8, levels=4, eff=64 Hz)
+# EMA codebook: filtered loss + CB512 + 200 epochs + EMA decay 0.99
+run_name: ecg_rvq_256hz_04x_ds8_l4_ema_deep
+
+data:
+  datasets_dir: datasets
+  dataset_glob: ptbxl/*.h5
+  sampling_rate: 500
+  target_sample_rate: 256
+  frame_size: 512
+  segment_samples: 768
+  lead_index: 1
+  batch_size: 64
+  buffer_size: 20000
+  steps_per_epoch: 200
+  epochs: 200
+  epsilon: 0.001
+  gaussian_noise: [0.01, 0.1]
+  shuffle_seed: 42
+  cache:
+    enabled: true
+    cache_root: datasets/ecg_tfrecord_cache
+    auto_build: true
+    force_rebuild: false
+    min_segment_scale: 1.2
+    windows_per_subject_train: 32
+    windows_per_subject_val: 8
+    train_ratio: 0.8
+    val_ratio: 0.2
+
+model:
+  embedding_dim: 16
+  latent_width: 512
+  num_levels: 4
+  num_stages: 3       # 2^3 = 8x downsample, 4 levels -> 4x CR
+  base_filters: 32
+  multiplier: 1.25
+  beta: 0.25
+  use_ema: true
+  ema_decay: 0.99
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 200
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  val_metric: mse
+  val_mode: min
+  early_stop_patience: 50
+  reduce_lr_on_plateau: false
+  selection_metric: val_mse
+  validation_steps: 16
+  derivative_loss:
+    enabled: true
+    weight: 0.1
+  filtered_loss:
+    enabled: true
+    weight: 1.0
+    cutoff_hz: 35.0
+    num_taps: 65
+
+evaluation:
+  num_samples: 50
+  input_bit_depth: 16
+
+output:
+  results_root: results

@@ -13,29 +13,26 @@ compressionKIT is designed for **physiological signal compression** — signals 
 
 ## Currently Supported
 
-| Signal | Module | Sampling Rate | Frame Size | Notes |
-|--------|--------|---------------|------------|-------|
-| [PPG](ppg.md) | `compressionkit.datasets.ppg` | 64 Hz | 320 (5s) | Production-ready with documented workflow, v1 examples, and demo |
-| [ECG](ecg.md) | TODO | 250–500 Hz | 2048 | Modular migration planned |
+| Signal | Module | Sampling Rate | Frame Size | Status |
+|--------|--------|---------------|------------|--------|
+| [PPG](ppg.md) | `compressionkit.datasets.mesa` | 64 Hz | 320 (5 s) | Production — [golden models](../models/ppg.md) |
+| [ECG](ecg.md) | `compressionkit.datasets.ptbxl` | 256 Hz | 512 (2 s) | Production — [golden models](../models/ecg.md) |
 
 ## PPG Section
 
-These pages belong specifically to the PPG signal path:
-
-If you are starting with the current production flow, use the PPG pages in this order:
+These pages cover the PPG signal path:
 
 1. [PPG](ppg.md) for signal context and preprocessing details.
 2. [PPG Workflow](ppg-workflow.md) for the end-to-end supported task.
-3. [PPG 2x-16x Examples](ppg-v1-examples.md) for the four reference operating points.
+3. [PPG Models (v1.0)](../models/ppg.md) for the five golden reference operating points.
 4. [PPG Codec Demo](../demo/ppg-codec.md) for the customer-facing browser and hardware experience.
 
 ## ECG Section
 
-These pages belong specifically to the ECG signal path:
+These pages cover the ECG signal path:
 
-1. [ECG](ecg.md) for the current status, prior experiment context, and planned migration work.
-
-ECG does not yet have workflow, examples, or demo pages matching the current PPG documentation depth.
+1. [ECG](ecg.md) for signal context and preprocessing details.
+2. [ECG Models (v1.0)](../models/ecg.md) for the five golden reference operating points.
 
 ## Signal Properties Comparison
 

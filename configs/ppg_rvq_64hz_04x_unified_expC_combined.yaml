@@ -1,0 +1,94 @@
+# Experiment C: Combined codebook improvements + augmentation
+# Baseline: ppg_rvq_64hz_04x_unified_all.yaml
+# Changes: revive_dead_codes + kmeans_init + Tier-1 denoising augmentation
+#
+# Train:
+#   .venv/bin/python -c "
+#   from compressionkit.configs.ppg_rvq import PpgRvqConfig
+#   from compressionkit.recipes.train_ppg_rvq import train
+#   cfg = PpgRvqConfig.from_yaml('configs/ppg_rvq_64hz_04x_unified_expC_combined.yaml')
+#   train(cfg)
+#   "
+
+run_name: ppg_rvq_64hz_04x_unified_expC_combined
+
+data:
+  sampling_rate: 64
+  frame_size: 320
+  batch_size: 64
+  buffer_size: 10000
+  steps_per_epoch: 250
+  epochs: 100
+  epsilon: 0.001
+
+  unified_cache:
+    enabled: true
+    cache_root: datasets/ppg_cache
+    shuffle_buffer: 10000
+    sources:
+      - slug: mesa
+        weight: 0.4
+      - slug: ppg_dalia
+        weight: 0.2
+      - slug: wesad
+        weight: 0.2
+      - slug: bidmc
+        weight: 0.1
+      - slug: butppg
+        weight: 0.1
+
+  augmentation:
+    enabled: true
+    baseline_wander_prob: 0.0
+    motion_artifact_prob: 0.2
+    motion_snr_range: [12.0, 25.0]
+    beat_scale_prob: 0.2
+    time_warp_prob: 0.0
+    empirical_noise_prob: 0.4
+    empirical_snr_range: [10.0, 25.0]
+    noise_bank_sources: [ppg_dalia, wesad]
+    noise_bank_max_segments: 2000
+    noise_bank_root: /home/vscode/datasets
+
+model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 2
+  base_filters: 48
+  multiplier: 1.25
+  encoder_block_norm: batch
+  decoder_head_norm: layer
+  use_ema: true
+  # --- Codebook improvements (Experiment A) ---
+  revive_dead_codes: true
+  revive_threshold: 0.03
+  kmeans_init: true
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 5000
+    t_mul: 2.0
+    alpha: 0.01
+  derivative_loss:
+    enabled: true
+    weight: 0.1
+  spectral_loss:
+    enabled: true
+    weight: 0.5
+    fft_sizes: [16, 32, 64, 128]
+  early_stop_patience: 25
+  reduce_lr_on_plateau: false
+
+evaluation:
+  num_samples: 500
+  num_plot_samples: 20
+  band_metrics:
+    enabled: true
+    low_hz: 0.5
+    high_hz: 8.0
+  physiokit_metrics:
+    enabled: true

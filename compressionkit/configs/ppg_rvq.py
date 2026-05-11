@@ -50,6 +50,68 @@ class FilterConfig(BaseModel):
     order: int = 3
 
 
+class TransformConfig(BaseModel):
+    """Signal transform domain for compression input.
+
+    When ``domain`` is ``"raw"`` (default), the autoencoder operates on
+    the raw time-domain signal.  ``"dwt"`` applies a multi-level discrete
+    wavelet transform so the model compresses packed wavelet coefficients.
+    """
+
+    domain: str = Field(default="raw", description="Transform domain: 'raw' or 'dwt'.")
+    dwt_levels: int = Field(default=4, description="Number of DWT decomposition levels.")
+    dwt_wavelet: str = Field(default="db4", description="Wavelet name for DWT: haar, db4.")
+
+
+class AugmentationConfig(BaseModel):
+    """Tier-1 PPG augmentation settings for cross-domain robustness."""
+
+    enabled: bool = False
+    baseline_wander_prob: float = 0.3
+    motion_artifact_prob: float = 0.3
+    motion_snr_range: tuple[float, float] = Field(
+        default=(12.0, 25.0),
+        description="SNR range in dB for synthetic motion artifact injection.",
+    )
+    beat_scale_prob: float = 0.2
+    time_warp_prob: float = 0.2
+    empirical_noise_prob: float = 0.3
+    empirical_snr_range: tuple[float, float] = Field(
+        default=(10.0, 25.0),
+        description="SNR range in dB for empirical noise injection.",
+    )
+    noise_bank_sources: list[str] = Field(
+        default_factory=lambda: ["ppg_dalia", "wesad"],
+        description="H5 dataset slugs to build noise bank from.",
+    )
+    noise_bank_max_segments: int = 2000
+    noise_bank_root: str = "/home/vscode/datasets"
+
+
+class UnifiedSourceConfig(BaseModel):
+    """One source in a unified multi-source training mix."""
+
+    slug: str
+    weight: float | None = Field(
+        default=None,
+        description="Sampling weight. None = proportional to window count.",
+    )
+
+
+class UnifiedCacheConfig(BaseModel):
+    """Config for unified per-source TFRecord cache dataset mode.
+
+    When enabled, training data is loaded from pre-built per-source
+    TFRecord caches via ``scripts/build_ppg_cache.py``.  Multiple
+    sources can be combined with optional per-source sampling weights.
+    """
+
+    enabled: bool = False
+    cache_root: str = "datasets/ppg_cache"
+    sources: list[UnifiedSourceConfig] = Field(default_factory=list)
+    shuffle_buffer: int = 10_000
+
+
 class DataConfig(BaseModel):
     """Data loading and preprocessing configuration."""
 
@@ -69,9 +131,12 @@ class DataConfig(BaseModel):
     shuffle_seed: int = 42
     streaming: StreamingConfig = Field(default_factory=StreamingConfig)
     cache: CacheConfig = Field(default_factory=CacheConfig)
+    unified_cache: UnifiedCacheConfig = Field(default_factory=UnifiedCacheConfig)
     synthetic_mix: SyntheticMixConfig = Field(default_factory=SyntheticMixConfig)
     input_filter: FilterConfig = Field(default_factory=FilterConfig)
     target_filter: FilterConfig = Field(default_factory=FilterConfig)
+    transform: TransformConfig = Field(default_factory=TransformConfig)
+    augmentation: AugmentationConfig = Field(default_factory=AugmentationConfig)
 
 
 class ModelConfig(BaseModel):
@@ -79,6 +144,15 @@ class ModelConfig(BaseModel):
 
     embedding_dim: int = 16
     latent_width: int = 128
+    codebook_sizes: list[int] | None = Field(
+        default=None,
+        description=(
+            "Per-level codebook sizes for hierarchical / multi-rate RVQ. "
+            "Length must equal num_levels. When set, overrides latent_width "
+            "for the RVQ bottleneck (e.g. [512, 256, 128, 64] gives a "
+            "coarse-to-fine hierarchy). When None, all levels use latent_width."
+        ),
+    )
     num_levels: int = 2
     num_stages: int = 4
     base_filters: int = 32
@@ -88,6 +162,26 @@ class ModelConfig(BaseModel):
     encoder_head_norm: str = "none"
     decoder_block_norm: str = "none"
     decoder_head_norm: str = "layer"
+    use_ema: bool = False
+    ema_decay: float = 0.99
+    revive_dead_codes: bool = Field(
+        default=False,
+        description="Enable EnCodec/DAC-style dead-code revival in EMA RVQ.",
+    )
+    revive_threshold: float = Field(
+        default=0.03,
+        description=(
+            "Codes whose normalized usage falls below revive_threshold/K are "
+            "resampled from the current batch."
+        ),
+    )
+    kmeans_init: bool = Field(
+        default=False,
+        description=(
+            "Mini-batch k-means warm-start of the EMA RVQ codebooks before "
+            "training. Run once eagerly via the trainer."
+        ),
+    )
 
 
 class LrScheduleConfig(BaseModel):
@@ -101,11 +195,32 @@ class LrScheduleConfig(BaseModel):
     alpha: float = 1e-2
 
 
+class DerivativeLossConfig(BaseModel):
+    """First-derivative (smoothness) penalty on reconstruction."""
+
+    enabled: bool = False
+    weight: float = 0.1
+
+
+class SpectralLossConfig(BaseModel):
+    """Multi-scale spectral loss for frequency-domain reconstruction quality.
+
+    Computes STFT at multiple FFT sizes and penalises differences in both
+    spectral convergence (Frobenius norm ratio) and log-magnitude L1.
+    """
+
+    enabled: bool = False
+    weight: float = 1.0
+    fft_sizes: list[int] = Field(default_factory=lambda: [16, 32, 64, 128])
+
+
 class TrainingConfig(BaseModel):
     """Training hyperparameters and schedule configuration."""
 
     learning_rate: float = 1e-3
     lr_schedule: LrScheduleConfig = Field(default_factory=LrScheduleConfig)
+    derivative_loss: DerivativeLossConfig = Field(default_factory=DerivativeLossConfig)
+    spectral_loss: SpectralLossConfig = Field(default_factory=SpectralLossConfig)
     val_metric: str = "mse"
     val_mode: str = "min"
     early_stop_patience: int = 25
@@ -136,14 +251,28 @@ class PhysiokitMetricsConfig(BaseModel):
     min_peaks: int = 5
 
 
+class LongRecordingEvalConfig(BaseModel):
+    """Long-recording overlap-add evaluation for clinically meaningful HR/HRV."""
+
+    enabled: bool = False
+    duration_sec: float = 30.0
+    hop_ratio: float = 0.5
+    num_recordings: int = 10
+    batch_size: int = 32
+
+
 class EvaluationConfig(BaseModel):
     """Post-training evaluation configuration."""
 
-    num_samples: int = 20
+    num_samples: int = 1000
+    """How many random validation samples to evaluate (CSV + metrics)."""
+    num_plot_samples: int = 50
+    """Subset of ``num_samples`` that also receive a PNG plot artifact."""
     tflite_rep_batches: int = 8
     input_bit_depth: int = 16
     band_metrics: BandMetricsConfig = Field(default_factory=BandMetricsConfig)
     physiokit_metrics: PhysiokitMetricsConfig = Field(default_factory=PhysiokitMetricsConfig)
+    long_recording: LongRecordingEvalConfig = Field(default_factory=LongRecordingEvalConfig)
 
 
 class WandbConfig(BaseModel):
@@ -182,8 +311,9 @@ class PpgRvqConfig(BaseModel):
     @classmethod
     def from_yaml(cls, path: str) -> PpgRvqConfig:
         """Load config from a YAML file, merged with defaults."""
-        import yaml
         from pathlib import Path as _Path
+
+        import yaml
 
         with _Path(path).open("r") as f:
             user_cfg = yaml.safe_load(f) or {}

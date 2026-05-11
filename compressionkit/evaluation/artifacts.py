@@ -21,6 +21,7 @@ def save_sample_artifacts(
     band_original: np.ndarray | None = None,
     band_reconstructed: np.ndarray | None = None,
     physiokit_metrics: dict[str, Any] | None = None,
+    save_plot: bool = True,
 ) -> dict[str, Any]:
     """Save per-sample CSV, plot, and compute metrics for one evaluation sample.
 
@@ -33,9 +34,13 @@ def save_sample_artifacts(
         band_original: Optional band-filtered original for band metrics.
         band_reconstructed: Optional band-filtered reconstruction.
         physiokit_metrics: Optional physiokit metrics dict for this sample.
+        save_plot: If False, skip matplotlib plot generation (CSV + metrics
+            are still written). Useful when you want many samples for metrics
+            but only a handful of visual artifacts.
 
     Returns:
-        Dictionary with paths and metric values.
+        Dictionary with paths and metric values. The ``plot`` key is omitted
+        when ``save_plot=False``.
     """
     orig_flat = original.reshape(-1)
     recon_flat = reconstructed.reshape(-1)
@@ -49,31 +54,34 @@ def save_sample_artifacts(
 
     metrics = compute_signal_metrics(orig_flat, recon_flat)
 
-    plots_dir = run_dir / "plots"
-    plots_dir.mkdir(exist_ok=True)
-    ts = np.arange(len(orig_flat)) / sampling_rate
-    fig, ax = plt.subplots(figsize=(8, 3))
-    ax.plot(ts, orig_flat, label="Original")
-    ax.plot(ts, recon_flat, label="Reconstruction", alpha=0.8)
-    ax.set_title(f"Sample {sample_id}")
-    ax.set_xlabel("Time (s)")
-    ax.set_ylabel("Amplitude")
-    ax.legend(loc="upper right")
-    ax.grid(alpha=0.3)
-    fig.tight_layout()
-    plot_path = plots_dir / f"sample_{sample_id:03d}.png"
-    fig.savefig(plot_path)
-    plt.close(fig)
+    plot_path: Path | None = None
+    if save_plot:
+        plots_dir = run_dir / "plots"
+        plots_dir.mkdir(exist_ok=True)
+        ts = np.arange(len(orig_flat)) / sampling_rate
+        fig, ax = plt.subplots(figsize=(8, 3))
+        ax.plot(ts, orig_flat, label="Original")
+        ax.plot(ts, recon_flat, label="Reconstruction", alpha=0.8)
+        ax.set_title(f"Sample {sample_id}")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Amplitude")
+        ax.legend(loc="upper right")
+        ax.grid(alpha=0.3)
+        fig.tight_layout()
+        plot_path = plots_dir / f"sample_{sample_id:03d}.png"
+        fig.savefig(plot_path)
+        plt.close(fig)
 
     results: dict[str, Any] = {
         "csv": str(csv_path.relative_to(run_dir)),
-        "plot": str(plot_path.relative_to(run_dir)),
         "metrics": {
             "mse": metrics["mse"],
             "mae": metrics["mae"],
             "cosine_similarity": metrics["cosine_similarity"],
         },
     }
+    if plot_path is not None:
+        results["plot"] = str(plot_path.relative_to(run_dir))
     if band_original is not None and band_reconstructed is not None:
         band_metrics = compute_signal_metrics(band_original, band_reconstructed)
         results["band_metrics"] = {

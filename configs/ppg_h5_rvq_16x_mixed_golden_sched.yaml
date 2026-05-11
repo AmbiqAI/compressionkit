@@ -1,0 +1,79 @@
+# Canonical-h5 PPG RVQ mixed-source comparison — 16x compression.
+# Matches the 64 Hz golden PPG training schedule while using BIDMC,
+# BUT-PPG, PPG-DaLiA, and WESAD with patient-disjoint splits and sanitization.
+run_name: ppg_h5_rvq_16x_mixed_golden_sched
+
+data:
+  root: /home/vscode/datasets
+  sources:
+    - slug: bidmc
+    - slug: butppg
+      butppg_quality_only: true
+    - slug: ppg_dalia
+    - slug: wesad
+  target_fs: 64
+  window_seconds: 5.0
+  hop_seconds: null
+  batch_size: 64
+  shuffle_buffer: 4096
+  steps_per_epoch: 50
+  epochs: 200
+  normalize: true
+  sanitize:
+    enabled: true
+    min_std: 1.0e-4
+    max_saturation_frac: 0.10
+    max_abs_z: 8.0
+    max_outlier_frac: 0.02
+  split:
+    train_frac: 0.8
+    val_frac: 0.1
+    seed: 1337
+
+model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 4
+  base_filters: 48
+  multiplier: 1.25
+  beta: 0.25
+  encoder_block_norm: batch
+  encoder_head_norm: none
+  decoder_block_norm: none
+  decoder_head_norm: layer
+  use_ema: true
+  ema_decay: 0.99
+
+training:
+  learning_rate: 1.0e-3
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 200
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  selection_metric: val_mse
+  val_metric: mse
+  val_mode: min
+  early_stop_patience: 50
+  reduce_lr_on_plateau: false
+  derivative_loss:
+    enabled: true
+    weight: 0.1
+  spectral_loss:
+    enabled: false
+    weight: 0.5
+    fft_sizes: [16, 32, 64, 128]
+  validation_steps: 8
+
+evaluation:
+  num_samples: 500
+  num_plot_samples: 10
+  input_bit_depth: 16
+
+output:
+  results_root: results
+  log_file: train.log
+  tensorboard: true

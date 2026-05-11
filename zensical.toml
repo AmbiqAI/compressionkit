@@ -8,14 +8,19 @@ copyright = "Copyright &copy; 2026 Ambiq AI"
 nav = [
   { "Overview" = [
     { "Home" = "index.md" },
+    { "Use Cases" = "use-cases.md" },
     { "Getting Started" = "getting-started.md" },
+  ]},
+  { "Models" = [
+    { "Model Zoo" = "models/index.md" },
+    { "PPG Models" = "models/ppg.md" },
+    { "ECG Models" = "models/ecg.md" },
   ]},
   { "Signals" = [
     { "Overview" = "signals/index.md" },
     { "PPG" = [
       { "Overview" = "signals/ppg.md" },
       { "Workflow" = "signals/ppg-workflow.md" },
-      { "2x-16x Examples" = "signals/ppg-v1-examples.md" },
     ]},
     { "ECG" = [
       { "Overview" = "signals/ecg.md" },
@@ -56,7 +61,7 @@ extra_javascript = [
 [project.theme]
 language = "en"
 logo = "assets/compressionkit-icon.png"
-favicon = "assets/favicon.png"
+favicon = "assets/compressionkit-icon.png"
 custom_dir = "docs/overrides"
 
 features = [

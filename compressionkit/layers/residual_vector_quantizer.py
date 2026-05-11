@@ -1,5 +1,6 @@
 import keras
 
+
 class ResidualVectorQuantizer(keras.layers.Layer):
     """
     Residual Vector Quantizer (RVQ) with straight-through estimator.
@@ -152,7 +153,7 @@ class ResidualVectorQuantizer(keras.layers.Layer):
         flat = keras.ops.reshape(x, (-1, self.D))
         residual = flat
         indices = []
-        for K, codebook in zip(self.Ks, self._codebooks):
+        for _K, codebook in zip(self.Ks, self._codebooks):
             idx, q_l = self._nearest(residual, codebook)
             indices.append(idx)
             residual = residual - q_l

@@ -1,5 +1,7 @@
 import keras
+
 from compressionkit.layers.gumbel_softmax_bottleneck import GumbelSoftmaxBottleneck
+
 
 class TemperatureAnneal(keras.callbacks.Callback):
     """

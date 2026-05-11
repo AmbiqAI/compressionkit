@@ -1,0 +1,29 @@
+# ECG wavelet DSP baseline — targeting 4× @ 256 Hz
+run_name: ecg_wavelet_256hz_04x
+
+data:
+  datasets_dir: datasets
+  dataset_glob: ptbxl/*.h5
+  sampling_rate: 500
+  target_sample_rate: 256
+  frame_size: 512
+  lead_index: 1
+  shuffle_seed: 42
+
+wavelet:
+  levels: 4
+  wavelet_name: db4
+  threshold_method: energy
+  threshold_mode: soft
+  input_bit_depth: 16
+
+calibration:
+  target_cr: 4.0
+  tolerance: 0.5
+
+evaluation:
+  num_samples: 500
+  num_calib: 200
+
+output:
+  results_root: results

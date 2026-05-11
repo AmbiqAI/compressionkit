@@ -1,5 +1,6 @@
 import keras
 
+
 class GumbelSoftmaxBottleneck(keras.layers.Layer):
     """
     Discrete bottleneck via Gumbel-Softmax (Concrete) with optional straight-through hard one-hot.

@@ -1,0 +1,115 @@
+# Two-stream PPG codec — ~16× combined compression
+# Multi-source training on all 5 datasets via unified cache
+
+run_name: ppg_two_stream_16x_unified_all
+
+data:
+  datasets_dir: /home/vscode/datasets
+  dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
+  sampling_rate: 64
+  frame_size: 320
+  segment_samples: 640
+  offset_samples: 192
+  target_label: Pleth
+  batch_size: 64
+  buffer_size: 10000
+  steps_per_epoch: 250
+  epochs: 200
+  shuffle_seed: 42
+  gaussian_noise: [0.005, 0.05]
+  decompose:
+    baseline_cutoff_hz: 0.5
+    filter_order: 3
+    epsilon: 1.0e-6
+  cache_enabled: false
+  unified_cache_enabled: true
+  unified_cache_root: /home/vscode/datasets/ppg_cache
+  max_train_windows: 200000
+  max_val_windows: 20000
+  unified_sources:
+    - slug: mesa
+      weight: 0.4
+    - slug: ppg_dalia
+      weight: 0.2
+    - slug: wesad
+      weight: 0.2
+    - slug: bidmc
+      weight: 0.1
+    - slug: butppg
+      weight: 0.1
+
+# Baseline: same as 4x
+baseline_model:
+  downsample_factor: 16
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 2
+  base_filters: 48
+  multiplier: 1.25
+  beta: 0.25
+  use_ema: true
+  ema_decay: 0.99
+  encoder_block_norm: batch
+  decoder_block_norm: none
+  decoder_head_norm: layer
+
+# Pulsatile: 16x (ds16, l2, k256) — most aggressive
+pulsatile_model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 4
+  base_filters: 64
+  multiplier: 1.25
+  beta: 0.25
+  use_ema: true
+  ema_decay: 0.99
+  encoder_block_norm: batch
+  encoder_head_norm: none
+  decoder_block_norm: none
+  decoder_head_norm: layer
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 5000
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  derivative_loss:
+    enabled: true
+    weight: 0.1
+  filtered_loss:
+    enabled: true
+    weight: 1.0
+    cutoff_hz: 8.0
+    num_taps: 65
+  baseline_loss_weight: 1.0
+  pulsatile_loss_weight: 1.0
+  early_stop_patience: 50
+  reduce_lr_on_plateau: true
+  selection_metric: val_loss
+
+evaluation:
+  num_samples: 200
+  num_plot_samples: 20
+  input_bit_depth: 16
+  physiokit_metrics:
+    enabled: true
+    low_hz: 0.5
+    high_hz: 8.0
+    order: 3
+    min_peaks: 5
+  spectral_metrics:
+    enabled: true
+    bands:
+      - [0.0, 0.5]
+      - [0.5, 2.0]
+      - [2.0, 4.0]
+      - [4.0, 8.0]
+      - [8.0, 32.0]
+  stitching:
+    enabled: false

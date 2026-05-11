@@ -1,0 +1,28 @@
+# ECG wavelet DSP baseline — targeting 8× compression
+run_name: ecg_wavelet_08x
+
+data:
+  datasets_dir: datasets
+  dataset_glob: ptbxl/*.h5
+  sampling_rate: 500
+  frame_size: 1024
+  lead_index: 1          # Lead II
+  shuffle_seed: 42
+
+wavelet:
+  levels: 4
+  wavelet_name: db4
+  threshold_method: energy
+  threshold_mode: soft
+  input_bit_depth: 16
+
+calibration:
+  target_cr: 8.0
+  tolerance: 1.0         # ±1× around target
+
+evaluation:
+  num_samples: 500
+  num_calib: 200
+
+output:
+  results_root: results

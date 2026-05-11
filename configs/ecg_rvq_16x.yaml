@@ -1,0 +1,59 @@
+# ECG RVQ config — 16× compression (ds16, l2) — PTB-XL single-lead
+run_name: ecg_rvq_16x_ds16_l2
+
+data:
+  datasets_dir: datasets
+  dataset_glob: ptbxl/*.h5
+  sampling_rate: 500
+  frame_size: 1024
+  segment_samples: 5000
+  lead_index: 1  # Lead II
+  batch_size: 64
+  buffer_size: 10000
+  steps_per_epoch: 100
+  epochs: 100
+  epsilon: 0.001
+  gaussian_noise: [0.01, 0.1]
+  shuffle_seed: 42
+  cache:
+    enabled: true
+    cache_root: datasets/ecg_tfrecord_cache
+    auto_build: true
+    force_rebuild: false
+    min_segment_scale: 1.2
+    windows_per_subject_train: 4
+    windows_per_subject_val: 4
+    train_ratio: 0.8
+    val_ratio: 0.2
+
+model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 4       # 2^4 = 16× downsampling
+  base_filters: 32
+  multiplier: 1.25
+  beta: 0.25
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 100
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  val_metric: mse
+  val_mode: min
+  early_stop_patience: 25
+  reduce_lr_on_plateau: false
+  selection_metric: val_mse
+  validation_steps: 8
+
+evaluation:
+  num_samples: 50
+  input_bit_depth: 16
+
+output:
+  results_root: results

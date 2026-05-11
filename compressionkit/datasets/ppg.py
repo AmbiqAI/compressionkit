@@ -9,15 +9,15 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import keras
 import numpy as np
 import physiokit as pk
 import pyedflib
 import tensorflow as tf
-
 
 # ---------------------------------------------------------------------------
 # Single-file loading
@@ -167,8 +167,8 @@ def _sample_ppg_window_from_edf(
         idx = labels.index(target_label)
         source_rate = float(reader.samplefrequency(idx))
         total_samples = int(reader.getNSamples()[idx])
-        src_window = max(1, int(math.ceil(window_samples * source_rate / float(target_rate))))
-        src_offset = max(0, int(math.ceil(offset_samples * source_rate / float(target_rate))))
+        src_window = max(1, math.ceil(window_samples * source_rate / float(target_rate)))
+        src_offset = max(0, math.ceil(offset_samples * source_rate / float(target_rate)))
 
         max_start = max(0, total_samples - src_window)
         if max_start <= src_offset:
@@ -283,11 +283,11 @@ def _build_ppg_cache_signature(
         "val_ratio": float(val_ratio),
         "windows_per_subject_train": int(windows_per_subject_train),
         "windows_per_subject_val": int(windows_per_subject_val),
-        "source_file_count": int(len(file_paths)),
+        "source_file_count": len(file_paths),
         "source_files": [str(p) for p in sorted(file_paths)],
     }
     signature_json = json.dumps(signature, sort_keys=True, separators=(",", ":"))
-    signature_hash = hashlib.sha1(signature_json.encode("utf-8")).hexdigest()[:12]  # noqa: S324
+    signature_hash = hashlib.sha1(signature_json.encode("utf-8")).hexdigest()[:12]
     return signature, signature_hash
 
 

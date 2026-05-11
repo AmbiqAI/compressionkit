@@ -1,0 +1,21 @@
+# ECG decimation baseline — 32× @ 256 Hz
+run_name: ecg_decimate_256hz_32x
+
+data:
+  datasets_dir: datasets
+  dataset_glob: ptbxl/*.h5
+  sampling_rate: 500
+  target_sample_rate: 256
+  frame_size: 512
+  lead_index: 1
+  shuffle_seed: 42
+
+decimation:
+  factor: 32
+  input_bit_depth: 16
+
+evaluation:
+  num_samples: 500
+
+output:
+  results_root: results

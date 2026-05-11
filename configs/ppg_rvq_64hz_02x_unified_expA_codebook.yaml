@@ -1,0 +1,73 @@
+# Experiment A: Codebook utilization improvements — 2× compression
+# Baseline: ppg_rvq_64hz_02x_unified_all.yaml
+# Changes: revive_dead_codes + kmeans_init to improve codebook utilization
+
+run_name: ppg_rvq_64hz_02x_unified_expA_codebook
+
+data:
+  sampling_rate: 64
+  frame_size: 320
+  batch_size: 64
+  buffer_size: 10000
+  steps_per_epoch: 250
+  epochs: 100
+  epsilon: 0.001
+
+  unified_cache:
+    enabled: true
+    cache_root: datasets/ppg_cache
+    shuffle_buffer: 10000
+    sources:
+      - slug: mesa
+        weight: 0.4
+      - slug: ppg_dalia
+        weight: 0.2
+      - slug: wesad
+        weight: 0.2
+      - slug: bidmc
+        weight: 0.1
+      - slug: butppg
+        weight: 0.1
+
+model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2
+  num_stages: 1
+  base_filters: 48
+  multiplier: 1.25
+  encoder_block_norm: batch
+  decoder_head_norm: layer
+  use_ema: true
+  # --- Experiment A additions ---
+  revive_dead_codes: true
+  revive_threshold: 0.03
+  kmeans_init: true
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 5000
+    t_mul: 2.0
+    alpha: 0.01
+  derivative_loss:
+    enabled: true
+    weight: 0.1
+  spectral_loss:
+    enabled: true
+    weight: 0.5
+    fft_sizes: [16, 32, 64, 128]
+  early_stop_patience: 25
+  reduce_lr_on_plateau: false
+
+evaluation:
+  num_samples: 500
+  num_plot_samples: 20
+  band_metrics:
+    enabled: true
+    low_hz: 0.5
+    high_hz: 8.0
+  physiokit_metrics:
+    enabled: true

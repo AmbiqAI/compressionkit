@@ -44,10 +44,10 @@ The decoder mirrors the encoder with upsampling stages:
 ```yaml
 model:
   embedding_dim: 16      # Latent channel dimension
-  latent_width: 256      # Codebook size K
+  latent_width: 512      # Codebook size K
   num_levels: 2          # RVQ levels M
   num_stages: 3          # Encoder stages (2^3 = 8× downsample)
-  base_filters: 32       # First stage filter count
+  base_filters: 48       # First stage filter count
   multiplier: 1.25       # Filter growth per stage
   beta: 0.25             # VQ commitment loss weight
   encoder_block_norm: batch
@@ -64,33 +64,38 @@ $$
 \text{CR} = \frac{T \times B}{\frac{T}{2^N} \times M \times \log_2(K)}
 $$
 
-| Parameter | Symbol | Typical Value |
-|-----------|--------|--------------|
-| Frame size | $T$ | 320 |
-| Input bit depth | $B$ | 16 |
-| Num stages | $N$ | 3 |
-| Num levels | $M$ | 2 |
-| Codebook size | $K$ | 256 |
+| Parameter | Symbol | PPG Value | ECG Value |
+|-----------|--------|-----------|----------|
+| Frame size | $T$ | 320 | 512 |
+| Input bit depth | $B$ | 16 | 16 |
+| Num stages | $N$ | 1–4 | 1–4 |
+| Num levels | $M$ | 1–2 | 1–2 |
+| Codebook size | $K$ | 256 | 256 |
 
-**Example**: $\text{CR} = \frac{320 \times 16}{40 \times 2 \times 8} = 8\times$
+**Example** (PPG 8×): $\text{CR} = \frac{320 \times 16}{40 \times 2 \times 8} = 8\times$
 
-## Common Configurations
+## Golden Configurations
 
-| Name | Stages | Levels | Width | CR | Use Case |
-|------|--------|--------|-------|----|----------|
-| `04x_ds4_l2` | 2 | 2 | 256 | 4× | High quality |
-| `08x_ds8_l2` | 3 | 2 | 256 | 8× | **Recommended** |
-| `16x_ds16_l2` | 4 | 2 | 256 | 16× | Bandwidth-constrained |
-| `32x_ds16_l1` | 4 | 1 | 256 | 32× | Extreme compression |
+Both PPG and ECG use the same compression ladder:
+
+| Name | Stages | Levels | Codebook | CR | Use Case |
+|------|--------|--------|----------|----|----------|
+| `02x` | 1 | 2 | 256 | 2× | Maximum fidelity |
+| `04x` | 2 | 2 | 256 | 4× | High quality |
+| `08x` | 3 | 2 | 256 | 8× | **Recommended** |
+| `16x` | 4 | 2 | 256 | 16× | Bandwidth-constrained |
+| `32x` | 4 | 1 | 256 | 32× | Extreme compression |
+
+See the [Model Zoo](../models/index.md) for full results.
 
 ## Training
 
 The training pipeline:
 
-1. Loads PPG data (in-memory, streaming, or TFRecord cache)
+1. Loads signal data (PPG or ECG) via TFRecord cache
 2. Applies preprocessing (random crop + layer norm) and augmentation (Gaussian noise)
 3. Builds the RVQ autoencoder using heliaEDGE components
-4. Trains with Adam optimizer, MSE loss + RVQ commitment/codebook losses
+4. Trains with Adam optimizer, MSE + derivative loss + RVQ commitment/codebook losses
 5. Monitors `val_mse` for checkpointing and early stopping
 6. Exports best encoder to INT8 TFLite + C header
 

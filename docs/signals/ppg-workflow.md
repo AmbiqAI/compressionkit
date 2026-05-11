@@ -61,7 +61,7 @@ train-ppg-rvq --config configs/ppg_rvq_08x.yaml
 Or call the module directly:
 
 ```bash
-python -m compressionkit.cli.train_ppg_rvq --config configs/ppg_rvq_08x.yaml
+python -m compressionkit.recipes.train_ppg_rvq --config configs/ppg_rvq_08x.yaml
 ```
 
 ## Four Reference Operating Points

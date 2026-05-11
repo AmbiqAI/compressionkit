@@ -1,0 +1,69 @@
+# 256 Hz 32× compression — STFT domain (n_fft=64, hop=16)
+# 2-D spatial autoencoder operating on zero-padded (64, 64, 2) spectrogram.
+# STFT output is (33, 33, 2), zero-padded to (64, 64, 2).
+# 4 stages of 2D stride-2 → latent (4, 4, emb) = 16 positions.
+# CR = 512 × 16 bits / (16 × 2 × 8 bits) = 8192 / 256 = 32×
+run_name: ecg_rvq_256hz_32x_stft
+
+data:
+  datasets_dir: datasets
+  dataset_glob: ptbxl/*.h5
+  sampling_rate: 500
+  target_sample_rate: 256
+  frame_size: 512
+  segment_samples: 768
+  lead_index: 1
+  batch_size: 64
+  buffer_size: 20000
+  steps_per_epoch: 200
+  epochs: 100
+  epsilon: 0.001
+  gaussian_noise: [0.01, 0.1]
+  shuffle_seed: 42
+  cache:
+    enabled: true
+    cache_root: datasets/ecg_tfrecord_cache
+    auto_build: true
+    force_rebuild: false
+    min_segment_scale: 1.2
+    windows_per_subject_train: 32
+    windows_per_subject_val: 8
+    train_ratio: 0.8
+    val_ratio: 0.2
+  transform:
+    domain: stft
+    stft_n_fft: 64
+    stft_hop_length: 16
+    stft_window: hann
+
+model:
+  embedding_dim: 16
+  latent_width: 256
+  num_levels: 2        # 2 RVQ levels: 16 × 2 × 8 = 256 bits → 32× CR
+  num_stages: 4        # 4 stages of 2D stride-2: (64,64) → (4,4)
+  base_filters: 32
+  multiplier: 1.25
+  beta: 0.25
+
+training:
+  learning_rate: 0.001
+  lr_schedule:
+    enabled: true
+    type: cosine_restarts
+    first_decay_steps: 200
+    t_mul: 2.0
+    m_mul: 1.0
+    alpha: 0.01
+  val_metric: mse
+  val_mode: min
+  early_stop_patience: 25
+  reduce_lr_on_plateau: false
+  selection_metric: val_mse
+  validation_steps: 16
+
+evaluation:
+  num_samples: 50
+  input_bit_depth: 16
+
+output:
+  results_root: results
