@@ -1,0 +1,301 @@
+"""Lightweight RVQ codec for inference using LiteRT + numpy.
+
+This module requires only ``numpy`` and ``ai-edge-litert`` (or
+``tflite-runtime``).  No Keras, TensorFlow, or training dependencies
+are needed.
+
+Example::
+
+    from compressionkit.runtime import RVQCodec
+
+    codec = RVQCodec("path/to/deploy/")
+    indices = codec.encode(signal)   # (1, 1, T, 1) float32 → (1, 1, T', levels) int
+    recon   = codec.decode(indices)  # → (1, 1, T, 1) float32
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from pathlib import Path
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+# Try ai-edge-litert first, then tflite-runtime, then tf.lite
+_Interpreter = None
+
+try:
+    from ai_edge_litert.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
+except ImportError:
+    try:
+        from tflite_runtime.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
+    except ImportError:
+        try:
+            from tensorflow.lite.python.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
+        except ImportError:
+            pass
+
+if _Interpreter is None:
+    raise ImportError(
+        "No TFLite runtime found. Install one of: "
+        "ai-edge-litert, tflite-runtime, or tensorflow."
+    )
+
+
+class RVQCodec:
+    """Lightweight RVQ autoencoder codec using LiteRT for inference.
+
+    Loads a deployment package (``deploy_manifest.json``, ``.tflite``
+    models, ``codebook.npz``) and provides ``encode`` / ``decode``
+    methods that run entirely on LiteRT + numpy.
+
+    Args:
+        deploy_dir: Path to directory containing deployment artifacts.
+
+    Example::
+
+        codec = RVQCodec("results/ppg_rvq_64hz_04x_golden/deploy")
+
+        # Encode: float32 signal → RVQ indices
+        signal = np.random.randn(1, 1, 320, 1).astype(np.float32)
+        indices = codec.encode(signal)
+
+        # Decode: RVQ indices → reconstructed signal
+        recon = codec.decode(indices)
+    """
+
+    def __init__(self, deploy_dir: str | Path) -> None:
+        self._deploy_dir = Path(deploy_dir)
+        manifest_path = self._deploy_dir / "deploy_manifest.json"
+        if not manifest_path.exists():
+            raise FileNotFoundError(f"Deploy manifest not found: {manifest_path}")
+
+        with open(manifest_path) as f:
+            self._manifest = json.load(f)
+
+        # Load encoder
+        enc_path = self._deploy_dir / self._manifest["encoder"]["tflite"]
+        self._encoder = _Interpreter(model_path=str(enc_path))
+        self._encoder.allocate_tensors()
+        self._enc_input = self._encoder.get_input_details()[0]
+        self._enc_output = self._encoder.get_output_details()[0]
+
+        # Load decoder — prefer float32 TFLite, fall back to INT8, then skip
+        self._decoder = None
+        self._dec_input = None
+        self._dec_output = None
+        dec_info = self._manifest.get("decoder", {})
+        dec_f32 = dec_info.get("float32_tflite")
+        dec_int8 = dec_info.get("int8_tflite") or dec_info.get("tflite")
+
+        # Also check for legacy "keras"-only manifests that ship a decoder.tflite
+        dec_candidates = []
+        if dec_f32:
+            dec_candidates.append(dec_f32)
+        if dec_int8:
+            dec_candidates.append(dec_int8)
+        # Fallback: look for common filenames
+        for fallback in ("decoder_float32.tflite", "decoder.tflite"):
+            if fallback not in dec_candidates:
+                dec_candidates.append(fallback)
+
+        for dec_name in dec_candidates:
+            dec_path = self._deploy_dir / dec_name
+            if dec_path.exists():
+                self._decoder = _Interpreter(model_path=str(dec_path))
+                self._decoder.allocate_tensors()
+                self._dec_input = self._decoder.get_input_details()[0]
+                self._dec_output = self._decoder.get_output_details()[0]
+                logger.info("Loaded decoder: %s", dec_name)
+                break
+
+        # Load codebook
+        cb_path = self._deploy_dir / self._manifest["codebook"]["npz"]
+        cb_data = np.load(cb_path)
+        self._codebooks = [cb_data[k] for k in sorted(cb_data.files)]
+        self._num_levels = len(self._codebooks)
+        self._num_embeddings = self._codebooks[0].shape[0]
+        self._embedding_dim = self._codebooks[0].shape[1]
+
+        logger.info(
+            "RVQCodec loaded: %s (levels=%d, K=%d, D=%d)",
+            self._manifest.get("model_name", "unknown"),
+            self._num_levels,
+            self._num_embeddings,
+            self._embedding_dim,
+        )
+
+    @property
+    def manifest(self) -> dict:
+        """Return the deployment manifest dictionary."""
+        return self._manifest
+
+    @property
+    def num_levels(self) -> int:
+        """Number of RVQ quantization levels."""
+        return self._num_levels
+
+    @property
+    def num_embeddings(self) -> int:
+        """Number of codebook entries per level (K)."""
+        return self._num_embeddings
+
+    @property
+    def embedding_dim(self) -> int:
+        """Codebook embedding dimension (D)."""
+        return self._embedding_dim
+
+    @property
+    def has_decoder(self) -> bool:
+        """Whether a decoder TFLite model is available."""
+        return self._decoder is not None
+
+    def _quantize(self, data: np.ndarray, details: dict) -> np.ndarray:
+        """Quantize float32 data to INT8 using TFLite quantization params."""
+        qparams = details.get("quantization_parameters", {})
+        scales = qparams.get("scales", np.array([1.0]))
+        zero_points = qparams.get("zero_points", np.array([0]))
+        if details["dtype"] == np.int8:
+            quantized = np.round(data / scales[0] + zero_points[0])
+            return np.clip(quantized, -128, 127).astype(np.int8)
+        return data.astype(details["dtype"])
+
+    def _dequantize(self, data: np.ndarray, details: dict) -> np.ndarray:
+        """Dequantize INT8 data back to float32."""
+        qparams = details.get("quantization_parameters", {})
+        scales = qparams.get("scales", np.array([1.0]))
+        zero_points = qparams.get("zero_points", np.array([0]))
+        if details["dtype"] == np.int8:
+            return ((data.astype(np.float32) - zero_points[0]) * scales[0]).astype(np.float32)
+        return data.astype(np.float32)
+
+    def encode_latent(self, signal: np.ndarray) -> np.ndarray:
+        """Run the encoder to get continuous latent vectors.
+
+        Args:
+            signal: Input signal array matching encoder input shape.
+                For a typical model: ``(1, 1, T, 1)`` float32.
+
+        Returns:
+            Latent array in float32, shape matching encoder output
+            (e.g. ``(1, 1, T', D)``).
+        """
+        inp = self._quantize(signal, self._enc_input)
+        self._encoder.set_tensor(self._enc_input["index"], inp)
+        self._encoder.invoke()
+        raw_out = self._encoder.get_tensor(self._enc_output["index"])
+        return self._dequantize(raw_out, self._enc_output)
+
+    def quantize_latent(self, latent: np.ndarray) -> np.ndarray:
+        """Quantize continuous latents to RVQ indices via codebook lookup.
+
+        Performs residual vector quantization: at each level, find the
+        nearest codebook entry, record its index, and subtract the
+        selected embedding from the residual.
+
+        Args:
+            latent: Continuous latent array, shape ``(..., D)`` where
+                D is the codebook embedding dimension.
+
+        Returns:
+            Index array of shape ``(*latent.shape[:-1], num_levels)``
+            with integer dtype.
+        """
+        spatial_shape = latent.shape[:-1]
+        flat = latent.reshape(-1, self._embedding_dim)
+
+        indices = np.zeros((flat.shape[0], self._num_levels), dtype=np.int32)
+        residual = flat.copy()
+
+        for level in range(self._num_levels):
+            cb = self._codebooks[level]  # (K, D)
+            # Nearest-neighbor: argmin ||residual - cb||^2
+            # = argmin(||r||^2 - 2*r@cb.T + ||cb||^2)
+            dots = residual @ cb.T  # (N, K)
+            cb_norms = np.sum(cb ** 2, axis=1, keepdims=True).T  # (1, K)
+            dists = -2 * dots + cb_norms  # ignore ||r||^2 (constant per query)
+            indices[:, level] = np.argmin(dists, axis=1)
+            selected = cb[indices[:, level]]  # (N, D)
+            residual = residual - selected
+
+        return indices.reshape(*spatial_shape, self._num_levels)
+
+    def dequantize_indices(self, indices: np.ndarray) -> np.ndarray:
+        """Reconstruct continuous latents from RVQ indices.
+
+        Sums the codebook embeddings across all levels to reconstruct
+        the quantized latent vector.
+
+        Args:
+            indices: Index array of shape ``(..., num_levels)`` with
+                integer dtype.
+
+        Returns:
+            Reconstructed latent array of shape ``(..., D)``.
+        """
+        spatial_shape = indices.shape[:-1]
+        flat = indices.reshape(-1, self._num_levels)
+
+        reconstructed = np.zeros((flat.shape[0], self._embedding_dim), dtype=np.float32)
+        for level in range(self._num_levels):
+            cb = self._codebooks[level]
+            reconstructed += cb[flat[:, level]]
+
+        return reconstructed.reshape(*spatial_shape, self._embedding_dim)
+
+    def decode_latent(self, latent: np.ndarray) -> np.ndarray:
+        """Run the decoder TFLite model on a latent array.
+
+        Args:
+            latent: Latent array matching decoder input shape (float32).
+
+        Returns:
+            Reconstructed signal array in float32.
+
+        Raises:
+            RuntimeError: If no decoder TFLite model is available.
+        """
+        if self._decoder is None:
+            raise RuntimeError(
+                "No decoder TFLite available. Use dequantize_indices() "
+                "for codebook-only reconstruction, or export a decoder "
+                "TFLite via export_for_deployment()."
+            )
+        inp = self._quantize(latent, self._dec_input)
+        self._decoder.set_tensor(self._dec_input["index"], inp)
+        self._decoder.invoke()
+        raw_out = self._decoder.get_tensor(self._dec_output["index"])
+        return self._dequantize(raw_out, self._dec_output)
+
+    def encode(self, signal: np.ndarray) -> np.ndarray:
+        """Encode a signal to RVQ indices.
+
+        Runs the encoder TFLite model and then quantizes the latent
+        output via codebook lookup.
+
+        Args:
+            signal: Input signal, shape matching encoder input
+                (e.g. ``(1, 1, 320, 1)`` float32).
+
+        Returns:
+            RVQ index array, shape ``(*latent_spatial, num_levels)``.
+        """
+        latent = self.encode_latent(signal)
+        return self.quantize_latent(latent)
+
+    def decode(self, indices: np.ndarray) -> np.ndarray:
+        """Decode RVQ indices back to a signal.
+
+        Reconstructs the latent vector from codebook indices and runs
+        the decoder TFLite model.
+
+        Args:
+            indices: RVQ index array from ``encode()``.
+
+        Returns:
+            Reconstructed signal in float32.
+        """
+        latent = self.dequantize_indices(indices)
+        return self.decode_latent(latent)
