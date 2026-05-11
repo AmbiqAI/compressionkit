@@ -49,7 +49,7 @@ def _ensure_symlink(directory: Path, hf_name: str, local_name: str) -> None:
     hf_path = directory / hf_name
     local_path = directory / local_name
     if hf_path.exists() and not local_path.exists():
-        local_path.symlink_to(hf_path)
+        local_path.symlink_to(hf_name)  # relative symlink: both files are in the same directory
 
 
 class RVQCodec:

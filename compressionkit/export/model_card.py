@@ -91,7 +91,7 @@ def generate_model_card(
     lines.append("---")
     lines.append(f"license: {license_id}")
     lines.append("library_name: compressionkit")
-    lines.append(f"pipeline_tag: other")
+    lines.append("pipeline_tag: other")
     lines.append("tags:")
     for tag in tags:
         lines.append(f"  - {tag}")
@@ -104,7 +104,7 @@ def generate_model_card(
     lines.append("")
     lines.append(
         f"A **{modality.upper()}** signal compression codec using Residual Vector Quantization (RVQ), "
-        f"optimized for edge and wearable devices."
+        "optimized for edge and wearable devices."
     )
     lines.append("")
 

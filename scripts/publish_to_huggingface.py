@@ -107,70 +107,73 @@ def publish(
         logger.error("deploy_manifest.json not found in %s", deploy_dir)
         sys.exit(1)
 
+    # Validate HuggingFace availability before creating any files (skip for dry runs)
+    HfApi = None
+    if not dry_run:
+        try:
+            from huggingface_hub import HfApi  # type: ignore[assignment]
+        except ImportError:
+            logger.error(
+                "huggingface_hub not installed. Install with: "
+                "uv sync --extra hf"
+            )
+            sys.exit(1)
+
     # Create staging directory
     staging_dir = Path(tempfile.mkdtemp(prefix="hf_release_"))
     logger.info("Staging directory: %s", staging_dir)
 
-    sc_path = Path(scorecard_path) if scorecard_path else None
-
-    # Stage files
-    staged = _stage_files(deploy_dir, staging_dir, sc_path)
-    if not staged:
-        logger.error("No files staged — check deploy directory contents")
-        sys.exit(1)
-
-    # Generate model card
-    card_text = generate_model_card(
-        deploy_dir=deploy_dir,
-        scorecard_path=sc_path,
-        license_id=license_id,
-    )
-    readme_path = staging_dir / "README.md"
-    readme_path.write_text(card_text)
-    staged.append("README.md")
-    logger.info("Generated README.md model card (%d chars)", len(card_text))
-
-    logger.info("Staged %d files for %s", len(staged), repo_id)
-    for name in sorted(staged):
-        size = (staging_dir / name).stat().st_size
-        logger.info("  %s (%d bytes)", name, size)
-
-    if dry_run:
-        logger.info("Dry run — files staged at %s", staging_dir)
-        return staging_dir
-
-    # Upload to HuggingFace
     try:
-        from huggingface_hub import HfApi
-    except ImportError:
-        logger.error(
-            "huggingface_hub not installed. Install with: "
-            "uv sync --extra hf"
+        sc_path = Path(scorecard_path) if scorecard_path else None
+
+        # Stage files
+        staged = _stage_files(deploy_dir, staging_dir, sc_path)
+        if not staged:
+            logger.error("No files staged — check deploy directory contents")
+            sys.exit(1)
+
+        # Generate model card
+        card_text = generate_model_card(
+            deploy_dir=deploy_dir,
+            scorecard_path=sc_path,
+            license_id=license_id,
         )
-        sys.exit(1)
+        readme_path = staging_dir / "README.md"
+        readme_path.write_text(card_text)
+        staged.append("README.md")
+        logger.info("Generated README.md model card (%d chars)", len(card_text))
 
-    api = HfApi()
+        logger.info("Staged %d files for %s", len(staged), repo_id)
+        for name in sorted(staged):
+            size = (staging_dir / name).stat().st_size
+            logger.info("  %s (%d bytes)", name, size)
 
-    # Create repo if it doesn't exist
-    api.create_repo(
-        repo_id=repo_id,
-        repo_type="model",
-        private=private,
-        exist_ok=True,
-    )
-    logger.info("Repo ready: %s", repo_id)
+        if dry_run:
+            logger.info("Dry run — files staged at %s", staging_dir)
+            return staging_dir
 
-    # Upload all staged files
-    api.upload_folder(
-        folder_path=str(staging_dir),
-        repo_id=repo_id,
-        repo_type="model",
-        commit_message=f"Release deployment artifacts from compressionkit",
-    )
-    logger.info("Published to https://huggingface.co/%s", repo_id)
+        api = HfApi()
 
-    # Clean up staging directory
-    shutil.rmtree(staging_dir)
+        # Create repo if it doesn't exist
+        api.create_repo(
+            repo_id=repo_id,
+            repo_type="model",
+            private=private,
+            exist_ok=True,
+        )
+        logger.info("Repo ready: %s", repo_id)
+
+        # Upload all staged files
+        api.upload_folder(
+            folder_path=str(staging_dir),
+            repo_id=repo_id,
+            repo_type="model",
+            commit_message="Release deployment artifacts from CompressionKit",
+        )
+        logger.info("Published to https://huggingface.co/%s", repo_id)
+    finally:
+        if not dry_run:
+            shutil.rmtree(staging_dir, ignore_errors=True)
     return None
 
 
