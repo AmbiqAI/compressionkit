@@ -1,0 +1,300 @@
+{
+  "description": "Golden reference baselines for compressionkit v1 overhaul. These metrics were recorded before any v1 refactoring to ensure reproducibility.",
+  "frozen_date": "2026-05-11",
+  "git_ref": "pre-v1-baseline",
+  "goldens": [
+    {
+      "name": "ecg_rvq_256hz_02x_golden",
+      "signal": "ECG",
+      "task": "1ch_rvq",
+      "compression_ratio": 2.0,
+      "config_yaml": "configs/ecg_rvq_256hz_02x_golden.yaml",
+      "results_dir": "results/ecg_rvq_256hz_02x_golden",
+      "weights": "results/ecg_rvq_256hz_02x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0006228614,
+        "val_prd": 2.5889730453,
+        "val_cos": 0.9996812344
+      },
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 1,
+        "encoder_stages": 1,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ecg_rvq_256hz_04x_golden",
+      "signal": "ECG",
+      "task": "1ch_rvq",
+      "compression_ratio": 4.0,
+      "config_yaml": "configs/ecg_rvq_256hz_04x_golden.yaml",
+      "results_dir": "results/ecg_rvq_256hz_04x_golden",
+      "weights": "results/ecg_rvq_256hz_04x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0012592151,
+        "val_prd": 3.681296587,
+        "val_cos": 0.9993263483
+      },
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 1,
+        "encoder_stages": 2,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ecg_rvq_256hz_08x_golden",
+      "signal": "ECG",
+      "task": "1ch_rvq",
+      "compression_ratio": 8.0,
+      "config_yaml": "configs/ecg_rvq_256hz_08x_golden.yaml",
+      "results_dir": "results/ecg_rvq_256hz_08x_golden",
+      "weights": "results/ecg_rvq_256hz_08x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0041228412,
+        "val_prd": 6.6595849991,
+        "val_cos": 0.9977779984
+      },
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 1,
+        "encoder_stages": 3,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ecg_rvq_256hz_16x_golden",
+      "signal": "ECG",
+      "task": "1ch_rvq",
+      "compression_ratio": 16.0,
+      "config_yaml": "configs/ecg_rvq_256hz_16x_golden.yaml",
+      "results_dir": "results/ecg_rvq_256hz_16x_golden",
+      "weights": "results/ecg_rvq_256hz_16x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0112783331,
+        "val_prd": 11.0171556473,
+        "val_cos": 0.9938282967
+      },
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 1,
+        "encoder_stages": 4,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ecg_rvq_256hz_32x_golden",
+      "signal": "ECG",
+      "task": "1ch_rvq",
+      "compression_ratio": 32.0,
+      "config_yaml": "configs/ecg_rvq_256hz_32x_golden.yaml",
+      "results_dir": "results/ecg_rvq_256hz_32x_golden",
+      "weights": "results/ecg_rvq_256hz_32x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0224045962,
+        "val_prd": 15.5266017914,
+        "val_cos": 0.9878373146
+      },
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 1,
+        "encoder_stages": 4,
+        "num_levels": 1,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ppg_rvq_64hz_02x_golden",
+      "signal": "PPG",
+      "task": "1ch_rvq",
+      "compression_ratio": 2.0,
+      "config_yaml": "configs/ppg_rvq_64hz_02x_golden.yaml",
+      "results_dir": "results/ppg_rvq_64hz_02x_golden",
+      "weights": "results/ppg_rvq_64hz_02x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0006656044,
+        "val_prd": 2.9877939224,
+        "val_cos": 0.9921485782,
+        "hr_mae_bpm": 0.1002973736
+      },
+      "architecture": {
+        "frame_size": 320,
+        "sample_rate": 64,
+        "leads": 1,
+        "encoder_stages": 1,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ppg_rvq_64hz_04x_golden",
+      "signal": "PPG",
+      "task": "1ch_rvq",
+      "compression_ratio": 4.0,
+      "config_yaml": "configs/ppg_rvq_64hz_04x_golden.yaml",
+      "results_dir": "results/ppg_rvq_64hz_04x_golden",
+      "weights": "results/ppg_rvq_64hz_04x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0011671392,
+        "val_prd": 3.9611513615,
+        "val_cos": 0.9886866212,
+        "hr_mae_bpm": 0.0872655526
+      },
+      "architecture": {
+        "frame_size": 320,
+        "sample_rate": 64,
+        "leads": 1,
+        "encoder_stages": 2,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ppg_rvq_64hz_08x_golden",
+      "signal": "PPG",
+      "task": "1ch_rvq",
+      "compression_ratio": 8.0,
+      "config_yaml": "configs/ppg_rvq_64hz_08x_golden.yaml",
+      "results_dir": "results/ppg_rvq_64hz_08x_golden",
+      "weights": "results/ppg_rvq_64hz_08x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0036008649,
+        "val_prd": 6.9547734261,
+        "val_cos": 0.9687838554,
+        "hr_mae_bpm": 0.1856166904
+      },
+      "architecture": {
+        "frame_size": 320,
+        "sample_rate": 64,
+        "leads": 1,
+        "encoder_stages": 3,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ppg_rvq_64hz_16x_golden",
+      "signal": "PPG",
+      "task": "1ch_rvq",
+      "compression_ratio": 16.0,
+      "config_yaml": "configs/ppg_rvq_64hz_16x_golden.yaml",
+      "results_dir": "results/ppg_rvq_64hz_16x_golden",
+      "weights": "results/ppg_rvq_64hz_16x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.0054917866,
+        "val_prd": 8.5967693329,
+        "val_cos": 0.9687812924,
+        "hr_mae_bpm": 0.2032581577
+      },
+      "architecture": {
+        "frame_size": 320,
+        "sample_rate": 64,
+        "leads": 1,
+        "encoder_stages": 4,
+        "num_levels": 2,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ppg_rvq_64hz_32x_golden",
+      "signal": "PPG",
+      "task": "1ch_rvq",
+      "compression_ratio": 32.0,
+      "config_yaml": "configs/ppg_rvq_64hz_32x_golden.yaml",
+      "results_dir": "results/ppg_rvq_64hz_32x_golden",
+      "weights": "results/ppg_rvq_64hz_32x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.009431595,
+        "val_prd": 11.2560224533,
+        "val_cos": 0.9605693221,
+        "hr_mae_bpm": 0.3012055123
+      },
+      "architecture": {
+        "frame_size": 320,
+        "sample_rate": 64,
+        "leads": 1,
+        "encoder_stages": 4,
+        "num_levels": 1,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ecg_rvq_256hz_12lead_32x_deep",
+      "signal": "ECG",
+      "task": "12ch_rvq",
+      "compression_ratio": 32.0,
+      "config_yaml": "configs/ecg_rvq_256hz_12lead_32x_deep.yaml",
+      "results_dir": "results/ecg_rvq_256hz_12lead_32x_deep",
+      "weights": "results/ecg_rvq_256hz_12lead_32x_deep/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.01826,
+        "val_cos": 0.9899
+      },
+      "notes": "32x 12-lead sweep winner. 640K params.",
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 12,
+        "encoder_stages": 3,
+        "num_levels": 6,
+        "base_filters": 96,
+        "embedding_dim": 32,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ecg_rvq_256hz_12lead_64x_big",
+      "signal": "ECG",
+      "task": "12ch_rvq",
+      "compression_ratio": 64.0,
+      "config_yaml": "configs/ecg_rvq_256hz_12lead_64x_big.yaml",
+      "results_dir": "results/ecg_rvq_256hz_12lead_64x_big",
+      "weights": "results/ecg_rvq_256hz_12lead_64x_big/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.03054,
+        "val_cos": 0.9837
+      },
+      "notes": "64x 12-lead sweep winner. 616K params.",
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 12,
+        "encoder_stages": 3,
+        "num_levels": 3,
+        "base_filters": 96,
+        "embedding_dim": 32,
+        "latent_width": 256
+      }
+    }
+  ]
+}
