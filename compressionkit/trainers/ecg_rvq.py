@@ -39,6 +39,7 @@ from compressionkit.evaluation.ecg_stitching import evaluate_stitching
 from compressionkit.evaluation.metrics import (
     TruePRD,
     compute_signal_metrics,
+    summarize_ecg_alignment,
 )
 from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,
@@ -658,6 +659,22 @@ def run_evaluation(
             for idx, (target, recon) in enumerate(zip(sample_targets, reconstructions))
         }
 
+    # --- ECG physiology (HR / HRV / peak-timing) -------------------------
+    ecg_physiology: dict[str, Any] | None = None
+    if num_leads == 1:
+        targets_seq = sample_targets.reshape(sample_targets.shape[0], -1).astype(np.float32)
+        recon_seq = reconstructions.reshape(reconstructions.shape[0], -1).astype(np.float32)
+        ecg_summary, _ = summarize_ecg_alignment(
+            targets_seq, recon_seq, sample_rate=data.effective_sample_rate,
+        )
+        if ecg_summary is not None:
+            ecg_physiology = ecg_summary
+            logger.info(
+                "ECG alignment: HR MAE %.2f bpm, peak timing MAE %.1f ms",
+                ecg_summary.get("hr_mae_bpm", float("nan")),
+                ecg_summary.get("peak_timing_mae_ms", float("nan")),
+            )
+
     stitching_results: dict[str, Any] | None = None
     stitching_cfg = eval_cfg.stitching
     if stitching_cfg.enabled:
@@ -695,6 +712,7 @@ def run_evaluation(
         "sample_reconstructions": reconstructions,
         "band_metrics": best_band_metrics,
         "stitching": stitching_results,
+        "ecg_physiology": ecg_physiology,
     }
 
 
@@ -956,6 +974,9 @@ def assemble_summary(
     if stitch_cfg.enabled and eval_results.get("stitching") is not None:
         summary["metrics"]["stitching_config"] = stitch_cfg.model_dump()
         summary["metrics"]["stitching"] = eval_results["stitching"]
+
+    if eval_results.get("ecg_physiology") is not None:
+        summary["metrics"]["ecg_physiology"] = eval_results["ecg_physiology"]
 
     return summary
 
