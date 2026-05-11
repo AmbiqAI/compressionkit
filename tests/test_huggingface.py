@@ -160,7 +160,7 @@ class TestPublishStaging:
     def test_dry_run_no_manifest_exits(self, tmp_path):
         from scripts.publish_to_huggingface import publish
 
-        with pytest.raises(SystemExit):
+        with pytest.raises(FileNotFoundError):
             publish(deploy_dir=tmp_path, repo_id="test/test", dry_run=True)
 
 

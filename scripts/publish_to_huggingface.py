@@ -99,40 +99,39 @@ def publish(
 
     Returns:
         Path to staging directory (useful for dry-run inspection), or *None*.
+
+    Raises:
+        FileNotFoundError: If ``deploy_manifest.json`` is not found.
+        ImportError: If ``huggingface_hub`` is not installed and dry_run is False.
+        ValueError: If no files are found to stage.
     """
     from compressionkit.export.model_card import generate_model_card
 
     deploy_dir = Path(deploy_dir)
     if not (deploy_dir / "deploy_manifest.json").exists():
-        logger.error("deploy_manifest.json not found in %s", deploy_dir)
-        sys.exit(1)
+        raise FileNotFoundError(f"deploy_manifest.json not found in {deploy_dir}")
 
-    # Validate HuggingFace availability before creating any files (skip for dry runs)
-    HfApi = None
+    # Validate HuggingFace availability before allocating any resources (skip for dry runs)
     if not dry_run:
         try:
-            from huggingface_hub import HfApi  # type: ignore[assignment]
-        except ImportError:
-            logger.error(
-                "huggingface_hub not installed. Install with: "
-                "uv sync --extra hf"
-            )
-            sys.exit(1)
+            from huggingface_hub import HfApi as _HfApi  # noqa: F401 — import check only
+        except ImportError as exc:
+            raise ImportError(
+                "huggingface_hub not installed. Install with: uv sync --extra hf"
+            ) from exc
 
     # Create staging directory
     staging_dir = Path(tempfile.mkdtemp(prefix="hf_release_"))
     logger.info("Staging directory: %s", staging_dir)
 
-    try:
-        sc_path = Path(scorecard_path) if scorecard_path else None
+    sc_path = Path(scorecard_path) if scorecard_path else None
 
-        # Stage files
+    # Stage and generate card; clean up on any error
+    try:
         staged = _stage_files(deploy_dir, staging_dir, sc_path)
         if not staged:
-            logger.error("No files staged — check deploy directory contents")
-            sys.exit(1)
+            raise ValueError("No files staged — check deploy directory contents")
 
-        # Generate model card
         card_text = generate_model_card(
             deploy_dir=deploy_dir,
             scorecard_path=sc_path,
@@ -142,18 +141,24 @@ def publish(
         readme_path.write_text(card_text)
         staged.append("README.md")
         logger.info("Generated README.md model card (%d chars)", len(card_text))
+    except Exception:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+        raise
 
-        logger.info("Staged %d files for %s", len(staged), repo_id)
-        for name in sorted(staged):
-            size = (staging_dir / name).stat().st_size
-            logger.info("  %s (%d bytes)", name, size)
+    logger.info("Staged %d files for %s", len(staged), repo_id)
+    for name in sorted(staged):
+        size = (staging_dir / name).stat().st_size
+        logger.info("  %s (%d bytes)", name, size)
 
-        if dry_run:
-            logger.info("Dry run — files staged at %s", staging_dir)
-            return staging_dir
+    if dry_run:
+        logger.info("Dry run — files staged at %s", staging_dir)
+        return staging_dir
 
-        api = HfApi()
+    # Upload to HuggingFace; staging dir is always removed after this point
+    from huggingface_hub import HfApi  # already verified importable above
 
+    api = HfApi()
+    try:
         # Create repo if it doesn't exist
         api.create_repo(
             repo_id=repo_id,
@@ -172,8 +177,7 @@ def publish(
         )
         logger.info("Published to https://huggingface.co/%s", repo_id)
     finally:
-        if not dry_run:
-            shutil.rmtree(staging_dir, ignore_errors=True)
+        shutil.rmtree(staging_dir, ignore_errors=True)
     return None
 
 
@@ -207,14 +211,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    publish(
-        deploy_dir=args.deploy_dir,
-        repo_id=args.repo_id,
-        scorecard_path=args.scorecard,
-        license_id=args.license,
-        private=args.private,
-        dry_run=args.dry_run,
-    )
+    try:
+        publish(
+            deploy_dir=args.deploy_dir,
+            repo_id=args.repo_id,
+            scorecard_path=args.scorecard,
+            license_id=args.license,
+            private=args.private,
+            dry_run=args.dry_run,
+        )
+    except (FileNotFoundError, ValueError, ImportError) as exc:
+        logger.error("%s", exc)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
