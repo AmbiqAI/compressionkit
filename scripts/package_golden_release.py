@@ -51,35 +51,39 @@ def main() -> None:
     from compressionkit.export.deploy import export_for_deployment
     from compressionkit.export.stimulus import export_stimulus_npz
 
-    # Find best model weights
-    weights_path = golden_dir / "best_model.weights.h5"
-    model_path = golden_dir / "model.keras"
-    if not model_path.exists():
-        logger.error("Model not found at %s", model_path)
+    # Load encoder, decoder, and RVQ weights from golden artifacts.
+    # Golden runs store components individually (encoder.keras, decoder.keras,
+    # rvq_weights.npz) rather than a single model.keras.
+    encoder_path = golden_dir / "encoder.keras"
+    decoder_path = golden_dir / "decoder.keras"
+    rvq_weights_path = golden_dir / "rvq_weights.npz"
+
+    missing = [p for p in [encoder_path, decoder_path, rvq_weights_path] if not p.exists()]
+    if missing:
+        logger.error("Missing golden artifacts: %s", [str(p) for p in missing])
         sys.exit(1)
 
-    logger.info("Loading model from %s", model_path)
-    model = keras.models.load_model(model_path)
+    logger.info("Loading encoder from %s", encoder_path)
+    encoder = keras.models.load_model(encoder_path)
+    logger.info("Loading decoder from %s", decoder_path)
+    decoder = keras.models.load_model(decoder_path)
 
-    # Extract encoder and decoder sub-models
-    encoder = model.encoder if hasattr(model, "encoder") else model.get_layer("encoder")
-    decoder = model.decoder if hasattr(model, "decoder") else model.get_layer("decoder")
+    logger.info("Loading RVQ weights from %s", rvq_weights_path)
+    rvq_npz = np.load(rvq_weights_path)
+    rvq_weights = [rvq_npz[k] for k in sorted(rvq_npz.files)]
 
-    # Extract RVQ weights
-    rvq_layer = None
-    for layer in model.layers:
-        if "rvq" in layer.name.lower() or "residual_vector_quantiz" in layer.name.lower():
-            rvq_layer = layer
-            break
-    if rvq_layer is None:
-        logger.error("Could not find RVQ layer in model.")
-        sys.exit(1)
-    rvq_weights = rvq_layer.get_weights()
-
-    # Generate representative dataset from synthetic data
+    # Generate representative dataset from synthetic data.
+    # Encoder input_shape is typically (None, 1, T, C) — frame_size is
+    # the temporal axis (index -2 for 4D, -1 for 2D/3D).
     from compressionkit.export.stimulus import generate_stimulus
 
-    frame_size = encoder.input_shape[-2] if len(encoder.input_shape) == 3 else encoder.input_shape[-1]
+    input_shape = encoder.input_shape  # e.g. (None, 1, 320, 1)
+    if len(input_shape) == 4:
+        frame_size = input_shape[-2]
+    elif len(input_shape) == 3:
+        frame_size = input_shape[-2]
+    else:
+        frame_size = input_shape[-1]
     rep_dataset = generate_stimulus(
         modality=args.modality,
         num_samples=100,
@@ -87,8 +91,10 @@ def main() -> None:
         sample_rate=args.sample_rate,
         seed=42,
     )
-    # Add channel dim if needed
-    if len(encoder.input_shape) == 3 and rep_dataset.ndim == 2:
+    # Reshape synthetic data to match encoder input: (B, 1, T, C) or (B, T, C)
+    if len(input_shape) == 4:
+        rep_dataset = rep_dataset.reshape(-1, 1, frame_size, 1)
+    elif len(input_shape) == 3:
         rep_dataset = rep_dataset[..., np.newaxis]
 
     # Build model card info
@@ -105,9 +111,10 @@ def main() -> None:
             k: scorecard.get(k) for k in ["time_domain", "spectral"] if k in scorecard
         }
 
-    # Generate sample inputs/reconstructions
+    # Generate sample inputs/reconstructions via encoder → decoder
     sample_inputs = rep_dataset[:10]
-    sample_reconstructions = model.predict(sample_inputs, verbose=0)
+    latents = encoder.predict(sample_inputs, verbose=0)
+    sample_reconstructions = decoder.predict(latents, verbose=0)
     if isinstance(sample_reconstructions, dict):
         sample_reconstructions = sample_reconstructions.get("reconstruction", sample_reconstructions.get("output"))
 
