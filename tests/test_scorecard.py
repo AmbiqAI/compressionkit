@@ -180,3 +180,41 @@ class TestBuildQualityScorecard:
             )
             assert card["noise_estimator"] == estimator
             assert card["time_domain"]["prd_percent"]["n"] == 10
+
+    def test_by_noise_tertile_structure(self, ppg_run_dir: Path) -> None:
+        """Scorecard should include time-domain + spectral noise-tertile breakdown."""
+        card = build_quality_scorecard(ppg_run_dir, modality="ppg", sample_rate=64)
+        bnt = card["by_noise_tertile"]
+
+        assert "thresholds_bp_noise_rms" in bnt
+        assert bnt["thresholds_bp_noise_rms"]["clean_max"] <= bnt["thresholds_bp_noise_rms"]["median_max"]
+        assert set(bnt["buckets"].keys()) == {"clean", "median", "noisy"}
+
+        for name in ("clean", "median", "noisy"):
+            b = bnt["buckets"][name]
+            assert b["n"] > 0
+            assert "time_domain" in b
+            assert "spectral" in b
+            td = b["time_domain"]
+            assert "prd_percent" in td
+            assert "prdn_noise_percent" in td
+            assert "cosine_similarity" in td
+            sp = b["spectral"]
+            assert "band_total_rel_error" in sp
+            assert "weighted_freq_prd_percent" in sp
+            assert "coherence" in sp
+
+    def test_by_noise_tertile_requires_enough_samples(self, tmp_path: Path) -> None:
+        """With fewer than 6 samples, by_noise_tertile should be empty."""
+        n = 512
+        for i in range(3):
+            orig = np.sin(np.linspace(0, 4 * np.pi, n)).astype(np.float32)
+            recon = orig + 0.01 * np.random.default_rng(i).standard_normal(n).astype(np.float32)
+            csv_path = tmp_path / f"sample_{i:03d}.csv"
+            csv_path.write_text(
+                "original,reconstructed\n"
+                + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(orig, recon))
+            )
+        (tmp_path / "summary.json").write_text("{}")
+        card = build_quality_scorecard(tmp_path, modality="ppg", sample_rate=64)
+        assert card["by_noise_tertile"] == {}

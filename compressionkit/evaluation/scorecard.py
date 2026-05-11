@@ -486,6 +486,67 @@ def build_quality_scorecard(
                 ) if k in stats
             }
 
+    # --- Noise-tertile stratification (time-domain + spectral) -----------
+    by_noise_tertile: dict[str, Any] = {}
+    n_valid_noise = len(noise_rms_vals)
+    if n_valid_noise >= 6 and n_valid_noise == len(prd_vals):
+        noise_arr = np.array(noise_rms_vals)
+        t1, t2 = np.percentile(noise_arr, [33.33, 66.67])
+
+        def _noise_bucket(v: float) -> str:
+            if v <= t1:
+                return "clean"
+            if v <= t2:
+                return "median"
+            return "noisy"
+
+        td_buckets: dict[str, dict[str, list[float]]] = {
+            k: {"prd": [], "prdn": [], "rmse": [], "cosine": []}
+            for k in ("clean", "median", "noisy")
+        }
+        sp_buckets: dict[str, dict[str, list[float]]] = {
+            k: {"band_total": [], "wfprd": [], "coherence": []}
+            for k in ("clean", "median", "noisy")
+        }
+        for i in range(n_valid_noise):
+            bucket = _noise_bucket(noise_rms_vals[i])
+            td_buckets[bucket]["prd"].append(prd_vals[i])
+            if not np.isnan(prdn_vals[i]):
+                td_buckets[bucket]["prdn"].append(prdn_vals[i])
+            td_buckets[bucket]["rmse"].append(rmse_vals[i])
+            td_buckets[bucket]["cosine"].append(cos_vals[i])
+            sp_buckets[bucket]["band_total"].append(band_total_errs[i])
+            sp_buckets[bucket]["wfprd"].append(wfprd_vals[i])
+            sp_buckets[bucket]["coherence"].append(coh_vals[i])
+
+        by_noise_tertile = {
+            "thresholds_bp_noise_rms": {
+                "clean_max": float(t1),
+                "median_max": float(t2),
+            },
+            "buckets": {
+                name: {
+                    "n": len(td_buckets[name]["prd"]),
+                    "time_domain": {
+                        "prd_percent": _aggregate(td_buckets[name]["prd"]),
+                        "prdn_noise_percent": _aggregate(td_buckets[name]["prdn"]),
+                        "rmse": _aggregate(td_buckets[name]["rmse"]),
+                        "cosine_similarity": _aggregate(td_buckets[name]["cosine"]),
+                    },
+                    "spectral": {
+                        "band_total_rel_error": _aggregate(
+                            sp_buckets[name]["band_total"],
+                        ),
+                        "weighted_freq_prd_percent": _aggregate(
+                            sp_buckets[name]["wfprd"],
+                        ),
+                        "coherence": _aggregate(sp_buckets[name]["coherence"]),
+                    },
+                }
+                for name in ("clean", "median", "noisy")
+            },
+        }
+
     return {
         "run_dir": str(run_dir),
         "modality": modality,
@@ -514,6 +575,7 @@ def build_quality_scorecard(
         },
         "physiology": physiology,
         "stability": stability,
+        "by_noise_tertile": by_noise_tertile,
         "context": {
             "noise_power": _aggregate(noise_power_vals),
             "noise_rms": _aggregate(noise_rms_vals),
