@@ -69,10 +69,10 @@ This operating point is useful when the question is not whether compression help
 
 The corresponding golden-style configs live at the repository root:
 
-- [configs/ppg_rvq_02x.yaml](../../configs/ppg_rvq_02x.yaml)
-- [configs/ppg_rvq_04x.yaml](../../configs/ppg_rvq_04x.yaml)
-- [configs/ppg_rvq_08x.yaml](../../configs/ppg_rvq_08x.yaml)
-- [configs/ppg_rvq_16x.yaml](../../configs/ppg_rvq_16x.yaml)
+- [configs/ppg_rvq_64hz_02x_golden.yaml](../../configs/ppg_rvq_64hz_02x_golden.yaml)
+- [configs/ppg_rvq_64hz_04x_golden.yaml](../../configs/ppg_rvq_64hz_04x_golden.yaml)
+- [configs/ppg_rvq_64hz_08x_golden.yaml](../../configs/ppg_rvq_64hz_08x_golden.yaml)
+- [configs/ppg_rvq_64hz_16x_golden.yaml](../../configs/ppg_rvq_64hz_16x_golden.yaml)
 
 ## How To Evaluate Them
 
