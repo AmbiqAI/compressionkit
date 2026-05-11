@@ -44,6 +44,14 @@ if _Interpreter is None:
     )
 
 
+def _ensure_symlink(directory: Path, hf_name: str, local_name: str) -> None:
+    """Create a symlink from local_name → hf_name if hf_name exists but local_name doesn't."""
+    hf_path = directory / hf_name
+    local_path = directory / local_name
+    if hf_path.exists() and not local_path.exists():
+        local_path.symlink_to(hf_path)
+
+
 class RVQCodec:
     """Lightweight RVQ autoencoder codec using LiteRT for inference.
 
@@ -57,6 +65,9 @@ class RVQCodec:
     Example::
 
         codec = RVQCodec("results/ppg_rvq_64hz_04x_golden/deploy")
+
+        # Or load from HuggingFace Hub
+        codec = RVQCodec.from_pretrained("AmbiqAI/compressionkit-ppg-4x")
 
         # Encode: float32 signal → RVQ indices
         signal = np.random.randn(1, 1, 320, 1).astype(np.float32)
@@ -126,6 +137,57 @@ class RVQCodec:
             self._num_embeddings,
             self._embedding_dim,
         )
+
+    @classmethod
+    def from_pretrained(cls, repo_id: str, revision: str | None = None, cache_dir: str | Path | None = None) -> "RVQCodec":
+        """Load a codec from a HuggingFace Hub model repository.
+
+        Downloads the deployment artifacts and creates an ``RVQCodec``
+        instance pointing at the cached snapshot directory.
+
+        Requires ``huggingface_hub`` (install with ``uv sync --extra hf``).
+
+        Args:
+            repo_id: HuggingFace repo ID, e.g.
+                ``"AmbiqAI/compressionkit-ppg-4x"``.
+            revision: Optional git revision (branch, tag, or commit hash).
+            cache_dir: Optional local cache directory for downloaded files.
+
+        Returns:
+            An ``RVQCodec`` loaded from the downloaded artifacts.
+        """
+        try:
+            from huggingface_hub import snapshot_download
+        except ImportError as exc:
+            raise ImportError(
+                "huggingface_hub is required for from_pretrained(). "
+                "Install with: uv sync --extra hf"
+            ) from exc
+
+        kwargs: dict = {"repo_id": repo_id, "repo_type": "model"}
+        if revision is not None:
+            kwargs["revision"] = revision
+        if cache_dir is not None:
+            kwargs["cache_dir"] = str(cache_dir)
+
+        local_dir = snapshot_download(**kwargs)
+        logger.info("Downloaded %s → %s", repo_id, local_dir)
+
+        # HF repos store the manifest as config.json; the codec expects
+        # deploy_manifest.json.  Create a symlink if needed.
+        local_path = Path(local_dir)
+        manifest_path = local_path / "deploy_manifest.json"
+        config_path = local_path / "config.json"
+        if not manifest_path.exists() and config_path.exists():
+            manifest_path.symlink_to(config_path)
+
+        # HF repos rename encoder.tflite → encoder_int8.tflite.
+        # Symlink the expected name if the manifest references it.
+        _ensure_symlink(local_path, "encoder_int8.tflite", "encoder.tflite")
+        _ensure_symlink(local_path, "decoder_int8.tflite", "decoder.tflite")
+        _ensure_symlink(local_path, "sample_stimulus.npz", "sample_data.npz")
+
+        return cls(local_dir)
 
     @property
     def manifest(self) -> dict:
