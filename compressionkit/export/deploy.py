@@ -3,7 +3,9 @@
 Exports all components needed for deployment:
   1. Encoder — INT8 TFLite + C header  (on-device)
   2. Codebook tables — C header + NumPy archive  (on-device)
-  3. Decoder — Keras model  (server-side)
+  3. Decoder — Keras model + optional TFLite exports  (server / on-device)
+  4. Model card JSON with metadata and scorecard summary
+  5. Synthetic stimulus data (license-safe examples)
 
 Also writes a deployment manifest (``deploy_manifest.json``) describing
 the exported artifacts and their properties.
@@ -24,7 +26,7 @@ from compressionkit.export.codebook import (
     export_codebooks_npz,
     extract_codebooks,
 )
-from compressionkit.export.tflite import export_encoder_tflite
+from compressionkit.export.tflite import export_decoder_tflite, export_encoder_tflite
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +39,13 @@ class DeploymentArtifacts:
     encoder_tflite: Path = field(default_factory=Path)
     encoder_header: Path = field(default_factory=Path)
     decoder_keras: Path = field(default_factory=Path)
+    decoder_float32_tflite: Path = field(default_factory=Path)
+    decoder_int8_tflite: Path = field(default_factory=Path)
+    decoder_int8_header: Path = field(default_factory=Path)
     codebook_npz: Path = field(default_factory=Path)
     codebook_header: Path = field(default_factory=Path)
     sample_data_npz: Path = field(default_factory=Path)
+    model_card: Path = field(default_factory=Path)
     manifest: Path = field(default_factory=Path)
 
     def as_dict(self) -> dict[str, str]:
@@ -66,6 +72,9 @@ def export_for_deployment(
     codebook_prefix: str = "rvq_codebook",
     model_name: str = "rvq_autoencoder",
     model_version: str = "1.0",
+    export_decoder_float32: bool = True,
+    export_decoder_int8: bool = False,
+    model_card_info: dict | None = None,
 ) -> DeploymentArtifacts:
     """Export encoder, codebook, decoder, and sample data for deployment.
 
@@ -86,6 +95,10 @@ def export_for_deployment(
         codebook_prefix: Prefix for codebook C array names.
         model_name: Name used in the deployment manifest.
         model_version: Semantic version string (e.g. ``"1.0"``).
+        export_decoder_float32: Whether to export float32 decoder TFLite.
+        export_decoder_int8: Whether to export INT8 decoder TFLite + header.
+        model_card_info: Optional dict with modality, sample_rate,
+            compression_ratio, license, and scorecard_summary fields.
 
     Returns:
         ``DeploymentArtifacts`` with paths to all exported files.
@@ -112,6 +125,40 @@ def export_for_deployment(
     decoder_keras_path = output_dir / "decoder.keras"
     decoder.save(decoder_keras_path)
     artifacts.decoder_keras = decoder_keras_path
+
+    # 2b. Float32 decoder TFLite (server-side, no quantization loss)
+    if export_decoder_float32:
+        logger.info("Exporting float32 decoder TFLite...")
+        rep_latents = encoder.predict(rep_dataset[:32], verbose=0)
+        dec_f32_tflite, _ = export_decoder_tflite(
+            decoder,
+            rep_latents=rep_latents,
+            output_dir=output_dir,
+            tflite_name="decoder_float32.tflite",
+            header_name="_decoder_float32.h",
+            c_array_name="decoder_float32",
+            quantization="NONE",
+            io_type="float32",
+        )
+        artifacts.decoder_float32_tflite = dec_f32_tflite
+
+    # 2c. INT8 decoder TFLite (on-device reconstruction)
+    if export_decoder_int8:
+        logger.info("Exporting INT8 decoder TFLite...")
+        if not export_decoder_float32:
+            rep_latents = encoder.predict(rep_dataset[:32], verbose=0)
+        dec_int8_tflite, dec_int8_header = export_decoder_tflite(
+            decoder,
+            rep_latents=rep_latents,
+            output_dir=output_dir,
+            tflite_name="decoder.tflite",
+            header_name="decoder.h",
+            c_array_name="decoder",
+            quantization=quantization,
+            io_type=io_type,
+        )
+        artifacts.decoder_int8_tflite = dec_int8_tflite
+        artifacts.decoder_int8_header = dec_int8_header
 
     # 3. Codebook tables
     logger.info("Exporting codebook tables...")
@@ -151,6 +198,9 @@ def export_for_deployment(
         },
         "decoder": {
             "keras": decoder_keras_path.name,
+            "float32_tflite": artifacts.decoder_float32_tflite.name if artifacts.decoder_float32_tflite != Path() else None,
+            "int8_tflite": artifacts.decoder_int8_tflite.name if artifacts.decoder_int8_tflite != Path() else None,
+            "int8_header": artifacts.decoder_int8_header.name if artifacts.decoder_int8_header != Path() else None,
             "input_shape": list(decoder.input_shape),
             "output_shape": list(decoder.output_shape),
         },
@@ -171,6 +221,23 @@ def export_for_deployment(
     with manifest_path.open("w") as f:
         json.dump(manifest, f, indent=2)
     artifacts.manifest = manifest_path
+
+    # 6. Model card
+    if model_card_info is not None:
+        model_card = {
+            "model_name": model_name,
+            "model_version": model_version,
+            "modality": model_card_info.get("modality", "unknown"),
+            "sample_rate": model_card_info.get("sample_rate"),
+            "compression_ratio": model_card_info.get("compression_ratio"),
+            "license": model_card_info.get("license", "Apache-2.0"),
+            "scorecard_summary": model_card_info.get("scorecard_summary", {}),
+        }
+        model_card_path = output_dir / "model_card.json"
+        with model_card_path.open("w") as f:
+            json.dump(model_card, f, indent=2)
+        artifacts.model_card = model_card_path
+        logger.info("Exported model card to %s", model_card_path)
 
     logger.info("Deployment export complete: %s", output_dir)
     return artifacts

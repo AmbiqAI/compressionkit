@@ -6,6 +6,7 @@ from compressionkit.export.codebook import (
     extract_codebooks,
 )
 from compressionkit.export.deploy import DeploymentArtifacts, export_for_deployment
+from compressionkit.export.stimulus import export_stimulus_npz, generate_stimulus
 from compressionkit.export.tflite import export_decoder_tflite, export_encoder_tflite
 
 __all__ = [
@@ -15,5 +16,7 @@ __all__ = [
     "export_decoder_tflite",
     "export_encoder_tflite",
     "export_for_deployment",
+    "export_stimulus_npz",
     "extract_codebooks",
+    "generate_stimulus",
 ]
