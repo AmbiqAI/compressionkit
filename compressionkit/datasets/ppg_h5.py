@@ -79,12 +79,12 @@ class WindowSpec:
 
     @property
     def window_samples(self) -> int:
-        return int(round(self.window_seconds * self.target_fs))
+        return round(self.window_seconds * self.target_fs)
 
     @property
     def hop_samples(self) -> int:
         hop = self.hop_seconds if self.hop_seconds is not None else self.window_seconds
-        return max(1, int(round(hop * self.target_fs)))
+        return max(1, round(hop * self.target_fs))
 
 
 def _resample(signal: np.ndarray, fs_in: int, fs_out: int) -> np.ndarray:
@@ -190,9 +190,8 @@ def iter_windows(
             n = signal.shape[0]
             for start in range(0, max(0, n - win + 1), hop):
                 w = signal[start : start + win][np.newaxis, :]  # (1, win)
-                if spec.sanitize is not None:
-                    if not is_clean_window(w, spec.sanitize).ok:
-                        continue
+                if spec.sanitize is not None and not is_clean_window(w, spec.sanitize).ok:
+                    continue
                 if spec.normalize:
                     w = normalize_window(w)
                 yield {

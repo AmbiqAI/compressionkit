@@ -40,6 +40,7 @@ from compressionkit.preprocessing.ecg import generate_synthetic_ecg_batch
 
 def _load_model(run_dir: Path):
     import keras
+
     from compressionkit.trainers.ecg_rvq import build_model
 
     keras.backend.clear_session()
@@ -136,7 +137,7 @@ def _print_summary(report: dict, runs_order: list[Path]) -> None:
     print("-" * 100)
     for run_dir in runs_order:
         run_report = report["runs"][str(run_dir)]
-        for key, b in run_report["buckets"].items():
+        for _key, b in run_report["buckets"].items():
             prd = b["prd_percent"]["mean"]
             prdn = b["prdn_noise_percent"]["mean"]
             print(

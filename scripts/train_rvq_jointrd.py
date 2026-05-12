@@ -229,8 +229,8 @@ def main(argv: list[str] | None = None) -> int:
 
     compressor = _load_compressor(cfg, run_dir, load_weights=not from_scratch)
 
+    from compressionkit.preprocessing.ecg import build_augmenter, build_preprocessor
     from compressionkit.trainers.ecg_rvq import build_datasets
-    from compressionkit.preprocessing.ecg import build_preprocessor, build_augmenter
     pre = build_preprocessor(frame_size=cfg.data.frame_size, epsilon=cfg.data.epsilon)
     aug = build_augmenter(
         aug_cfg=cfg.data.augmentation, sample_rate=cfg.data.effective_sample_rate,
@@ -253,7 +253,9 @@ def main(argv: list[str] | None = None) -> int:
     # weights the architecture is fixed by the checkpoint, and a prior
     # with RF < context_length is still valid (it just attends to its
     # full RF, which is the same as inference behaviour).
-    rf = lambda n: 1 + (args.prior_kernel - 1) * (2 ** n - 1)
+    def rf(n: int) -> int:
+        return 1 + (args.prior_kernel - 1) * (2 ** n - 1)
+
     n_layers = args.prior_num_layers
     if args.prior_weights is None:
         while rf(n_layers) < context_length and n_layers < 12:

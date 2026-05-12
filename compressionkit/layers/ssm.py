@@ -33,7 +33,6 @@ import keras
 import numpy as np
 from keras import ops
 
-
 __all__ = ["DiagonalSSM", "S4DBlock"]
 
 

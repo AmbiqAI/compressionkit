@@ -33,7 +33,7 @@ def main():
     )
 
     # Import after arg parse to speed up --help
-    import yaml  # noqa: PLC0415
+    import yaml
 
     from compressionkit.configs.ppg_rvq import PpgRvqConfig
     from compressionkit.recipes.train_ppg_rvq import train as run_training

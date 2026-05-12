@@ -25,12 +25,17 @@ from compressionkit.datasets.ppg import (
     load_ppg_splits,
 )
 from compressionkit.evaluation.metrics import (
-    compute_ppg_physiokit_metrics,
     compute_signal_metrics,
     summarize_physiokit_alignment,
 )
 from compressionkit.evaluation.spectral_metrics import psd_band_error
-from compressionkit.evaluation.stitching import STITCH_METHODS, seam_discontinuity_ratio, stitch
+from compressionkit.evaluation.stitching import seam_discontinuity_ratio, stitch
+from compressionkit.losses import (
+    build_derivative_loss,
+)
+from compressionkit.losses import (
+    build_filtered_mse_loss as _build_filtered_mse_loss,
+)
 from compressionkit.models.ppg_two_stream import (
     build_baseline_model,
     build_pulsatile_model,
@@ -38,15 +43,9 @@ from compressionkit.models.ppg_two_stream import (
 )
 from compressionkit.preprocessing.two_stream import (
     decompose_and_normalize,
-    decompose_baseline_pulsatile,
     downsample_baseline,
-    normalize_robust,
     reconstruct_from_streams,
     upsample_baseline,
-)
-from compressionkit.losses import (
-    build_derivative_loss,
-    build_filtered_mse_loss as _build_filtered_mse_loss,
 )
 from compressionkit.trainers.utils import build_learning_rate
 

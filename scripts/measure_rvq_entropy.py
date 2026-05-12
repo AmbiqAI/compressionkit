@@ -50,7 +50,6 @@ from compressionkit.datasets.ppg_h5 import PpgH5Source, SplitConfig, WindowSpec,
 from compressionkit.generative import build_prior, extract_rvq_tokens
 from compressionkit.preprocessing.sanitize import SanitizeConfig
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -1263,11 +1262,11 @@ def main(argv: list[str] | None = None) -> int:
         file=sys.stderr,
     )
     if per_frame:
-        print(f"  bits/frame   min /  p05 /  med /  p95 /  max:", file=sys.stderr)
+        print("  bits/frame   min /  p05 /  med /  p95 /  max:", file=sys.stderr)
         print(f"    {per_frame['min']:>7.1f} / {per_frame['p05']:>6.1f} / "
               f"{per_frame['median']:>6.1f} / {per_frame['p95']:>6.1f} / "
               f"{per_frame['max']:>7.1f}", file=sys.stderr)
-        print(f"  effective CR best / p95 / med / p05 / worst:", file=sys.stderr)
+        print("  effective CR best / p95 / med / p05 / worst:", file=sys.stderr)
         print(f"    x{cr_per_frame['best']:>5.2f} / "
               f"x{cr_per_frame['p95_cr']:>5.2f} / "
               f"x{cr_per_frame['median_cr']:>5.2f} / "

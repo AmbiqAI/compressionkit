@@ -41,6 +41,18 @@ from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
     summarize_ecg_alignment,
 )
+from compressionkit.losses import (
+    build_derivative_loss as _build_derivative_loss,
+)
+from compressionkit.losses import (
+    build_dwt_loss as _build_dwt_loss,
+)
+from compressionkit.losses import (
+    build_filtered_mse_loss as _build_filtered_mse_loss,
+)
+from compressionkit.losses import (
+    build_multi_scale_spectral_loss as _build_multi_scale_spectral_loss,
+)
 from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,
     build_rvq_autoencoder_2d_spatial,
@@ -48,12 +60,6 @@ from compressionkit.models.rvq_autoencoder import (
 )
 from compressionkit.preprocessing.ecg import (
     generate_synthetic_ecg_batch,
-)
-from compressionkit.losses import (
-    build_derivative_loss as _build_derivative_loss,
-    build_dwt_loss as _build_dwt_loss,
-    build_filtered_mse_loss as _build_filtered_mse_loss,
-    build_multi_scale_spectral_loss as _build_multi_scale_spectral_loss,
 )
 from compressionkit.trainers.utils import (
     build_learning_rate,

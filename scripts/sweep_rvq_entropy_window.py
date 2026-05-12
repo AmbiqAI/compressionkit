@@ -101,7 +101,8 @@ def _summarize(reports: list[tuple[int, dict]], frame_sec: float) -> str:
         "|-------:|--------:|-----------:|-------:|----:|------------:|--------------:|--------:|",
     ]
     for ctxf, r in reports:
-        m = r["metrics"]; pr = r["prior"]
+        m = r["metrics"]
+        pr = r["prior"]
         lines.append(
             f"| {ctxf} | {ctxf * frame_sec:.1f} | {r['context_length']} | "
             f"{pr.get('params', 0):,} | {m['val_bits_per_token']:.3f} | "

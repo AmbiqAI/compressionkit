@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import keras
 import numpy as np
-import pytest
+from helia_edge.trainers import VQAutoencoder
 
 from compressionkit.layers import EmaResidualVectorQuantizer, MultiScaleDiscriminator
 from compressionkit.trainers.adversarial import AdversarialVQAutoencoder, SetEpochCallback
-from helia_edge.trainers import VQAutoencoder
 
 VOCAB = 16
 EMBED = 8

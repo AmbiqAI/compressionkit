@@ -140,8 +140,8 @@ def compute_compression_ratio(
 
 
 __all__ = [
-    "build_ssm_encoder",
-    "build_ssm_decoder",
     "build_ssm_autoencoder",
+    "build_ssm_decoder",
+    "build_ssm_encoder",
     "compute_compression_ratio",
 ]

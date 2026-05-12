@@ -20,6 +20,7 @@ Usage::
 
 from __future__ import annotations
 
+import contextlib
 import pickle
 import sys
 from pathlib import Path
@@ -31,9 +32,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import extract_archive, http_download  # noqa: E402
+from compressionkit.datasets._download import extract_archive, http_download
 
 SLUG = "ppg_dalia"
 ACQUISITION = "wearable-wrist-ppg"
@@ -102,10 +103,8 @@ def _convert_subject(study_dir: Path, sid: str, out_dir: Path, *, logger) -> Pat
         h.attrs["acquisition"] = ACQUISITION
         h.attrs["patient_id"] = sid
         if "activity" in data:
-            try:
+            with contextlib.suppress(Exception):
                 h.create_dataset("activity", data=np.asarray(data["activity"]).astype(np.int16).reshape(-1))
-            except Exception:  # noqa: BLE001
-                pass
     logger.debug("Wrote %s ppg=%s ecg=%s acc=%s hr=%s",
                  out.name, ppg.shape, ecg.shape, acc_wrist.shape, hr_label.shape)
     return out

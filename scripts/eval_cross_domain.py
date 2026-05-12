@@ -8,25 +8,22 @@ Quantifies the generalization gap by evaluating a model trained on one dataset
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
-import sys
 from pathlib import Path
 
 import h5py
 import numpy as np
 import tensorflow as tf
 
-try:
+with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
-except RuntimeError:
-    pass
 
 from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
     summarize_physiokit_alignment,
 )
 from compressionkit.models.rvq_autoencoder import build_rvq_autoencoder
-
 
 # ---------------------------------------------------------------------------
 # Data loading from h5 datasets
@@ -272,7 +269,7 @@ def evaluate_on_source(
     )
 
     return {
-        "num_windows": int(len(windows)),
+        "num_windows": len(windows),
         "normalized_metrics": normed_metrics,
         "raw_metrics": raw_metrics,
         "physiokit": physiokit,

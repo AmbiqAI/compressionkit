@@ -14,22 +14,20 @@ Metrics:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
 
-try:
+with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
-except RuntimeError:
-    pass
 
 from compressionkit.evaluation.metrics import compute_signal_metrics
 from compressionkit.preprocessing.augmentations import (
     add_baseline_wander,
     add_motion_artifact,
-    PPGAugmenter,
     build_noise_bank_from_h5,
 )
 
@@ -86,6 +84,7 @@ def load_clean_windows(run_dir: Path, max_windows: int = 500, seed: int = 42) ->
 
     # Load from validation TFRecords or use the sample CSVs
     import glob
+
     import pandas as pd
 
     sample_files = sorted(glob.glob(str(run_dir / "sample_*.csv")))
@@ -180,11 +179,6 @@ def evaluate_denoising(
 
     # Denormalize reconstructions
     recon_raw = recon_normed * noisy_stds + noisy_means
-
-    # Also normalize the clean signal for normalized-domain comparison
-    clean_means = clean_windows.mean(axis=1, keepdims=True)
-    clean_stds = clean_windows.std(axis=1, keepdims=True) + epsilon
-    clean_normed = (clean_windows - clean_means) / clean_stds
 
     # Compute metrics
     # 1. Input noise (noisy vs clean)

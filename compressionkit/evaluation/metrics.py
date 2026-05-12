@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from typing import Any
 
 import keras
@@ -208,7 +209,7 @@ def summarize_ppg_peak_alignment(
     total_matched_peaks = 0
     total_missed_peaks = 0
     total_extra_peaks = 0
-    tolerance_samples = max(1, int(round(timing_tolerance_ms * sample_rate / 1000.0)))
+    tolerance_samples = max(1, round(timing_tolerance_ms * sample_rate / 1000.0))
 
     for target, recon in zip(originals, reconstructions):
         target_metrics = compute_ppg_physiokit_metrics(
@@ -271,7 +272,7 @@ def summarize_ppg_peak_alignment(
             timing_errors_ms.append(float(err_ms))
 
         sample_ibi_errors: list[float] = []
-        for (prev_target_idx, prev_recon_idx), (target_idx, recon_idx) in zip(matches, matches[1:]):
+        for (prev_target_idx, prev_recon_idx), (target_idx, recon_idx) in itertools.pairwise(matches):
             if target_idx != prev_target_idx + 1:
                 continue
             target_ibi_ms = (target_peaks[target_idx] - target_peaks[prev_target_idx]) / sample_rate * 1000.0

@@ -44,7 +44,6 @@ from typing import Any
 import keras
 import keras.ops as ops
 
-
 _LN2 = math.log(2.0)
 
 
@@ -268,7 +267,8 @@ class RateDistortionVQAutoencoder(keras.Model):
 
     @property
     def metrics(self):
-        return list(self.autoencoder.metrics) + [
+        return [
+            *self.autoencoder.metrics,
             self._distortion_tracker,
             self._rate_tracker,
             self._total_loss_tracker,

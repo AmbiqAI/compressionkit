@@ -18,7 +18,6 @@ import numpy as np
 import physiokit as pk
 from scipy import signal as sps
 
-
 # ---------------------------------------------------------------------------
 # Estimator 1 — High-frequency band power (above clinical bands of interest)
 # ---------------------------------------------------------------------------
@@ -166,8 +165,8 @@ def estimate_ecg_qrs_snr(
         return nan_result
     if peaks.size < min_peaks:
         return nan_result
-    pre = int(round(template_window_ms[0] / 1000.0 * fs))
-    post = int(round(template_window_ms[1] / 1000.0 * fs))
+    pre = round(template_window_ms[0] / 1000.0 * fs)
+    post = round(template_window_ms[1] / 1000.0 * fs)
     win_len = post - pre
     if win_len <= 0:
         return nan_result
@@ -242,9 +241,9 @@ def estimate_ppg_noise_floor(
 
 
 __all__ = [
-    "estimate_hf_noise_power",
     "estimate_bandpass_residual_noise",
-    "estimate_ecg_qrs_snr",
     "estimate_ecg_noise_floor",
+    "estimate_ecg_qrs_snr",
+    "estimate_hf_noise_power",
     "estimate_ppg_noise_floor",
 ]

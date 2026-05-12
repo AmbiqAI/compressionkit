@@ -16,8 +16,8 @@ import pandas as pd
 
 from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
-    summarize_physiokit_alignment,
     summarize_ecg_alignment,
+    summarize_physiokit_alignment,
     summarize_ppg_peak_alignment,
 )
 from compressionkit.evaluation.noise import (

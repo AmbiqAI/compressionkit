@@ -22,21 +22,18 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
-import sys
 from pathlib import Path
 
 import h5py
 import numpy as np
 import tensorflow as tf
 
-try:
+with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
-except RuntimeError:
-    pass
 
 from compressionkit.evaluation.metrics import compute_signal_metrics
-
 
 # ---------------------------------------------------------------------------
 # Fixed eval sources — same windows for every model
@@ -220,8 +217,8 @@ def load_single_stream_model(run_dir: Path) -> tf.keras.Model:
 
 def load_two_stream_models(run_dir: Path) -> tuple:
     """Load two-stream baseline + pulsatile models."""
-    from compressionkit.models.ppg_two_stream import build_baseline_model, build_pulsatile_model
     from compressionkit.configs.ppg_two_stream import PpgTwoStreamConfig
+    from compressionkit.models.ppg_two_stream import build_baseline_model, build_pulsatile_model
 
     config_path = run_dir / "config.json"
     with open(config_path) as f:
@@ -362,7 +359,7 @@ def evaluate_model_on_windows(
     recons = predict_fn(windows)
     metrics = compute_signal_metrics(windows, recons)
     return {
-        "num_windows": int(len(windows)),
+        "num_windows": len(windows),
         "prd_percent": round(metrics["prd_percent"], 4),
         "cosine_similarity": round(metrics["cosine_similarity"], 6),
         "mse": round(metrics["mse"], 8),
@@ -421,7 +418,7 @@ def evaluate_run(
         print(f"PRD={metrics['prd_percent']:.2f}%, cos={metrics['cosine_similarity']:.4f}")
 
     # Evaluate on MESA
-    print(f"    mesa...", end=" ", flush=True)
+    print("    mesa...", end=" ", flush=True)
     mesa_windows = collect_mesa_windows(
         frame_size=frame_size, max_total=max_windows, seed=seed,
     )

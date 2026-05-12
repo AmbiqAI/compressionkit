@@ -113,7 +113,7 @@ def build_sub_discriminator(
         name=f"{name}_logits",
     )(x)
 
-    return keras.Model(inp, features + [logits], name=name)
+    return keras.Model(inp, [*features, logits], name=name)
 
 
 @keras.saving.register_keras_serializable(package="compressionkit")

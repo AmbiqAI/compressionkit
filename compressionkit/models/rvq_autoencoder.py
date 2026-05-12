@@ -36,19 +36,18 @@ from compressionkit.models.blocks import (  # noqa: F401
     up2d_block,
     up2d_spatial_block,
 )
-from compressionkit.models.decoder import (  # noqa: F401
+from compressionkit.models.decoder import (
     build_decoder_2d,
     build_decoder_2d_spatial,
     build_decoder_2d_ssm,
     build_hierarchical_adaptor_decoder_2d,
     build_hierarchical_decoder_2d,
 )
-from compressionkit.models.encoder import (  # noqa: F401
+from compressionkit.models.encoder import (
     build_encoder_2d,
     build_encoder_2d_invres,
     build_encoder_2d_spatial,
 )
-
 
 # ---------------------------------------------------------------------------
 # Custom VQAutoencoder subclasses

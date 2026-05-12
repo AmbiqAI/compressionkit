@@ -183,8 +183,8 @@ def main(argv: list[str] | None = None) -> int:
     # ------------------------------------------------------------------
     # 4. Build datasets
     # ------------------------------------------------------------------
+    from compressionkit.preprocessing.ecg import build_augmenter, build_preprocessor
     from compressionkit.trainers.ecg_rvq import build_datasets
-    from compressionkit.preprocessing.ecg import build_preprocessor, build_augmenter
 
     pre = build_preprocessor(
         frame_size=cfg.data.frame_size, epsilon=cfg.data.epsilon,

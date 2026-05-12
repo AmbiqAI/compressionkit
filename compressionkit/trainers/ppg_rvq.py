@@ -32,20 +32,22 @@ from compressionkit.evaluation.metrics import (
     summarize_physiokit_alignment,
 )
 from compressionkit.evaluation.overlap_add import evaluate_long_recordings
+from compressionkit.losses import (
+    build_derivative_loss as _build_derivative_loss,
+)
+from compressionkit.losses import (
+    build_multi_scale_spectral_loss as _build_multi_scale_spectral_loss,
+)
 from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,
     compute_compression_stats,
-)
-from compressionkit.preprocessing.ppg import (
-    generate_synthetic_ppg_batch,
 )
 from compressionkit.preprocessing.augmentations import (
     PPGAugmenter,
     build_noise_bank_from_h5,
 )
-from compressionkit.losses import (
-    build_derivative_loss as _build_derivative_loss,
-    build_multi_scale_spectral_loss as _build_multi_scale_spectral_loss,
+from compressionkit.preprocessing.ppg import (
+    generate_synthetic_ppg_batch,
 )
 from compressionkit.trainers.utils import (
     build_learning_rate,

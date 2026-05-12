@@ -13,8 +13,6 @@ from pydantic import BaseModel, Field
 
 from compressionkit.configs.ppg_rvq import (
     DerivativeLossConfig,
-    EvaluationConfig,
-    FilterConfig,
     LrScheduleConfig,
     OutputConfig,
     SpectralLossConfig,

@@ -14,11 +14,11 @@ import os
 # Pin TF backend before any keras import.
 os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 
-import keras  # noqa: E402
-import numpy as np  # noqa: E402
-import torch  # noqa: E402
+import keras
+import numpy as np
+import torch
 
-from compressionkit.layers.ssm import DiagonalSSM  # noqa: E402
+from compressionkit.layers.ssm import DiagonalSSM
 
 
 def _build_layer(seed: int = 0, in_dim: int = 4, out_dim: int = 4, N: int = 6):

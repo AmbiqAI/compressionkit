@@ -14,11 +14,8 @@ Augmentations:
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 from scipy import signal as scipy_signal
-
 
 # ---------------------------------------------------------------------------
 # Baseline wander (low-frequency drift)

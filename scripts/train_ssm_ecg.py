@@ -34,30 +34,30 @@ from pathlib import Path
 # Pin TF backend before any keras import so the comparison runs consistently.
 os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 
-import keras  # noqa: E402
-import numpy as np  # noqa: E402
-import tensorflow as tf  # noqa: E402
-import yaml  # noqa: E402
+import keras
+import numpy as np
+import tensorflow as tf
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from compressionkit.configs.ecg_rvq import EcgRvqConfig  # noqa: E402
-from compressionkit.layers import (  # noqa: E402
+from compressionkit.configs.ecg_rvq import EcgRvqConfig
+from compressionkit.layers import (
     EmaResidualVectorQuantizer,
     FiniteScalarQuantizer,
     ResidualVectorQuantizer,
 )
-from compressionkit.models.ssm_autoencoder import (  # noqa: E402
+from compressionkit.models.ssm_autoencoder import (
     build_ssm_autoencoder,
     compute_compression_ratio,
 )
-from compressionkit.preprocessing.ecg import (  # noqa: E402
+from compressionkit.preprocessing.ecg import (
     build_augmenter,
     build_preprocessor,
 )
-from compressionkit.trainers.ecg_rvq import build_datasets  # noqa: E402
+from compressionkit.trainers.ecg_rvq import build_datasets
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("train_ssm_ecg")

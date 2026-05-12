@@ -33,7 +33,7 @@ import hashlib
 import json
 import logging
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -697,7 +697,7 @@ def load_cached_raw_windows(
 
         n_available = meta[count_key]
         if max_windows is not None:
-            budget = int(math.ceil(max_windows * w))
+            budget = math.ceil(max_windows * w)
         else:
             budget = n_available
 

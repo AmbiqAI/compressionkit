@@ -26,6 +26,10 @@ from compressionkit.datasets.ppg_h5 import (
     make_h5_ppg_dataset,
     summarize_sources,
 )
+from compressionkit.losses import (
+    build_derivative_loss,
+    build_multi_scale_spectral_loss,
+)
 from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,
     compute_compression_stats,
@@ -43,10 +47,6 @@ from compressionkit.trainers.utils import (
     build_callbacks,
     build_learning_rate,
     setup_logger,
-)
-from compressionkit.losses import (
-    build_derivative_loss,
-    build_multi_scale_spectral_loss,
 )
 
 logger = logging.getLogger("ppg-h5-rvq-trainer")

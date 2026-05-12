@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 from pathlib import Path
 from typing import Any
@@ -13,10 +14,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-try:
+with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
-except RuntimeError:
-    pass
 
 from compressionkit.configs.ppg_h5_rvq import PpgH5RvqConfig
 from compressionkit.datasets.ppg_h5 import (
@@ -366,7 +365,7 @@ def _evaluate_long_recordings(
     rng = np.random.default_rng(seed)
     recordings = _iter_val_recordings(cfg)
     rng.shuffle(recordings)
-    target_len = int(round(duration_sec * cfg.data.target_fs))
+    target_len = round(duration_sec * cfg.data.target_fs)
     min_peaks = max(5, int(duration_sec * 0.5))
     san_cfg = _sanitize_config(cfg)
 

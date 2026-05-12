@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -85,7 +84,6 @@ class TestModelCardGeneration:
 
     def test_model_card_written(self, tmp_path):
         """Verify model card JSON is produced with correct fields."""
-        from compressionkit.export.deploy import DeploymentArtifacts
 
         # We'll test the model card writing logic in isolation
         model_card_info = {

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import numpy as np
 import keras.ops as ops
+import numpy as np
 
 
 def _design_fir_lowpass(

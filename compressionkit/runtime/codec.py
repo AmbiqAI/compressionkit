@@ -15,6 +15,7 @@ Example::
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from pathlib import Path
@@ -26,16 +27,14 @@ logger = logging.getLogger(__name__)
 # Try ai-edge-litert first, then tflite-runtime, then tf.lite
 _Interpreter = None
 
-try:
+with contextlib.suppress(ImportError):
     from ai_edge_litert.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
-except ImportError:
-    try:
+if _Interpreter is None:
+    with contextlib.suppress(ImportError):
         from tflite_runtime.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
-    except ImportError:
-        try:
-            from tensorflow.lite.python.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
-        except ImportError:
-            pass
+if _Interpreter is None:
+    with contextlib.suppress(ImportError):
+        from tensorflow.lite.python.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
 
 if _Interpreter is None:
     raise ImportError(
@@ -139,7 +138,7 @@ class RVQCodec:
         )
 
     @classmethod
-    def from_pretrained(cls, repo_id: str, revision: str | None = None, cache_dir: str | Path | None = None) -> "RVQCodec":
+    def from_pretrained(cls, repo_id: str, revision: str | None = None, cache_dir: str | Path | None = None) -> RVQCodec:
         """Load a codec from a HuggingFace Hub model repository.
 
         Downloads the deployment artifacts and creates an ``RVQCodec``

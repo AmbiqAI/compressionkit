@@ -78,9 +78,7 @@ def main() -> None:
     from compressionkit.export.stimulus import generate_stimulus
 
     input_shape = encoder.input_shape  # e.g. (None, 1, 320, 1)
-    if len(input_shape) == 4:
-        frame_size = input_shape[-2]
-    elif len(input_shape) == 3:
+    if len(input_shape) == 4 or len(input_shape) == 3:
         frame_size = input_shape[-2]
     else:
         frame_size = input_shape[-1]

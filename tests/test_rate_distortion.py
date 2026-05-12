@@ -5,11 +5,10 @@ from __future__ import annotations
 import keras
 import numpy as np
 import pytest
+from helia_edge.trainers import VQAutoencoder
 
 from compressionkit.layers import EmaResidualVectorQuantizer
 from compressionkit.trainers.rate_distortion import RateDistortionVQAutoencoder
-from helia_edge.trainers import VQAutoencoder
-
 
 VOCAB = 16
 EMBED = 8

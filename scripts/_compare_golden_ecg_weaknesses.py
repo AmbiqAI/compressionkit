@@ -1,6 +1,7 @@
 """Aggregate quality_scorecard.json across the 6 golden ECG runs and surface
 weaknesses (not just lowest MSE)."""
 from __future__ import annotations
+
 import json
 from pathlib import Path
 
@@ -110,7 +111,7 @@ for cr in CRS:
             cells.append(f"{hr['mean']:.2f} ± {hr['std']:.2f} (n={hr['n']})")
         else:
             cells.append("—")
-    row([f"{cr}×"] + cells)
+    row([f"{cr}×", *cells])
 
 # 6. Weakness summary: for each CR, where does it rank worst?
 section("Weakness fingerprint per CR (highest values vs cleaner CRs)")

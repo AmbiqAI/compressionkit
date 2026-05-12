@@ -30,9 +30,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import extract_archive, http_download  # noqa: E402
+from compressionkit.datasets._download import extract_archive, http_download
 
 SLUG = "wesad"
 ACQUISITION = "wearable-wrist-ppg-stress"

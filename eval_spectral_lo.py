@@ -5,7 +5,6 @@ Loads both models for each CR, evaluates on the SAME validation samples,
 and runs paired statistical tests.
 """
 
-import json
 import os
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -14,12 +13,11 @@ from pathlib import Path
 
 import keras
 import numpy as np
-import tensorflow as tf
 from scipy.stats import wilcoxon
 
 from compressionkit.configs.ecg_rvq import EcgRvqConfig
 from compressionkit.datasets.ecg import collect_random_samples
-from compressionkit.preprocessing.ecg import build_preprocessor, build_augmenter
+from compressionkit.preprocessing.ecg import build_augmenter, build_preprocessor
 from compressionkit.trainers.ecg_rvq import build_datasets, build_model
 
 NUM_SAMPLES = 500
@@ -90,7 +88,7 @@ def main():
 
         # Build & load golden model
         g_model = build_model(g_cfg)
-        dummy = np.zeros((1,) + sample_inputs.shape[1:], dtype=np.float32)
+        dummy = np.zeros((1, *sample_inputs.shape[1:]), dtype=np.float32)
         g_model(dummy, training=False)
         g_model.load_weights(str(g_weights))
 

@@ -11,12 +11,9 @@ independently configurable sizes.
 from __future__ import annotations
 
 import keras
-import numpy as np
 
 from compressionkit.configs.ppg_two_stream import (
-    BaselineModelConfig,
     PpgTwoStreamConfig,
-    PulsatileModelConfig,
 )
 from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,

@@ -80,7 +80,7 @@ class H5DataConfig(BaseModel):
 
     @property
     def window_samples(self) -> int:
-        return int(round(self.window_seconds * self.target_fs))
+        return round(self.window_seconds * self.target_fs)
 
 
 class PpgH5RvqConfig(BaseModel):

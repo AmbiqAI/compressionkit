@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from compressionkit.evaluation.spectral_metrics import (
     ECG_DEFAULT_BANDS,
-    PPG_DEFAULT_BANDS,
     PPG_DEFAULT_FREQ_WEIGHTS,
     psd_band_error,
     spectral_coherence,

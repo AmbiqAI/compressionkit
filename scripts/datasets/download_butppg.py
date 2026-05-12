@@ -30,9 +30,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_physionet_files, http_download, physionet_url  # noqa: E402
+from compressionkit.datasets._download import download_physionet_files, http_download, physionet_url
 
 SLUG = "butppg"
 VERSION = "2.0.0"
@@ -126,7 +126,7 @@ def _fetch_session(sid: str, raw_dir: Path, *, force: bool, logger) -> bool:
             continue
         try:
             download_physionet_files(SLUG, VERSION, [rel], raw_dir, show_progress=False)
-        except Exception as exc:  # noqa: BLE001 - some files (ACC, qrs) are optional
+        except Exception as exc:
             if any(rel.endswith(opt) for opt in ("_ACC.dat", "_ACC.hea", ".qrs")):
                 logger.debug("optional file missing for %s: %s", sid, rel)
             else:
@@ -151,7 +151,7 @@ def _convert_session(raw_dir: Path, sid: str, qhr: tuple[int, float] | None,
         try:
             acc_rec = wfdb.rdrecord(str(acc_path))
             acc = _to_chan_first(np.asarray(acc_rec.p_signal, dtype=np.float32))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("ACC unreadable for %s: %s", sid, exc)
 
     qrs_idx = None
@@ -159,7 +159,7 @@ def _convert_session(raw_dir: Path, sid: str, qhr: tuple[int, float] | None,
         try:
             ann = wfdb.rdann(str(sess / sid), "qrs")
             qrs_idx = np.asarray(ann.sample, dtype=np.int64)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("QRS unreadable for %s: %s", sid, exc)
 
     out = out_dir / f"{sid}.h5"
@@ -222,7 +222,7 @@ def main() -> None:
                 continue
             try:
                 _convert_session(raw, sid, qhr_map.get(sid), canonical, logger=logger)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.warning("convert failed for %s: %s", sid, exc)
 
     n = len(list(canonical.glob("*.h5")))

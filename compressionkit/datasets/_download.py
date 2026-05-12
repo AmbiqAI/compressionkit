@@ -70,10 +70,9 @@ def http_download(
     dst_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Quick skip when an existing file matches the expected checksum.
-    if dst_path.exists() and sha256:
-        if _file_sha256(dst_path) == sha256:
-            logger.info("✓ %s already present and checksum matches.", dst_path.name)
-            return dst_path
+    if dst_path.exists() and sha256 and _file_sha256(dst_path) == sha256:
+        logger.info("✓ %s already present and checksum matches.", dst_path.name)
+        return dst_path
 
     headers: dict[str, str] = {}
     mode = "wb"
