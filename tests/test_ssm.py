@@ -17,9 +17,11 @@ os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 
 import keras
 import numpy as np
-import torch
+import pytest
 
-from compressionkit.layers.ssm import DiagonalSSM
+torch = pytest.importorskip("torch")
+
+from compressionkit.layers.ssm import DiagonalSSM  # noqa: E402
 
 
 def _build_layer(seed: int = 0, in_dim: int = 4, out_dim: int = 4, N: int = 6):
