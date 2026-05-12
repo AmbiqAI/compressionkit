@@ -7,6 +7,11 @@ quick and readable.
 from __future__ import annotations
 
 import os
+import sys
+
+# Ensure the repo root is on sys.path so ``from scripts.…`` imports work
+# regardless of the working directory (e.g. in CI).
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # Keep TensorFlow quiet during tests.
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
