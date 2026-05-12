@@ -12,6 +12,14 @@ Example::
     codec = RVQCodec("path/to/deploy/")
     indices = codec.encode(signal)
     recon = codec.decode(indices)
+
+    # Two-stage compression with entropy prior
+    from compressionkit.runtime.prior import EntropyPrior
+    from compressionkit.runtime.two_stage import TwoStageCodec
+
+    prior = EntropyPrior("prior.tflite")
+    two_stage = TwoStageCodec(codec, prior)
+    result = two_stage.compress(signal)
 """
 
 from compressionkit.runtime.codec import RVQCodec
