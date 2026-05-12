@@ -20,7 +20,6 @@ from __future__ import annotations
 import logging
 import struct
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 
@@ -278,8 +277,7 @@ def _probs_to_cdf(probs: np.ndarray) -> list[int]:
     """
     n = len(probs)
     # Quantize to integer counts, ensuring each symbol gets ≥ 1
-    counts = [max(1, int(round(p * (_WHOLE - n)))) for p in probs]
-    total = sum(counts)
+    counts = [max(1, round(p * (_WHOLE - n))) for p in probs]
     # Build CDF
     cdf = [0] * (n + 1)
     for i in range(n):
@@ -371,7 +369,7 @@ def _arithmetic_decode_with_prior(
     bitstream: bytes,
     num_tokens: int,
     indices_shape: tuple[int, ...],
-    prior: "EntropyPrior",
+    prior: EntropyPrior,
     vocab_size: int,
 ) -> np.ndarray:
     """Arithmetic-decode a bitstream autoregressively using the prior.
