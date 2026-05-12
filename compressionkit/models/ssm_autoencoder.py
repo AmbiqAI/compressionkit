@@ -20,16 +20,14 @@ from ..layers.ssm import S4DBlock
 
 
 def _down_block(x, filters: int, name: str):
-    x = layers.Conv1D(filters, kernel_size=5, strides=2, padding="same",
-                      name=f"{name}_conv")(x)
+    x = layers.Conv1D(filters, kernel_size=5, strides=2, padding="same", name=f"{name}_conv")(x)
     x = layers.LayerNormalization(epsilon=1e-5, name=f"{name}_ln")(x)
     x = layers.Activation("gelu", name=f"{name}_act")(x)
     return x
 
 
 def _up_block(x, filters: int, name: str):
-    x = layers.Conv1DTranspose(filters, kernel_size=5, strides=2,
-                               padding="same", name=f"{name}_tconv")(x)
+    x = layers.Conv1DTranspose(filters, kernel_size=5, strides=2, padding="same", name=f"{name}_tconv")(x)
     x = layers.LayerNormalization(epsilon=1e-5, name=f"{name}_ln")(x)
     x = layers.Activation("gelu", name=f"{name}_act")(x)
     return x
@@ -72,8 +70,8 @@ def build_ssm_decoder(
     name: str = "ssm_decoder",
 ) -> keras.Model:
     """Mirror of :func:`build_ssm_encoder`."""
-    latent_time = frame_size // (2 ** num_stages)
-    width = int(base_filters * (multiplier ** num_stages))
+    latent_time = frame_size // (2**num_stages)
+    width = int(base_filters * (multiplier**num_stages))
     z_in = keras.Input(shape=(latent_time, latent_dim), name="latent")
     x = layers.Dense(width, name="dec_from_latent")(z_in)
     for i in range(num_ssm_blocks):
@@ -108,15 +106,21 @@ def build_ssm_autoencoder(
         ``(encoder, decoder, autoencoder)``.
     """
     enc = build_ssm_encoder(
-        frame_size=frame_size, latent_dim=latent_dim,
-        base_filters=base_filters, multiplier=multiplier,
-        num_stages=num_stages, state_size=state_size,
+        frame_size=frame_size,
+        latent_dim=latent_dim,
+        base_filters=base_filters,
+        multiplier=multiplier,
+        num_stages=num_stages,
+        state_size=state_size,
         num_ssm_blocks=num_ssm_blocks,
     )
     dec = build_ssm_decoder(
-        frame_size=frame_size, latent_dim=latent_dim,
-        base_filters=base_filters, multiplier=multiplier,
-        num_stages=num_stages, state_size=state_size,
+        frame_size=frame_size,
+        latent_dim=latent_dim,
+        base_filters=base_filters,
+        multiplier=multiplier,
+        num_stages=num_stages,
+        state_size=state_size,
         num_ssm_blocks=num_ssm_blocks,
     )
     x_in = keras.Input(shape=(frame_size, 1), name="signal")
@@ -129,12 +133,16 @@ def build_ssm_autoencoder(
 
 
 def compute_compression_ratio(
-    *, frame_size: int, latent_dim: int, num_stages: int,
-    input_bits: int = 16, latent_bits: int = 32,
+    *,
+    frame_size: int,
+    latent_dim: int,
+    num_stages: int,
+    input_bits: int = 16,
+    latent_bits: int = 32,
 ) -> float:
     """Compression ratio assuming uncompressed latent storage."""
     in_bits = frame_size * input_bits
-    latent_time = frame_size // (2 ** num_stages)
+    latent_time = frame_size // (2**num_stages)
     out_bits = latent_time * latent_dim * latent_bits
     return in_bits / out_bits
 

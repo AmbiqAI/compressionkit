@@ -24,6 +24,7 @@ import tensorflow as tf
 # Single-file loading
 # ---------------------------------------------------------------------------
 
+
 def load_ecg_signal(
     h5_file: Path,
     *,
@@ -94,6 +95,7 @@ def load_ecg_dataset(
 # Train / val / test split helpers
 # ---------------------------------------------------------------------------
 
+
 def load_ecg_splits(
     datasets_dir: Path,
     glob_pattern: str,
@@ -118,9 +120,7 @@ def load_ecg_splits(
     """
     files = sorted(Path(datasets_dir).glob(glob_pattern))
     if not files:
-        raise FileNotFoundError(
-            f"No H5 files found for pattern {glob_pattern} in {datasets_dir}"
-        )
+        raise FileNotFoundError(f"No H5 files found for pattern {glob_pattern} in {datasets_dir}")
     rng = np.random.default_rng(seed)
     files = list(rng.permutation(files))
 
@@ -147,9 +147,7 @@ def load_ecg_file_splits(
     """Return train/val/test H5 file splits for subject-level separation."""
     files = sorted(Path(datasets_dir).glob(glob_pattern))
     if not files:
-        raise FileNotFoundError(
-            f"No H5 files found for pattern {glob_pattern} in {datasets_dir}"
-        )
+        raise FileNotFoundError(f"No H5 files found for pattern {glob_pattern} in {datasets_dir}")
     rng = np.random.default_rng(seed)
     files = list(rng.permutation(files))
 
@@ -164,6 +162,7 @@ def load_ecg_file_splits(
 # ---------------------------------------------------------------------------
 # H5 window sampling
 # ---------------------------------------------------------------------------
+
 
 def _sample_ecg_window_from_h5(
     *,
@@ -208,6 +207,7 @@ def _sample_ecg_window_from_h5(
 # Resampling helper
 # ---------------------------------------------------------------------------
 
+
 def _resample(signal: np.ndarray, source_rate: int, target_rate: int) -> np.ndarray:
     """Resample a 1-D signal from *source_rate* to *target_rate* Hz."""
     if source_rate == target_rate:
@@ -221,6 +221,7 @@ def _resample(signal: np.ndarray, source_rate: int, target_rate: int) -> np.ndar
 # ---------------------------------------------------------------------------
 # Bandpass filter helpers
 # ---------------------------------------------------------------------------
+
 
 def _maybe_filter(
     signal: np.ndarray,
@@ -288,6 +289,7 @@ def bandpass_filter_batch(
 # TFRecord cache builder
 # ---------------------------------------------------------------------------
 
+
 def _cache_signature(params: dict[str, Any]) -> str:
     """Deterministic hash of cache configuration."""
     blob = json.dumps(params, sort_keys=True).encode()
@@ -326,9 +328,7 @@ def build_ecg_tfrecord_cache(
         ``(cache_dir, meta_dict)`` with paths to the train/val TFRecords.
     """
     need_resample = (
-        source_sample_rate is not None
-        and target_sample_rate is not None
-        and source_sample_rate != target_sample_rate
+        source_sample_rate is not None and target_sample_rate is not None and source_sample_rate != target_sample_rate
     )
     # Source-rate window length for H5 sampling
     if need_resample:
@@ -367,8 +367,11 @@ def build_ecg_tfrecord_cache(
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     train_files, val_files, _ = load_ecg_file_splits(
-        datasets_dir, glob_pattern,
-        train_ratio=train_ratio, val_ratio=val_ratio, seed=shuffle_seed,
+        datasets_dir,
+        glob_pattern,
+        train_ratio=train_ratio,
+        val_ratio=val_ratio,
+        seed=shuffle_seed,
     )
 
     def _write_split(
@@ -399,8 +402,10 @@ def build_ecg_tfrecord_cache(
                     else:
                         # Multi-lead: resample each lead independently
                         resampled = np.stack(
-                            [_resample(window[:, c], source_sample_rate, target_sample_rate)
-                             for c in range(window.shape[1])],
+                            [
+                                _resample(window[:, c], source_sample_rate, target_sample_rate)
+                                for c in range(window.shape[1])
+                            ],
                             axis=-1,
                         )
                         if resampled.shape[0] > segment_samples:
@@ -414,13 +419,9 @@ def build_ecg_tfrecord_cache(
                         window = resampled
                 # Flatten for TFRecord storage: (T,) or (T, C) → flat
                 feature = {
-                    "signal": tf.train.Feature(
-                        float_list=tf.train.FloatList(value=window.ravel().tolist())
-                    ),
+                    "signal": tf.train.Feature(float_list=tf.train.FloatList(value=window.ravel().tolist())),
                 }
-                example = tf.train.Example(
-                    features=tf.train.Features(feature=feature)
-                )
+                example = tf.train.Example(features=tf.train.Features(feature=feature))
                 writer.write(example.SerializeToString())
                 total += 1
         writer.close()
@@ -450,9 +451,11 @@ def build_ecg_tfrecord_cache(
 # tf.data pipeline builders
 # ---------------------------------------------------------------------------
 
+
 def _parse_tfrecord_fn(segment_samples: int, num_leads: int = 1):
     """Return a parse function for ECG TFRecord examples."""
     flat_len = segment_samples * num_leads
+
     def _parse(example_proto):
         feature_spec = {"signal": tf.io.FixedLenFeature([flat_len], tf.float32)}
         parsed = tf.io.parse_single_example(example_proto, feature_spec)
@@ -460,6 +463,7 @@ def _parse_tfrecord_fn(segment_samples: int, num_leads: int = 1):
         if num_leads > 1:
             signal = tf.reshape(signal, [segment_samples, num_leads])
         return signal
+
     return _parse
 
 
@@ -522,6 +526,7 @@ def make_ecg_tfrecord_dataset(
                     order=_tf_order,
                     forward_backward=_tf_fb,
                 )
+
             return tf.py_function(_np_filter, [x], tf.float32)
 
         ds = ds.map(
@@ -723,6 +728,7 @@ def make_ecg_stream_dataset(
 # ---------------------------------------------------------------------------
 # Utility
 # ---------------------------------------------------------------------------
+
 
 def collect_random_samples(
     dataset: tf.data.Dataset,

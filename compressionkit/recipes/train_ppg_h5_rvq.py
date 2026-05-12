@@ -131,7 +131,8 @@ def build_datasets(
 
     train_ds = (
         make_h5_ppg_dataset(
-            sources, spec,
+            sources,
+            spec,
             batch_size=cfg.data.batch_size,
             shuffle_buffer=cfg.data.shuffle_buffer,
             seed=cfg.data.split.seed,
@@ -145,7 +146,8 @@ def build_datasets(
 
     val_ds = (
         make_h5_ppg_dataset(
-            sources, spec,
+            sources,
+            spec,
             batch_size=cfg.data.batch_size,
             shuffle_buffer=0,  # deterministic validation
             split_cfg=split_val,
@@ -212,7 +214,7 @@ def compile_model(
 
 def build_compression_stats(cfg: PpgH5RvqConfig) -> dict[str, Any]:
     mcfg = cfg.model
-    downsample_factor = 2 ** mcfg.num_stages
+    downsample_factor = 2**mcfg.num_stages
     stats = compute_compression_stats(
         cfg.data.window_samples,
         bit_depth=cfg.evaluation.input_bit_depth,
@@ -248,9 +250,13 @@ def train(cfg: PpgH5RvqConfig) -> dict[str, Any]:
     save_config_snapshot(cfg_dump, run_dir)
 
     train_ds, val_ds, ds_info = build_datasets(cfg)
-    logger.info("Dataset info: %s", json.dumps(
-        {k: v for k, v in ds_info.items() if k != "audit"}, indent=2,
-    ))
+    logger.info(
+        "Dataset info: %s",
+        json.dumps(
+            {k: v for k, v in ds_info.items() if k != "audit"},
+            indent=2,
+        ),
+    )
 
     model = build_model(cfg)
     lr_value = build_learning_rate(cfg, steps_per_epoch=cfg.data.steps_per_epoch)

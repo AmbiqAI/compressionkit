@@ -138,7 +138,7 @@ def evaluate_denoising(
             sig_power = np.mean(clean_windows[i] ** 2) + 1e-10
             noise_power = sig_power / (10 ** (snr_db / 10))
             noise = rng.standard_normal(frame_size).astype(np.float32)
-            noise = noise * np.sqrt(noise_power / (np.mean(noise ** 2) + 1e-10))
+            noise = noise * np.sqrt(noise_power / (np.mean(noise**2) + 1e-10))
             noisy_windows[i] = clean_windows[i] + noise
         elif noise_type == "baseline_wander":
             noisy_windows[i] = add_baseline_wander(
@@ -183,11 +183,11 @@ def evaluate_denoising(
     # Compute metrics
     # 1. Input noise (noisy vs clean)
     input_noise = noisy_windows - clean_windows
-    input_noise_power = np.mean(input_noise ** 2, axis=1)
+    input_noise_power = np.mean(input_noise**2, axis=1)
 
     # 2. Output noise (reconstruction vs clean)
     output_noise = recon_raw - clean_windows
-    output_noise_power = np.mean(output_noise ** 2, axis=1)
+    output_noise_power = np.mean(output_noise**2, axis=1)
 
     # 3. Noise Reduction Ratio
     valid_mask = (input_noise_power > 1e-8) & (output_noise_power > 1e-8)
@@ -195,7 +195,7 @@ def evaluate_denoising(
     nrr_db = 10 * np.log10(nrr + 1e-10)
 
     # 4. SNR improvement
-    sig_power = np.mean(clean_windows ** 2, axis=1) + 1e-10
+    sig_power = np.mean(clean_windows**2, axis=1) + 1e-10
     input_snr = 10 * np.log10(sig_power / (input_noise_power + 1e-10))
     output_snr = 10 * np.log10(sig_power / (output_noise_power + 1e-10))
     # Filter out inf/nan
@@ -250,7 +250,9 @@ def main():
     dalia_files = sorted(glob.glob("/home/vscode/datasets/ppg_dalia/*.h5"))
     wesad_files = sorted(glob.glob("/home/vscode/datasets/wesad/*.h5"))
     noise_bank = build_noise_bank_from_h5(
-        dalia_files + wesad_files, window_size=frame_size, max_segments=1000,
+        dalia_files + wesad_files,
+        window_size=frame_size,
+        max_segments=1000,
     )
     print(f"  Noise bank: {len(noise_bank)} segments")
 

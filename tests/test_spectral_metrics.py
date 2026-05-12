@@ -22,6 +22,7 @@ def _sine(fs: int, freq: float, duration_s: float = 4.0) -> np.ndarray:
 
 # ---------- psd_band_error ---------------------------------------------------
 
+
 class TestPsdBandError:
     def test_identical_signals_zero_error(self) -> None:
         sig = _sine(FS, 5.0)
@@ -68,6 +69,7 @@ class TestPsdBandError:
 
 # ---------- weighted_freq_prd ------------------------------------------------
 
+
 class TestWeightedFreqPrd:
     def test_identical_signals_zero_prd(self) -> None:
         sig = _sine(FS, 5.0)
@@ -87,13 +89,17 @@ class TestWeightedFreqPrd:
         recon_lo_distorted = sig_lo + sig_hi + 0.3 * _sine(FS, 1.0, duration_s=4.0)
         orig = sig_lo + sig_hi
         prd_lo = weighted_freq_prd(
-            orig, recon_lo_distorted, fs=FS,
+            orig,
+            recon_lo_distorted,
+            fs=FS,
             weights=[(0.5, 3.0, 2.0), (3.0, 8.0, 1.0)],
         )["weighted_freq_prd_percent"]
         # Distort only the high-freq component
         recon_hi_distorted = sig_lo + sig_hi + 0.3 * _sine(FS, 5.0, duration_s=4.0)
         prd_hi = weighted_freq_prd(
-            orig, recon_hi_distorted, fs=FS,
+            orig,
+            recon_hi_distorted,
+            fs=FS,
             weights=[(0.5, 3.0, 2.0), (3.0, 8.0, 1.0)],
         )["weighted_freq_prd_percent"]
         # Equal amplitude distortion in high-weight band → larger wf-PRD
@@ -105,6 +111,7 @@ class TestWeightedFreqPrd:
 
 
 # ---------- spectral_coherence -----------------------------------------------
+
 
 class TestSpectralCoherence:
     def test_identical_signals_perfect_coherence(self) -> None:

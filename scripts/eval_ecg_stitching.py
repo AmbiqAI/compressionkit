@@ -56,8 +56,7 @@ def _load_model(run_dir: Path) -> tuple[keras.Model, EcgRvqConfig]:
 
 def _format_table(report: dict) -> str:
     header = (
-        f"{'method':<20} {'n_rec':>6} {'PRD%':>8} {'cos':>8} "
-        f"{'seam_ratio':>12} {'seam_rms':>12} {'non_seam_rms':>14}"
+        f"{'method':<20} {'n_rec':>6} {'PRD%':>8} {'cos':>8} {'seam_ratio':>12} {'seam_rms':>12} {'non_seam_rms':>14}"
     )
     lines = [header, "-" * len(header)]
     for name, stats in report["methods"].items():
@@ -74,10 +73,12 @@ def _format_table(report: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-dir", type=Path, required=True,
-                        help="Trained run directory (contains config.json + weights).")
-    parser.add_argument("--duration-sec", type=float, default=30.0,
-                        help="Per-recording reconstruction length in seconds.")
+    parser.add_argument(
+        "--run-dir", type=Path, required=True, help="Trained run directory (contains config.json + weights)."
+    )
+    parser.add_argument(
+        "--duration-sec", type=float, default=30.0, help="Per-recording reconstruction length in seconds."
+    )
     parser.add_argument("--num-recordings", type=int, default=10)
     parser.add_argument("--hop-ratio", type=float, default=0.5)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -89,8 +90,9 @@ def main(argv: list[str] | None = None) -> int:
         choices=sorted(STITCH_METHODS),
         help="Stitching methods to evaluate.",
     )
-    parser.add_argument("--output", type=Path, default=None,
-                        help="Report JSON path (default: <run-dir>/stitching_report.json).")
+    parser.add_argument(
+        "--output", type=Path, default=None, help="Report JSON path (default: <run-dir>/stitching_report.json)."
+    )
     args = parser.parse_args(argv)
 
     run_dir: Path = args.run_dir.resolve()

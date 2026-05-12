@@ -38,9 +38,7 @@ def build_baseline_model(
     # Baseline frame length after extra downsampling
     baseline_frame = data.frame_size // bm.downsample_factor
     if baseline_frame < 4:
-        raise ValueError(
-            f"baseline frame too short: {data.frame_size} // {bm.downsample_factor} = {baseline_frame}"
-        )
+        raise ValueError(f"baseline frame too short: {data.frame_size} // {bm.downsample_factor} = {baseline_frame}")
 
     encoder, rvq, decoder, model = build_rvq_autoencoder(
         frame_size=baseline_frame,
@@ -63,7 +61,7 @@ def build_baseline_model(
         bit_depth=cfg.evaluation.input_bit_depth,
         latent_width=bm.latent_width,
         num_levels=bm.num_levels,
-        downsample_factor=bm.downsample_factor * (2 ** bm.num_stages),
+        downsample_factor=bm.downsample_factor * (2**bm.num_stages),
     )
     return model, stats
 
@@ -101,7 +99,7 @@ def build_pulsatile_model(
         bit_depth=cfg.evaluation.input_bit_depth,
         latent_width=pm.latent_width,
         num_levels=pm.num_levels,
-        downsample_factor=2 ** pm.num_stages,
+        downsample_factor=2**pm.num_stages,
     )
     return model, stats
 
@@ -124,12 +122,12 @@ def compute_combined_compression_stats(
 
     # Baseline stream
     baseline_frame = data.frame_size // bm.downsample_factor
-    baseline_latent_positions = baseline_frame // (2 ** bm.num_stages)
+    baseline_latent_positions = baseline_frame // (2**bm.num_stages)
     baseline_bits_per_idx = math.log2(bm.latent_width)
     baseline_bits = baseline_latent_positions * bm.num_levels * baseline_bits_per_idx
 
     # Pulsatile stream
-    pulsatile_latent_positions = data.frame_size // (2 ** pm.num_stages)
+    pulsatile_latent_positions = data.frame_size // (2**pm.num_stages)
     pulsatile_bits_per_idx = math.log2(pm.latent_width)
     pulsatile_bits = pulsatile_latent_positions * pm.num_levels * pulsatile_bits_per_idx
 

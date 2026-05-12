@@ -52,16 +52,19 @@ def main() -> None:
     ap.add_argument(
         "--keep-stitching",
         action="store_true",
-        help="By default stitching eval is skipped (the existing report stays). "
-             "Pass to re-run stitching too.",
+        help="By default stitching eval is skipped (the existing report stays). Pass to re-run stitching too.",
     )
     ap.add_argument(
         "--rebuild-scorecard",
         action="store_true",
         help="Also re-run build_quality_scorecard with the standard ECG settings.",
     )
-    ap.add_argument("--sample-rate", type=int, default=None,
-                    help="Override scorecard sample-rate (default: data.target_sample_rate from config).")
+    ap.add_argument(
+        "--sample-rate",
+        type=int,
+        default=None,
+        help="Override scorecard sample-rate (default: data.target_sample_rate from config).",
+    )
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -122,7 +125,11 @@ def main() -> None:
 
     # 4. Run evaluation (writes new sample_<NNN>.csv files + first N plots).
     run_evaluation(
-        cfg, model=model, val_ds=val_ds, run_dir=run_dir, validation_steps=validation_steps,
+        cfg,
+        model=model,
+        val_ds=val_ds,
+        run_dir=run_dir,
+        validation_steps=validation_steps,
     )
     n_csv = len(list(run_dir.glob("sample_*.csv")))
     n_png = len(list((run_dir / "plots").glob("sample_*.png"))) if (run_dir / "plots").is_dir() else 0
@@ -133,7 +140,10 @@ def main() -> None:
         from compressionkit.evaluation.scorecard import write_quality_scorecard
 
         out = write_quality_scorecard(
-            run_dir, modality="ecg", sample_rate=sample_rate, noise_estimator="bp",
+            run_dir,
+            modality="ecg",
+            sample_rate=sample_rate,
+            noise_estimator="bp",
         )
         logger.info("Scorecard        : %s", out)
 

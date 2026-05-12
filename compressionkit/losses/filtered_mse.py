@@ -75,9 +75,7 @@ def build_filtered_mse_loss(
         def _lowpass(x):
             return ops.conv(x, kernel, strides=1, padding="same")
     else:
-        kernel = ops.convert_to_tensor(
-            np.tile(h.reshape(1, num_taps, 1, 1), (1, 1, num_leads, 1))
-        )
+        kernel = ops.convert_to_tensor(np.tile(h.reshape(1, num_taps, 1, 1), (1, 1, num_leads, 1)))
 
         def _lowpass(x):
             return ops.depthwise_conv(x, kernel, strides=1, padding="same")

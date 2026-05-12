@@ -113,8 +113,10 @@ def decompose_and_normalize(
         - ``pulsatile_center``, ``pulsatile_scale``: Normalization params.
     """
     baseline, pulsatile = decompose_baseline_pulsatile(
-        signal, sample_rate=sample_rate,
-        baseline_cutoff_hz=baseline_cutoff_hz, order=order,
+        signal,
+        sample_rate=sample_rate,
+        baseline_cutoff_hz=baseline_cutoff_hz,
+        order=order,
     )
     baseline_norm, b_center, b_scale = normalize_robust(baseline, epsilon=epsilon)
     pulsatile_norm, p_center, p_scale = normalize_robust(pulsatile, epsilon=epsilon)

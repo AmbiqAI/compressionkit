@@ -65,7 +65,9 @@ def _load_compressor(run_dir: Path) -> tuple[keras.Model, EcgRvqConfig]:
 
 
 def _build_token_windows(
-    tokens_flat: np.ndarray, context_length: int, stride: int,
+    tokens_flat: np.ndarray,
+    context_length: int,
+    stride: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Chop a long token stream into fixed-length (inputs, targets) windows."""
     n = tokens_flat.size
@@ -93,8 +95,7 @@ def _plot_samples(signals: np.ndarray, sample_rate: int, out_dir: Path) -> None:
         plt.close(fig)
 
     # Grid overview
-    fig, axes = plt.subplots(n, 1, figsize=(10, 1.6 * n), sharex=True, sharey=True,
-                              constrained_layout=True)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 1.6 * n), sharex=True, sharey=True, constrained_layout=True)
     if n == 1:
         axes = [axes]
     for i, ax in enumerate(axes):
@@ -111,8 +112,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--num-train-files", type=int, default=200)
-    parser.add_argument("--context-frames", type=int, default=4,
-                        help="Token context length expressed in frames (context_length = context_frames * tokens_per_frame).")
+    parser.add_argument(
+        "--context-frames",
+        type=int,
+        default=4,
+        help="Token context length expressed in frames (context_length = context_frames * tokens_per_frame).",
+    )
     parser.add_argument("--stride-tokens", type=int, default=8)
     parser.add_argument("--embed-dim", type=int, default=64)
     parser.add_argument("--num-layers", type=int, default=2)
@@ -129,8 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--top-k", type=int, default=0)
     parser.add_argument("--sample-seed", type=int, default=0)
 
-    parser.add_argument("--output-dir", type=Path, default=None,
-                        help="Default: <run-dir>/generative/")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Default: <run-dir>/generative/")
     args = parser.parse_args(argv)
 
     run_dir: Path = args.run_dir.resolve()
@@ -144,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
     vocab_size = int(mcfg.latent_width)
     embed_dim_rvq = int(mcfg.embedding_dim)
     frame_size = int(data.frame_size)
-    tokens_per_frame = frame_size // (2 ** mcfg.num_stages)
+    tokens_per_frame = frame_size // (2**mcfg.num_stages)
     print(
         f"  frame_size={frame_size} tokens_per_frame={tokens_per_frame} "
         f"vocab_size={vocab_size} num_levels={mcfg.num_levels}",
@@ -159,18 +163,21 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- 1. Extract tokens ------------------------------------------------
     train_files, _val_files, _ = load_ecg_file_splits(
-        Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed,
+        Path(data.datasets_dir),
+        data.dataset_glob,
+        seed=data.shuffle_seed,
     )
     train_files = train_files[: args.num_train_files]
     lead_index = getattr(data, "lead_index", 1) or 1
     print(f"Extracting tokens from {len(train_files)} files...", file=sys.stderr)
-    signals = (
-        load_ecg_signal(p, lead_index=lead_index) for p in train_files
-    )
+    signals = (load_ecg_signal(p, lead_index=lead_index) for p in train_files)
     tokens = extract_rvq_tokens(
-        compressor, signals,
-        frame_size=frame_size, num_leads=data.num_leads or 1,
-        epsilon=data.epsilon, batch_size=64,
+        compressor,
+        signals,
+        frame_size=frame_size,
+        num_leads=data.num_leads or 1,
+        epsilon=data.epsilon,
+        batch_size=64,
     )
     print(f"  extracted tokens shape: {tokens.shape}", file=sys.stderr)
 
@@ -187,8 +194,7 @@ def main(argv: list[str] | None = None) -> int:
     xs, ys = xs[perm], ys[perm]
     x_val, y_val = xs[:n_val], ys[:n_val]
     x_tr, y_tr = xs[n_val:], ys[n_val:]
-    print(f"  windows: train={x_tr.shape[0]} val={x_val.shape[0]} ctx={context_length}",
-          file=sys.stderr)
+    print(f"  windows: train={x_tr.shape[0]} val={x_val.shape[0]} ctx={context_length}", file=sys.stderr)
 
     # --- 3. Build & train prior ------------------------------------------
     prior = build_prior(
@@ -206,7 +212,8 @@ def main(argv: list[str] | None = None) -> int:
         metrics=[keras.metrics.SparseCategoricalAccuracy(name="token_acc")],
     )
     prior.fit(
-        x_tr, y_tr,
+        x_tr,
+        y_tr,
         validation_data=(x_val, y_val),
         batch_size=args.batch_size,
         epochs=args.epochs,
@@ -239,7 +246,8 @@ def main(argv: list[str] | None = None) -> int:
                     dst.set_weights([src_w[:, :sample_ctx, :]])
                 else:
                     pad = np.zeros(
-                        (1, sample_ctx - L_src, src_w.shape[2]), dtype=src_w.dtype,
+                        (1, sample_ctx - L_src, src_w.shape[2]),
+                        dtype=src_w.dtype,
                     )
                     dst.set_weights([np.concatenate([src_w, pad], axis=1)])
                 continue

@@ -37,10 +37,7 @@ if _Interpreter is None:
         from tensorflow.lite.python.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
 
 if _Interpreter is None:
-    raise ImportError(
-        "No TFLite runtime found. Install one of: "
-        "ai-edge-litert, tflite-runtime, or tensorflow."
-    )
+    raise ImportError("No TFLite runtime found. Install one of: ai-edge-litert, tflite-runtime, or tensorflow.")
 
 
 def _ensure_symlink(directory: Path, hf_name: str, local_name: str) -> None:
@@ -138,7 +135,9 @@ class RVQCodec:
         )
 
     @classmethod
-    def from_pretrained(cls, repo_id: str, revision: str | None = None, cache_dir: str | Path | None = None) -> RVQCodec:
+    def from_pretrained(
+        cls, repo_id: str, revision: str | None = None, cache_dir: str | Path | None = None
+    ) -> RVQCodec:
         """Load a codec from a HuggingFace Hub model repository.
 
         Downloads the deployment artifacts and creates an ``RVQCodec``
@@ -159,8 +158,7 @@ class RVQCodec:
             from huggingface_hub import snapshot_download
         except ImportError as exc:
             raise ImportError(
-                "huggingface_hub is required for from_pretrained(). "
-                "Install with: uv sync --extra hf"
+                "huggingface_hub is required for from_pretrained(). Install with: uv sync --extra hf"
             ) from exc
 
         kwargs: dict = {"repo_id": repo_id, "repo_type": "model"}
@@ -275,7 +273,7 @@ class RVQCodec:
             # Nearest-neighbor: argmin ||residual - cb||^2
             # = argmin(||r||^2 - 2*r@cb.T + ||cb||^2)
             dots = residual @ cb.T  # (N, K)
-            cb_norms = np.sum(cb ** 2, axis=1, keepdims=True).T  # (1, K)
+            cb_norms = np.sum(cb**2, axis=1, keepdims=True).T  # (1, K)
             dists = -2 * dots + cb_norms  # ignore ||r||^2 (constant per query)
             indices[:, level] = np.argmin(dists, axis=1)
             selected = cb[indices[:, level]]  # (N, D)

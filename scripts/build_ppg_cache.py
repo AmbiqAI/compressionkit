@@ -117,7 +117,10 @@ def main() -> None:
         }
         logger.info(
             "  %s done: %d train, %d val windows in %.1fs",
-            slug, metadata["train_examples"], metadata["val_examples"], elapsed,
+            slug,
+            metadata["train_examples"],
+            metadata["val_examples"],
+            elapsed,
         )
 
     total_elapsed = time.time() - total_start

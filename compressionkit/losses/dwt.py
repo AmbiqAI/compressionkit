@@ -29,9 +29,7 @@ def build_dwt_loss(
     Returns:
         A callable ``dwt_loss(y_true, y_pred) -> scalar``.
     """
-    assert len(band_weights) == levels + 1, (
-        f"band_weights length {len(band_weights)} != levels + 1 = {levels + 1}"
-    )
+    assert len(band_weights) == levels + 1, f"band_weights length {len(band_weights)} != levels + 1 = {levels + 1}"
 
     s2 = np.float32(1.0 / np.sqrt(2.0))
     if num_leads == 1:

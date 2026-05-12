@@ -19,8 +19,12 @@ CTX = 16
 
 def test_prior_forward_shape() -> None:
     model = build_prior(
-        vocab_size=VOCAB, context_length=CTX,
-        embed_dim=16, num_layers=1, num_heads=2, ffn_dim=32,
+        vocab_size=VOCAB,
+        context_length=CTX,
+        embed_dim=16,
+        num_layers=1,
+        num_heads=2,
+        ffn_dim=32,
     )
     tokens = np.zeros((3, CTX), dtype=np.int32)
     logits = np.asarray(model(tokens, training=False))
@@ -29,8 +33,7 @@ def test_prior_forward_shape() -> None:
 
 def test_prior_embed_dim_must_divide_num_heads() -> None:
     with pytest.raises(ValueError):
-        build_prior(vocab_size=VOCAB, context_length=CTX,
-                    embed_dim=15, num_layers=1, num_heads=2, ffn_dim=32)
+        build_prior(vocab_size=VOCAB, context_length=CTX, embed_dim=15, num_layers=1, num_heads=2, ffn_dim=32)
 
 
 def test_softmax_and_top_k() -> None:
@@ -47,13 +50,22 @@ def test_softmax_and_top_k() -> None:
 def test_sample_tokens_shape_and_dtype() -> None:
     keras.utils.set_random_seed(0)
     prior = build_prior(
-        vocab_size=VOCAB, context_length=CTX,
-        embed_dim=16, num_layers=1, num_heads=2, ffn_dim=32,
+        vocab_size=VOCAB,
+        context_length=CTX,
+        embed_dim=16,
+        num_layers=1,
+        num_heads=2,
+        ffn_dim=32,
     )
     rng = np.random.default_rng(0)
     out = sample_tokens(
-        prior, num_samples=2, context_length=CTX, vocab_size=VOCAB,
-        temperature=1.0, top_k=5, rng=rng,
+        prior,
+        num_samples=2,
+        context_length=CTX,
+        vocab_size=VOCAB,
+        temperature=1.0,
+        top_k=5,
+        rng=rng,
     )
     assert out.shape == (2, CTX)
     assert out.dtype == np.int32
@@ -62,12 +74,20 @@ def test_sample_tokens_shape_and_dtype() -> None:
 
 def test_seed_tokens_are_preserved() -> None:
     prior = build_prior(
-        vocab_size=VOCAB, context_length=CTX,
-        embed_dim=16, num_layers=1, num_heads=2, ffn_dim=32,
+        vocab_size=VOCAB,
+        context_length=CTX,
+        embed_dim=16,
+        num_layers=1,
+        num_heads=2,
+        ffn_dim=32,
     )
     seed = np.array([[1, 2, 3, 4], [5, 6, 7, 8]], dtype=np.int32)
     out = sample_tokens(
-        prior, num_samples=2, context_length=CTX, vocab_size=VOCAB,
-        seed_tokens=seed, rng=np.random.default_rng(0),
+        prior,
+        num_samples=2,
+        context_length=CTX,
+        vocab_size=VOCAB,
+        seed_tokens=seed,
+        rng=np.random.default_rng(0),
     )
     np.testing.assert_array_equal(out[:, :4], seed)

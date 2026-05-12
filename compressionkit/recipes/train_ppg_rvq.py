@@ -81,17 +81,16 @@ def train(cfg: PpgRvqConfig) -> dict[str, Any]:
     # Optional: mini-batch k-means warm start for EMA RVQ codebooks.
     from compressionkit.layers import EmaResidualVectorQuantizer
 
-    if (
-        cfg.model.kmeans_init
-        and isinstance(getattr(model, "vq", None), EmaResidualVectorQuantizer)
-    ):
+    if cfg.model.kmeans_init and isinstance(getattr(model, "vq", None), EmaResidualVectorQuantizer):
         import numpy as _np
 
         try:
             import tensorflow as _tf
+
             _peek_ctx = _tf.device("/CPU:0")
         except Exception:
             from contextlib import nullcontext
+
             _peek_ctx = nullcontext()
 
         peek_batches: list = []
@@ -106,14 +105,17 @@ def train(cfg: PpgRvqConfig) -> dict[str, Any]:
                     break
         if peek_batches:
             z_concat = _np.concatenate(
-                [b.reshape(-1, b.shape[-1]) for b in peek_batches], axis=0,
+                [b.reshape(-1, b.shape[-1]) for b in peek_batches],
+                axis=0,
             )
             if not model.vq.built:
                 model.vq.build(peek_batches[0].shape)
             model.vq.warm_start_kmeans(z_concat)
             logger.info(
                 "EMA RVQ k-means warm-start: %d residuals across %d levels (K=%s)",
-                z_concat.shape[0], len(model.vq.Ks), model.vq.Ks,
+                z_concat.shape[0],
+                len(model.vq.Ks),
+                model.vq.Ks,
             )
 
     # ------------------------------------------------------------------
@@ -140,7 +142,11 @@ def train(cfg: PpgRvqConfig) -> dict[str, Any]:
     # 6. Evaluation: reconstruction samples, band metrics, physiokit, long-recording
     # ------------------------------------------------------------------
     eval_results = run_evaluation(
-        cfg, model=model, val_ds=val_ds, run_dir=run_dir, validation_steps=validation_steps,
+        cfg,
+        model=model,
+        val_ds=val_ds,
+        run_dir=run_dir,
+        validation_steps=validation_steps,
     )
 
     # ------------------------------------------------------------------
@@ -167,7 +173,8 @@ def train(cfg: PpgRvqConfig) -> dict[str, Any]:
     # 8. Summary assembly: best epoch, compression stats, summary.json
     # ------------------------------------------------------------------
     best_epoch, best_metrics, final_metrics, selection_metric = extract_history_metrics(
-        history.history, selection_metric=cfg.training.selection_metric,
+        history.history,
+        selection_metric=cfg.training.selection_metric,
     )
     compression = build_compression_stats(cfg)
 
@@ -190,7 +197,9 @@ def train(cfg: PpgRvqConfig) -> dict[str, Any]:
     write_summary(summary, run_dir)
     logger.info(
         "Best epoch by %s: %d (value=%.6f)",
-        selection_metric, best_epoch, best_metrics[selection_metric],
+        selection_metric,
+        best_epoch,
+        best_metrics[selection_metric],
     )
 
     # ------------------------------------------------------------------

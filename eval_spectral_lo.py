@@ -65,14 +65,15 @@ def main():
             print(f"\n{cr}: skipping (missing weights)")
             continue
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"ECG {cr}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Load golden config and build val dataset
         g_cfg = EcgRvqConfig.model_validate_json(g_cfg_path.read_text())
         preprocessor = build_preprocessor(
-            frame_size=g_cfg.data.frame_size, epsilon=g_cfg.data.epsilon,
+            frame_size=g_cfg.data.frame_size,
+            epsilon=g_cfg.data.epsilon,
         )
         augmenter = build_augmenter(
             aug_cfg=g_cfg.data.augmentation,
@@ -124,15 +125,24 @@ def main():
         print(f"  Golden  MSE: {gm:.6f}  Cos: {gc:.6f}")
         print(f"  Spec_lo MSE: {sm:.6f}  Cos: {sc:.6f}")
         print(f"  Δ MSE: {delta_mse_pct:+.1f}%")
-        print(f"  MSE wins: {wins_mse}/{n}  Wilcoxon p={p_mse:.4f}  {'***' if p_mse < 0.001 else '**' if p_mse < 0.01 else '*' if p_mse < 0.05 else 'ns'}")
-        print(f"  Cos wins: {wins_cos}/{n}  Wilcoxon p={p_cos:.4f}  {'***' if p_cos < 0.001 else '**' if p_cos < 0.01 else '*' if p_cos < 0.05 else 'ns'}")
+        print(
+            f"  MSE wins: {wins_mse}/{n}  Wilcoxon p={p_mse:.4f}  {'***' if p_mse < 0.001 else '**' if p_mse < 0.01 else '*' if p_mse < 0.05 else 'ns'}"
+        )
+        print(
+            f"  Cos wins: {wins_cos}/{n}  Wilcoxon p={p_cos:.4f}  {'***' if p_cos < 0.001 else '**' if p_cos < 0.01 else '*' if p_cos < 0.05 else 'ns'}"
+        )
 
         results[cr] = {
             "n": n,
-            "golden_mse": gm, "spectral_mse": sm, "delta_mse_pct": delta_mse_pct,
-            "golden_cos": gc, "spectral_cos": sc,
-            "mse_wins": wins_mse, "mse_p": p_mse,
-            "cos_wins": wins_cos, "cos_p": p_cos,
+            "golden_mse": gm,
+            "spectral_mse": sm,
+            "delta_mse_pct": delta_mse_pct,
+            "golden_cos": gc,
+            "spectral_cos": sc,
+            "mse_wins": wins_mse,
+            "mse_p": p_mse,
+            "cos_wins": wins_cos,
+            "cos_p": p_cos,
         }
 
         # Free memory
@@ -140,10 +150,12 @@ def main():
         keras.backend.clear_session()
 
     # Summary table
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"SUMMARY (N={NUM_SAMPLES} paired samples per CR)")
-    print(f"{'='*80}")
-    print(f"{'CR':<5} | {'G_MSE':>10} | {'S_MSE':>10} | {'Δ MSE':>8} | {'wins':>7} | {'p_mse':>8} | {'G_Cos':>8} | {'S_Cos':>8} | {'p_cos':>8} | {'sig':>4}")
+    print(f"{'=' * 80}")
+    print(
+        f"{'CR':<5} | {'G_MSE':>10} | {'S_MSE':>10} | {'Δ MSE':>8} | {'wins':>7} | {'p_mse':>8} | {'G_Cos':>8} | {'S_Cos':>8} | {'p_cos':>8} | {'sig':>4}"
+    )
     print("-" * 95)
     for cr, r in results.items():
         sig = "***" if r["mse_p"] < 0.001 else "**" if r["mse_p"] < 0.01 else "*" if r["mse_p"] < 0.05 else "ns"

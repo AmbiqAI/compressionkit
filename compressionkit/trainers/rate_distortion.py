@@ -131,13 +131,13 @@ class RateDistortionVQAutoencoder(keras.Model):
             )
         object.__setattr__(self, "_codebook", codebooks[0])
         object.__setattr__(
-            self, "_vocab_size", int(getattr(self.vq, "Ks", [None])[0] or 0),
+            self,
+            "_vocab_size",
+            int(getattr(self.vq, "Ks", [None])[0] or 0),
         )
         object.__setattr__(self, "_embedding_dim", int(getattr(self.vq, "D", 0)))
         if self._vocab_size == 0 or self._embedding_dim == 0:
-            raise ValueError(
-                "Could not infer vocab_size / embedding_dim from vq layer."
-            )
+            raise ValueError("Could not infer vocab_size / embedding_dim from vq layer.")
 
     # ------------------------------------------------------------------
     # Forward
@@ -180,16 +180,16 @@ class RateDistortionVQAutoencoder(keras.Model):
         K = self._vocab_size
         tau = self.soft_temperature
 
-        flat = ops.reshape(z, (-1, D))                    # (N, D)
-        codebook = self._codebook                         # (K, D)
+        flat = ops.reshape(z, (-1, D))  # (N, D)
+        codebook = self._codebook  # (K, D)
         # Squared L2 distance: ||z||^2 + ||e||^2 - 2 z·e
         z2 = ops.sum(flat * flat, axis=1, keepdims=True)  # (N, 1)
-        c2 = ops.sum(codebook * codebook, axis=1)         # (K,)
-        c2 = ops.reshape(c2, (1, -1))                     # (1, K)
-        sim = ops.matmul(flat, ops.transpose(codebook))   # (N, K)
-        dist = z2 + c2 - 2.0 * sim                        # (N, K)
-        logits = -dist / tau                              # smaller dist → higher logit
-        probs = ops.softmax(logits, axis=-1)              # (N, K)
+        c2 = ops.sum(codebook * codebook, axis=1)  # (K,)
+        c2 = ops.reshape(c2, (1, -1))  # (1, K)
+        sim = ops.matmul(flat, ops.transpose(codebook))  # (N, K)
+        dist = z2 + c2 - 2.0 * sim  # (N, K)
+        logits = -dist / tau  # smaller dist → higher logit
+        probs = ops.softmax(logits, axis=-1)  # (N, K)
         return ops.reshape(probs, (B, T, K))
 
     def _indices_2d(self, indices_flat, B, T) -> Any:
@@ -201,11 +201,20 @@ class RateDistortionVQAutoencoder(keras.Model):
     # ------------------------------------------------------------------
 
     def compute_loss(
-        self, x=None, y=None, y_pred=None, sample_weight=None, allow_empty=False,
+        self,
+        x=None,
+        y=None,
+        y_pred=None,
+        sample_weight=None,
+        allow_empty=False,
     ):
         # Distortion + auxiliary losses come from the wrapped autoencoder.
         distortion = self.autoencoder.compute_loss(
-            x=x, y=y, y_pred=y_pred, sample_weight=sample_weight, allow_empty=True,
+            x=x,
+            y=y,
+            y_pred=y_pred,
+            sample_weight=sample_weight,
+            allow_empty=True,
         )
 
         # ------------------------------------------------------------------
@@ -229,23 +238,21 @@ class RateDistortionVQAutoencoder(keras.Model):
         # how both the dilated-causal CNN and the causal transformer
         # are trained today (see scripts/train_rvq_prior.py and
         # scripts/measure_rvq_entropy.py).
-        prior_logits = self.prior(idx2d, training=True)         # (B, T, K)
-        log_probs = ops.log_softmax(prior_logits, axis=-1)      # (B, T, K)
+        prior_logits = self.prior(idx2d, training=True)  # (B, T, K)
+        log_probs = ops.log_softmax(prior_logits, axis=-1)  # (B, T, K)
 
         # Soft assignment over current emission, (B, T, K).
         soft = self._soft_probs_from_z(z)
 
         # Differentiable surrogate (carries gradient to encoder):
-        soft_nll = -ops.sum(soft * log_probs, axis=-1)          # (B, T) nats
+        soft_nll = -ops.sum(soft * log_probs, axis=-1)  # (B, T) nats
         # Hard NLL — the rate an arithmetic coder pays, matches
         # ``measure_rvq_entropy.py`` evaluation:
-        hard_nll = -ops.take_along_axis(
-            log_probs, ops.expand_dims(idx2d, -1), axis=-1
-        )                                                        # (B, T, 1)
-        hard_nll = ops.squeeze(hard_nll, axis=-1)               # (B, T)
+        hard_nll = -ops.take_along_axis(log_probs, ops.expand_dims(idx2d, -1), axis=-1)  # (B, T, 1)
+        hard_nll = ops.squeeze(hard_nll, axis=-1)  # (B, T)
         # Straight-through: forward = hard_nll, backward via soft_nll.
         nll_per_pos = soft_nll + ops.stop_gradient(hard_nll - soft_nll)
-        rate_bits = ops.mean(nll_per_pos) / _LN2                # scalar bits/token
+        rate_bits = ops.mean(nll_per_pos) / _LN2  # scalar bits/token
 
         # Update trackers — distortion and rate separately for clarity.
         self._distortion_tracker.update_state(distortion)

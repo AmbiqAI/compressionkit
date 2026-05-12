@@ -53,26 +53,30 @@ logger = logging.getLogger("rvq-jointrd")
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_compressor(
-    cfg: EcgRvqConfig, run_dir: Path | None, *, load_weights: bool = True,
+    cfg: EcgRvqConfig,
+    run_dir: Path | None,
+    *,
+    load_weights: bool = True,
 ) -> keras.Model:
     from compressionkit.trainers.ecg_rvq import build_model
 
     if cfg.model.num_levels != 1:
-        raise ValueError(
-            f"Joint R-D fine-tuning only supports num_levels==1; got {cfg.model.num_levels}"
-        )
+        raise ValueError(f"Joint R-D fine-tuning only supports num_levels==1; got {cfg.model.num_levels}")
     model = build_model(cfg)
     dummy = np.zeros(
         (1, 1, cfg.data.frame_size, max(1, cfg.data.num_leads or 1)),
         dtype=np.float32,
     )
+
     # Build via XLA-compiled tf.function: DepthwiseConv2D with stride=(1,2)
     # only works under XLA on GPU.  Variables get created on the same
     # device as the call (GPU when available) so fit() can use them.
     @tf.function(jit_compile=True)
     def _build_call(x):
         return model(x, training=False)
+
     _build_call(dummy)
     for name in ("best_model.weights.h5", "model.weights.h5"):
         p = run_dir / name if run_dir is not None else None
@@ -109,19 +113,21 @@ def _build_cnn_prior(
     seq_len = context_length  # may be None for variable length
     tokens_in = keras.Input(shape=(seq_len,), dtype="int32", name="tokens")
     x = keras.layers.Embedding(
-        input_dim=vocab_size, output_dim=embed_dim, name="token_embedding",
+        input_dim=vocab_size,
+        output_dim=embed_dim,
+        name="token_embedding",
     )(tokens_in)
     for i in range(num_layers):
         x = keras.layers.Conv1D(
             filters=embed_dim,
             kernel_size=kernel_size,
             padding="causal",
-            dilation_rate=2 ** i,
+            dilation_rate=2**i,
             activation="relu",
-            name=f"causal_conv_d{2 ** i}",
+            name=f"causal_conv_d{2**i}",
         )(x)
         if dropout > 0:
-            x = keras.layers.Dropout(dropout, name=f"drop_d{2 ** i}")(x)
+            x = keras.layers.Dropout(dropout, name=f"drop_d{2**i}")(x)
     x = keras.layers.LayerNormalization(epsilon=1e-5, name="final_ln")(x)
     logits = keras.layers.Dense(vocab_size, name="lm_head")(x)
     return keras.Model(tokens_in, logits, name=name)
@@ -131,49 +137,69 @@ def _build_cnn_prior(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
 
     parser = argparse.ArgumentParser(description=__doc__)
     src = parser.add_mutually_exclusive_group(required=True)
-    src.add_argument("--run-dir", type=Path, default=None,
-                     help="Existing trained RVQ run directory to fine-tune.")
-    src.add_argument("--config", type=Path, default=None,
-                     help="YAML config for from-scratch joint R-D training. "
-                          "No warm-start — encoder/decoder/codebook/prior all init random.")
-    parser.add_argument("--output-dir", type=Path, required=True,
-                        help="Where to write the fine-tuned weights and metadata.")
-    parser.add_argument("--prior-weights", type=Path, default=None,
-                        help="Optional pretrained CNN-prior weights (.weights.h5). "
-                             "If omitted, the prior is initialised from scratch.")
+    src.add_argument("--run-dir", type=Path, default=None, help="Existing trained RVQ run directory to fine-tune.")
+    src.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="YAML config for from-scratch joint R-D training. "
+        "No warm-start — encoder/decoder/codebook/prior all init random.",
+    )
+    parser.add_argument(
+        "--output-dir", type=Path, required=True, help="Where to write the fine-tuned weights and metadata."
+    )
+    parser.add_argument(
+        "--prior-weights",
+        type=Path,
+        default=None,
+        help="Optional pretrained CNN-prior weights (.weights.h5). If omitted, the prior is initialised from scratch.",
+    )
     parser.add_argument("--epochs", type=int, default=30)
-    parser.add_argument("--learning-rate", type=float, default=1e-4,
-                        help="Lower than the original training LR — this is fine-tuning.")
-    parser.add_argument("--rate-weight", type=float, default=0.01,
-                        help="λ on the rate term (in units of bits/token).")
-    parser.add_argument("--soft-temperature", type=float, default=1.0,
-                        help="Temperature τ for soft codebook assignments.")
-    parser.add_argument("--freeze-decoder", action="store_true",
-                        help="Freeze the decoder during fine-tuning. Encoder + RVQ + prior only.")
-    parser.add_argument("--freeze-prior", action="store_true",
-                        help="Freeze the prior — only encoder + decoder + codebook learn.")
+    parser.add_argument(
+        "--learning-rate", type=float, default=1e-4, help="Lower than the original training LR — this is fine-tuning."
+    )
+    parser.add_argument("--rate-weight", type=float, default=0.01, help="λ on the rate term (in units of bits/token).")
+    parser.add_argument(
+        "--soft-temperature", type=float, default=1.0, help="Temperature τ for soft codebook assignments."
+    )
+    parser.add_argument(
+        "--freeze-decoder",
+        action="store_true",
+        help="Freeze the decoder during fine-tuning. Encoder + RVQ + prior only.",
+    )
+    parser.add_argument(
+        "--freeze-prior", action="store_true", help="Freeze the prior — only encoder + decoder + codebook learn."
+    )
     # Prior architecture (default: matches deployed dilated CNN at 8s context @ 32x golden)
-    parser.add_argument("--prior-context-frames", type=int, default=8,
-                        help="Token context expressed in compressor frames.")
+    parser.add_argument(
+        "--prior-context-frames", type=int, default=8, help="Token context expressed in compressor frames."
+    )
     parser.add_argument("--prior-embed-dim", type=int, default=64)
-    parser.add_argument("--prior-num-layers", type=int, default=7,
-                        help="Auto-clamped so receptive field >= context length.")
+    parser.add_argument(
+        "--prior-num-layers", type=int, default=7, help="Auto-clamped so receptive field >= context length."
+    )
     parser.add_argument("--prior-kernel", type=int, default=5)
     parser.add_argument("--validation-steps", type=int, default=None)
     parser.add_argument("--steps-per-epoch", type=int, default=None)
-    parser.add_argument("--train-frame-size", type=int, default=None,
-                        help="Override frame_size for joint R-D training so each "
-                             "training window spans multiple deployment frames "
-                             "and the prior sees real cross-frame context. "
-                             "Encoder/decoder are fully conv so weights apply natively. "
-                             "For PTB-XL @ 256Hz, max ~2560; use 2048.")
+    parser.add_argument(
+        "--train-frame-size",
+        type=int,
+        default=None,
+        help="Override frame_size for joint R-D training so each "
+        "training window spans multiple deployment frames "
+        "and the prior sees real cross-frame context. "
+        "Encoder/decoder are fully conv so weights apply natively. "
+        "For PTB-XL @ 256Hz, max ~2560; use 2048.",
+    )
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args(argv)
 
@@ -204,16 +230,17 @@ def main(argv: list[str] | None = None) -> int:
     # inside a single forward pass.
     base_frame_size = cfg.data.frame_size
     if args.train_frame_size is not None and args.train_frame_size != base_frame_size:
-        if args.train_frame_size % (2 ** cfg.model.num_stages) != 0:
+        if args.train_frame_size % (2**cfg.model.num_stages) != 0:
             raise ValueError(
                 f"--train-frame-size ({args.train_frame_size}) must be a multiple "
-                f"of 2**num_stages ({2 ** cfg.model.num_stages})."
+                f"of 2**num_stages ({2**cfg.model.num_stages})."
             )
         if args.train_frame_size % base_frame_size != 0:
             logger.warning(
                 "train_frame_size %d is not an integer multiple of base frame_size %d; "
                 "continuing but cross-frame alignment is non-trivial.",
-                args.train_frame_size, base_frame_size,
+                args.train_frame_size,
+                base_frame_size,
             )
         cfg = cfg.model_copy(deep=True)
         cfg.data.frame_size = args.train_frame_size
@@ -224,16 +251,20 @@ def main(argv: list[str] | None = None) -> int:
         logger.info(
             "Overriding training frame_size: %d -> %d (segment_samples=%d). "
             "This will trigger a new TFRecord cache build if not already present.",
-            base_frame_size, args.train_frame_size, cfg.data.segment_samples,
+            base_frame_size,
+            args.train_frame_size,
+            cfg.data.segment_samples,
         )
 
     compressor = _load_compressor(cfg, run_dir, load_weights=not from_scratch)
 
     from compressionkit.preprocessing.ecg import build_augmenter, build_preprocessor
     from compressionkit.trainers.ecg_rvq import build_datasets
+
     pre = build_preprocessor(frame_size=cfg.data.frame_size, epsilon=cfg.data.epsilon)
     aug = build_augmenter(
-        aug_cfg=cfg.data.augmentation, sample_rate=cfg.data.effective_sample_rate,
+        aug_cfg=cfg.data.augmentation,
+        sample_rate=cfg.data.effective_sample_rate,
     )
 
     # Keep the same preprocessing/aug that produced the baseline checkpoint.
@@ -246,15 +277,16 @@ def main(argv: list[str] | None = None) -> int:
     # 2. Build the prior
     # ------------------------------------------------------------------
     vocab_size = int(cfg.model.latent_width)
-    tokens_per_frame = cfg.data.frame_size // (2 ** cfg.model.num_stages)
+    tokens_per_frame = cfg.data.frame_size // (2**cfg.model.num_stages)
     context_length = args.prior_context_frames * tokens_per_frame
+
     # Clamp num_layers so dilated receptive field >= context, but only
     # when training the prior from scratch.  When loading pretrained
     # weights the architecture is fixed by the checkpoint, and a prior
     # with RF < context_length is still valid (it just attends to its
     # full RF, which is the same as inference behaviour).
     def rf(n: int) -> int:
-        return 1 + (args.prior_kernel - 1) * (2 ** n - 1)
+        return 1 + (args.prior_kernel - 1) * (2**n - 1)
 
     n_layers = args.prior_num_layers
     if args.prior_weights is None:
@@ -262,8 +294,12 @@ def main(argv: list[str] | None = None) -> int:
             n_layers += 1
     logger.info(
         "Prior: vocab=%d ctx=%d (=%d frames × %d tok/frame), layers=%d, RF=%d",
-        vocab_size, context_length, args.prior_context_frames, tokens_per_frame,
-        n_layers, rf(n_layers),
+        vocab_size,
+        context_length,
+        args.prior_context_frames,
+        tokens_per_frame,
+        n_layers,
+        rf(n_layers),
     )
     prior = _build_cnn_prior(
         vocab_size=vocab_size,
@@ -292,6 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     # 3. Wrap with R-D objective
     # ------------------------------------------------------------------
     from compressionkit.trainers.rate_distortion import RateDistortionVQAutoencoder
+
     rd_model = RateDistortionVQAutoencoder(
         autoencoder=compressor,
         prior=prior,
@@ -307,6 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     # The wrapper's compute_loss needs a base loss function on the inner
     # autoencoder; preserve the existing reconstruction loss + extras.
     from compressionkit.trainers.ecg_rvq import build_extra_losses
+
     extras = build_extra_losses(cfg)
     compressor.compile(
         optimizer=keras.optimizers.Adam(args.learning_rate),

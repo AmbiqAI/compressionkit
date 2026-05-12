@@ -115,9 +115,7 @@ class TestGoldenConfigsParseable:
                 continue
             path = REPO_ROOT / golden["config_yaml"]
             cfg = EcgRvqConfig.from_yaml(str(path))
-            assert cfg.run_name == golden["name"], (
-                f"run_name mismatch: {cfg.run_name} != {golden['name']}"
-            )
+            assert cfg.run_name == golden["name"], f"run_name mismatch: {cfg.run_name} != {golden['name']}"
 
     def test_ppg_configs_parse(self, manifest: list[dict]) -> None:
         from compressionkit.configs.ppg_rvq import PpgRvqConfig
@@ -127,6 +125,4 @@ class TestGoldenConfigsParseable:
                 continue
             path = REPO_ROOT / golden["config_yaml"]
             cfg = PpgRvqConfig.from_yaml(str(path))
-            assert cfg.run_name == golden["name"], (
-                f"run_name mismatch: {cfg.run_name} != {golden['name']}"
-            )
+            assert cfg.run_name == golden["name"], f"run_name mismatch: {cfg.run_name} != {golden['name']}"

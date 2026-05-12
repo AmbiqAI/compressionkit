@@ -77,7 +77,7 @@ def test_seam_metric_detects_known_discontinuities() -> None:
     sig = 0.01 * rng.standard_normal(n_frames * FRAME).astype(np.float32)
     # Hard jumps at every FRAME boundary
     for k in range(1, n_frames):
-        sig[k * FRAME:] += 1.0 if k % 2 == 0 else -1.0
+        sig[k * FRAME :] += 1.0 if k % 2 == 0 else -1.0
     stats = seam_discontinuity_ratio(sig, frame_size=FRAME, hop_ratio=1.0, radius=2)
     assert stats["ratio"] > 5.0
 

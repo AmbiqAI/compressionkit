@@ -61,9 +61,7 @@ class TierThresholds(BaseModel):
 
     # -- peak / R-wave timing --
     peak_timing_mae_max_ms: float = Field(description="Maximum R-peak timing MAE (ms).")
-    peak_within_10ms_pct: float = Field(
-        description="Minimum % of matched peaks within ±10 ms (0–100)."
-    )
+    peak_within_10ms_pct: float = Field(description="Minimum % of matched peaks within ±10 ms (0–100).")
 
     # -- HRV preservation --
     sdnn_mae_max_ms: float = Field(description="Maximum SDNN MAE (ms).")
@@ -143,9 +141,7 @@ class TierResult(BaseModel):
 class GradeResult(BaseModel):
     """Overall quality grade for a model."""
 
-    achieved_tier: QualityTier | None = Field(
-        description="Highest (strictest) tier passed, or None if none passed."
-    )
+    achieved_tier: QualityTier | None = Field(description="Highest (strictest) tier passed, or None if none passed.")
     tier_results: dict[QualityTier, TierResult]
 
 
@@ -166,13 +162,9 @@ def check_tier(metrics: MetricValues, tier: QualityTier) -> TierResult:
     if metrics.hr_mae_bpm > t.hr_mae_max_bpm:
         failures["hr_mae_bpm"] = f"{metrics.hr_mae_bpm:.2f} > {t.hr_mae_max_bpm:.1f} BPM"
     if metrics.peak_timing_mae_ms > t.peak_timing_mae_max_ms:
-        failures["peak_timing_mae_ms"] = (
-            f"{metrics.peak_timing_mae_ms:.1f}ms > {t.peak_timing_mae_max_ms:.0f}ms"
-        )
+        failures["peak_timing_mae_ms"] = f"{metrics.peak_timing_mae_ms:.1f}ms > {t.peak_timing_mae_max_ms:.0f}ms"
     if metrics.peak_within_10ms_pct < t.peak_within_10ms_pct:
-        failures["peak_within_10ms_pct"] = (
-            f"{metrics.peak_within_10ms_pct:.0f}% < {t.peak_within_10ms_pct:.0f}%"
-        )
+        failures["peak_within_10ms_pct"] = f"{metrics.peak_within_10ms_pct:.0f}% < {t.peak_within_10ms_pct:.0f}%"
     if metrics.sdnn_mae_ms is not None and metrics.sdnn_mae_ms > t.sdnn_mae_max_ms:
         failures["sdnn_mae_ms"] = f"{metrics.sdnn_mae_ms:.1f}ms > {t.sdnn_mae_max_ms:.0f}ms"
     if metrics.rmssd_mae_ms is not None and metrics.rmssd_mae_ms > t.rmssd_mae_max_ms:

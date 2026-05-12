@@ -78,11 +78,11 @@ def _convert_subject(study_dir: Path, sid: str, out_dir: Path, *, logger) -> Pat
     wrist = data["signal"]["wrist"]
     chest = data["signal"]["chest"]
 
-    ppg = np.asarray(wrist["BVP"], dtype=np.float32).reshape(1, -1)         # (1, N) @ 64
-    acc_wrist = np.asarray(wrist["ACC"], dtype=np.float32).T                # (3, M) @ 32
-    ecg = np.asarray(chest["ECG"], dtype=np.float32).reshape(1, -1)         # (1, K) @ 700
+    ppg = np.asarray(wrist["BVP"], dtype=np.float32).reshape(1, -1)  # (1, N) @ 64
+    acc_wrist = np.asarray(wrist["ACC"], dtype=np.float32).T  # (3, M) @ 32
+    ecg = np.asarray(chest["ECG"], dtype=np.float32).reshape(1, -1)  # (1, K) @ 700
     resp = np.asarray(chest.get("Resp"), dtype=np.float32).reshape(1, -1) if "Resp" in chest else None
-    hr_label = np.asarray(data["label"], dtype=np.float32).reshape(-1)      # @ 0.5 Hz
+    hr_label = np.asarray(data["label"], dtype=np.float32).reshape(-1)  # @ 0.5 Hz
 
     out = out_dir / f"{sid}.h5"
     with h5py.File(out, "w") as h:
@@ -105,8 +105,7 @@ def _convert_subject(study_dir: Path, sid: str, out_dir: Path, *, logger) -> Pat
         if "activity" in data:
             with contextlib.suppress(Exception):
                 h.create_dataset("activity", data=np.asarray(data["activity"]).astype(np.int16).reshape(-1))
-    logger.debug("Wrote %s ppg=%s ecg=%s acc=%s hr=%s",
-                 out.name, ppg.shape, ecg.shape, acc_wrist.shape, hr_label.shape)
+    logger.debug("Wrote %s ppg=%s ecg=%s acc=%s hr=%s", out.name, ppg.shape, ecg.shape, acc_wrist.shape, hr_label.shape)
     return out
 
 
@@ -147,9 +146,12 @@ def main() -> None:
         with h5py.File(sample, "r") as h:
             logger.info(
                 "  %s ppg=%s ecg=%s acc=%s hr=%s acquisition=%s",
-                sample.name, tuple(h["data"].shape),
-                tuple(h["ecg"].shape), tuple(h["acc"].shape),
-                tuple(h["hr_label"].shape), h.attrs["acquisition"],
+                sample.name,
+                tuple(h["data"].shape),
+                tuple(h["ecg"].shape),
+                tuple(h["acc"].shape),
+                tuple(h["hr_label"].shape),
+                h.attrs["acquisition"],
             )
 
     maybe_upload_s3(canonical, args.upload_s3, slug=SLUG)

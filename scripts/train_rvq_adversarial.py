@@ -42,8 +42,12 @@ logger = logging.getLogger("rvq-adv")
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_compressor(
-    cfg: EcgRvqConfig, run_dir: Path, *, load_weights: bool = True,
+    cfg: EcgRvqConfig,
+    run_dir: Path,
+    *,
+    load_weights: bool = True,
 ) -> keras.Model:
     from compressionkit.trainers.ecg_rvq import build_model
 
@@ -56,6 +60,7 @@ def _load_compressor(
     @tf.function(jit_compile=True)
     def _build_call(x):
         return model(x, training=False)
+
     _build_call(dummy)
 
     for name in ("best_model.weights.h5", "model.weights.h5"):
@@ -73,41 +78,48 @@ def _load_compressor(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-dir", type=Path, required=True,
-                        help="Existing trained RVQ run directory to fine-tune.")
-    parser.add_argument("--output-dir", type=Path, required=True,
-                        help="Where to write the fine-tuned weights and metadata.")
+    parser.add_argument("--run-dir", type=Path, required=True, help="Existing trained RVQ run directory to fine-tune.")
+    parser.add_argument(
+        "--output-dir", type=Path, required=True, help="Where to write the fine-tuned weights and metadata."
+    )
 
     # Training
     parser.add_argument("--epochs", type=int, default=30)
-    parser.add_argument("--gen-lr", type=float, default=1e-4,
-                        help="Generator (autoencoder) learning rate.")
-    parser.add_argument("--disc-lr", type=float, default=1e-4,
-                        help="Discriminator learning rate.")
+    parser.add_argument("--gen-lr", type=float, default=1e-4, help="Generator (autoencoder) learning rate.")
+    parser.add_argument("--disc-lr", type=float, default=1e-4, help="Discriminator learning rate.")
 
     # Adversarial loss weights
-    parser.add_argument("--adv-weight", type=float, default=1.0,
-                        help="Weight for the hinge adversarial generator loss.")
-    parser.add_argument("--feat-weight", type=float, default=10.0,
-                        help="Weight for L1 feature-matching loss.")
-    parser.add_argument("--disc-start-epoch", type=int, default=0,
-                        help="Epoch at which discriminator begins training. "
-                             "Earlier epochs use reconstruction-only loss.")
+    parser.add_argument(
+        "--adv-weight", type=float, default=1.0, help="Weight for the hinge adversarial generator loss."
+    )
+    parser.add_argument("--feat-weight", type=float, default=10.0, help="Weight for L1 feature-matching loss.")
+    parser.add_argument(
+        "--disc-start-epoch",
+        type=int,
+        default=0,
+        help="Epoch at which discriminator begins training. Earlier epochs use reconstruction-only loss.",
+    )
 
     # Discriminator architecture
-    parser.add_argument("--disc-scales", type=int, default=3,
-                        help="Number of resolution scales in multi-scale discriminator.")
-    parser.add_argument("--disc-channels", type=int, nargs="+",
-                        default=[16, 32, 64, 128],
-                        help="Channel widths for each strided-conv stage.")
-    parser.add_argument("--disc-kernel", type=int, default=15,
-                        help="Kernel width for discriminator conv stages.")
+    parser.add_argument(
+        "--disc-scales", type=int, default=3, help="Number of resolution scales in multi-scale discriminator."
+    )
+    parser.add_argument(
+        "--disc-channels",
+        type=int,
+        nargs="+",
+        default=[16, 32, 64, 128],
+        help="Channel widths for each strided-conv stage.",
+    )
+    parser.add_argument("--disc-kernel", type=int, default=15, help="Kernel width for discriminator conv stages.")
 
     # Optional
     parser.add_argument("--validation-steps", type=int, default=None)
@@ -131,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
     # Compile the inner autoencoder with its reconstruction loss so
     # AdversarialVQAutoencoder.train_step can delegate compute_loss.
     from compressionkit.trainers.ecg_rvq import build_extra_losses
+
     extras = build_extra_losses(cfg)
     compressor.compile(
         optimizer=keras.optimizers.Adam(args.gen_lr),
@@ -157,7 +170,10 @@ def main(argv: list[str] | None = None) -> int:
     disc_params = sum(np.prod(v.shape) for v in disc.trainable_variables)
     logger.info(
         "Discriminator: %d scales, channels=%s, %d params (%.1f KB)",
-        args.disc_scales, args.disc_channels, disc_params, disc_params * 4 / 1024,
+        args.disc_scales,
+        args.disc_channels,
+        disc_params,
+        disc_params * 4 / 1024,
     )
 
     # ------------------------------------------------------------------
@@ -187,7 +203,8 @@ def main(argv: list[str] | None = None) -> int:
     from compressionkit.trainers.ecg_rvq import build_datasets
 
     pre = build_preprocessor(
-        frame_size=cfg.data.frame_size, epsilon=cfg.data.epsilon,
+        frame_size=cfg.data.frame_size,
+        epsilon=cfg.data.epsilon,
     )
     aug = build_augmenter(
         aug_cfg=cfg.data.augmentation,
@@ -234,16 +251,13 @@ def main(argv: list[str] | None = None) -> int:
         "gen_lr": args.gen_lr,
         "disc_lr": args.disc_lr,
         "epochs": args.epochs,
-        "history": {
-            k: [float(v) for v in vals]
-            for k, vals in history.history.items()
-        },
+        "history": {k: [float(v) for v in vals] for k, vals in history.history.items()},
     }
     (out_dir / "adv_metadata.json").write_text(json.dumps(metadata, indent=2))
     logger.info("Wrote: %s", sorted(p.name for p in out_dir.iterdir()))
     logger.info(
-        "Done. Discriminator discarded. Evaluate with "
-        "scripts/evaluate_rvq.py or similar on %s.", out_dir,
+        "Done. Discriminator discarded. Evaluate with scripts/evaluate_rvq.py or similar on %s.",
+        out_dir,
     )
     return 0
 

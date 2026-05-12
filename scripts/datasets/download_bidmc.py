@@ -80,8 +80,7 @@ def _convert_record(raw_dir: Path, record: str, out_dir: Path, *, logger) -> Pat
         h.attrs["acquisition"] = ACQUISITION
         h.attrs["patient_id"] = record
         h.attrs["units"] = ",".join(rec.units or [])
-    logger.debug("Wrote %s ppg=%s ecg=%d resp=%d fs=%d",
-                 out.name, ppg.shape, len(ecg_idx), len(resp_idx), fs)
+    logger.debug("Wrote %s ppg=%s ecg=%d resp=%d fs=%d", out.name, ppg.shape, len(ecg_idx), len(resp_idx), fs)
     return out
 
 
@@ -117,8 +116,11 @@ def main() -> None:
         with h5py.File(sample, "r") as h:
             logger.info(
                 "  %s data=%s fs=%s ecg=%s acquisition=%s",
-                sample.name, tuple(h["data"].shape), h.attrs["fs"],
-                tuple(h["ecg"].shape) if "ecg" in h else None, h.attrs["acquisition"],
+                sample.name,
+                tuple(h["data"].shape),
+                h.attrs["fs"],
+                tuple(h["ecg"].shape) if "ecg" in h else None,
+                h.attrs["acquisition"],
             )
 
     maybe_upload_s3(canonical, args.upload_s3, slug=SLUG)

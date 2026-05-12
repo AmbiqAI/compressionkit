@@ -72,21 +72,36 @@ def _run_one(
     extra_args: list[str],
 ) -> dict:
     cmd = [
-        PYTHON_BIN, str(ENTROPY_SCRIPT),
-        "--run-dir", str(run_dir),
-        "--prior-type", "cnn",
-        "--context-frames", str(context_frames),
-        "--cnn-embed-dim", str(cnn_embed_dim),
-        "--cnn-num-layers", str(cnn_num_layers),
-        "--cnn-kernel", str(cnn_kernel),
-        "--epochs", str(epochs),
-        "--batch-size", str(batch_size),
-        "--learning-rate", str(learning_rate),
-        "--weight-decay", str(weight_decay),
-        "--stride-tokens", str(stride_tokens),
-        "--num-train-files", str(num_train_files),
-        "--num-val-files", str(num_val_files),
-        "--tag", tag,
+        PYTHON_BIN,
+        str(ENTROPY_SCRIPT),
+        "--run-dir",
+        str(run_dir),
+        "--prior-type",
+        "cnn",
+        "--context-frames",
+        str(context_frames),
+        "--cnn-embed-dim",
+        str(cnn_embed_dim),
+        "--cnn-num-layers",
+        str(cnn_num_layers),
+        "--cnn-kernel",
+        str(cnn_kernel),
+        "--epochs",
+        str(epochs),
+        "--batch-size",
+        str(batch_size),
+        "--learning-rate",
+        str(learning_rate),
+        "--weight-decay",
+        str(weight_decay),
+        "--stride-tokens",
+        str(stride_tokens),
+        "--num-train-files",
+        str(num_train_files),
+        "--num-val-files",
+        str(num_val_files),
+        "--tag",
+        tag,
         *extra_args,
     ]
     print("\n>>> " + " ".join(cmd), flush=True)
@@ -114,29 +129,32 @@ def _summarize(reports: list[tuple[int, dict]], frame_sec: float) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-dir", type=Path, required=True,
-                        help="Frozen RVQ compressor results dir.")
-    parser.add_argument("--context-frames", type=int, nargs="+",
-                        default=[4, 8, 16, 32, 64, 128, 256],
-                        help="Window sizes to sweep (in frames).")
-    parser.add_argument("--tag-prefix", default="winsweep",
-                        help="Per-run tag becomes <prefix>_f<context_frames>.")
+    parser.add_argument("--run-dir", type=Path, required=True, help="Frozen RVQ compressor results dir.")
+    parser.add_argument(
+        "--context-frames",
+        type=int,
+        nargs="+",
+        default=[4, 8, 16, 32, 64, 128, 256],
+        help="Window sizes to sweep (in frames).",
+    )
+    parser.add_argument("--tag-prefix", default="winsweep", help="Per-run tag becomes <prefix>_f<context_frames>.")
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--stride-tokens", type=int, default=8)
-    parser.add_argument("--cnn-embed-dim", type=int, default=64,
-                        help="Channel width — held fixed across the sweep.")
+    parser.add_argument("--cnn-embed-dim", type=int, default=64, help="Channel width — held fixed across the sweep.")
     parser.add_argument("--cnn-kernel", type=int, default=5)
-    parser.add_argument("--cnn-num-layers", type=int, default=0,
-                        help="Override depth (0 = auto from context).")
+    parser.add_argument("--cnn-num-layers", type=int, default=0, help="Override depth (0 = auto from context).")
     parser.add_argument("--num-train-files", type=int, default=-1)
     parser.add_argument("--num-val-files", type=int, default=-1)
     parser.add_argument("--summary-name", default="window_sweep_summary")
-    parser.add_argument("--extra", nargs=argparse.REMAINDER, default=[],
-                        help="Forwarded verbatim to measure_rvq_entropy.py "
-                             "after a literal ``--`` separator.")
+    parser.add_argument(
+        "--extra",
+        nargs=argparse.REMAINDER,
+        default=[],
+        help="Forwarded verbatim to measure_rvq_entropy.py after a literal ``--`` separator.",
+    )
     args = parser.parse_args(argv)
 
     run_dir: Path = args.run_dir.resolve()
@@ -145,11 +163,9 @@ def main(argv: list[str] | None = None) -> int:
         raise FileNotFoundError(f"Missing {cfg_path}")
     cfg = json.loads(cfg_path.read_text())
     frame_size = int(cfg["data"]["frame_size"])
-    sample_rate = int(cfg["data"].get("target_sample_rate")
-                      or cfg["data"].get("sampling_rate"))
+    sample_rate = int(cfg["data"].get("target_sample_rate") or cfg["data"].get("sampling_rate"))
     frame_sec = _frame_seconds(frame_size, sample_rate)
-    print(f"Compressor: {run_dir.name}  frame={frame_size}@{sample_rate}Hz "
-          f"({frame_sec:.2f}s/frame)", flush=True)
+    print(f"Compressor: {run_dir.name}  frame={frame_size}@{sample_rate}Hz ({frame_sec:.2f}s/frame)", flush=True)
 
     extra: list[str] = list(args.extra)
     if extra and extra[0] == "--":
@@ -157,8 +173,7 @@ def main(argv: list[str] | None = None) -> int:
 
     reports: list[tuple[int, dict]] = []
     for ctxf in args.context_frames:
-        depth = (args.cnn_num_layers if args.cnn_num_layers > 0
-                 else _depth_for_context(ctxf * 32, args.cnn_kernel))
+        depth = args.cnn_num_layers if args.cnn_num_layers > 0 else _depth_for_context(ctxf * 32, args.cnn_kernel)
         # NB. ctxf*32 assumes tokens_per_frame ≈ 32 for the golden 32× config.
         # The actual context_length printed by the inner script is authoritative.
         tag = f"{args.tag_prefix}_f{ctxf}"
@@ -196,8 +211,7 @@ def main(argv: list[str] | None = None) -> int:
                 "context_seconds": ctxf * frame_sec,
                 "context_tokens": r["context_length"],
                 "prior": r["prior"],
-                "metrics": {k: v for k, v in r["metrics"].items()
-                            if k != "history"},
+                "metrics": {k: v for k, v in r["metrics"].items() if k != "history"},
                 "tag": f"{args.tag_prefix}_f{ctxf}",
             }
             for ctxf, r in reports
@@ -208,9 +222,7 @@ def main(argv: list[str] | None = None) -> int:
         f"# Window sweep — {run_dir.name}\n\n"
         f"Frame {frame_size} samples @ {sample_rate} Hz = {frame_sec:.2f} s. "
         f"CNN: embed={args.cnn_embed_dim}, kernel={args.cnn_kernel}, "
-        f"depth=auto, epochs={args.epochs}.\n\n"
-        + _summarize(reports, frame_sec)
-        + "\n"
+        f"depth=auto, epochs={args.epochs}.\n\n" + _summarize(reports, frame_sec) + "\n"
     )
     (out_dir / "summary.md").write_text(md)
     print("\n" + md, flush=True)

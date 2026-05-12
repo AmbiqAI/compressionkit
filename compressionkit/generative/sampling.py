@@ -113,10 +113,7 @@ def decode_tokens_to_signal(
     """
     tokens = np.asarray(tokens, dtype=np.int32)
     if tokens.shape[-1] % tokens_per_frame != 0:
-        raise ValueError(
-            f"tokens length {tokens.shape[-1]} is not a multiple of "
-            f"tokens_per_frame={tokens_per_frame}"
-        )
+        raise ValueError(f"tokens length {tokens.shape[-1]} is not a multiple of tokens_per_frame={tokens_per_frame}")
     num_samples = tokens.shape[0]
     num_frames = tokens.shape[-1] // tokens_per_frame
 

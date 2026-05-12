@@ -171,15 +171,13 @@ class ModelConfig(BaseModel):
     revive_threshold: float = Field(
         default=0.03,
         description=(
-            "Codes whose normalized usage falls below revive_threshold/K are "
-            "resampled from the current batch."
+            "Codes whose normalized usage falls below revive_threshold/K are resampled from the current batch."
         ),
     )
     kmeans_init: bool = Field(
         default=False,
         description=(
-            "Mini-batch k-means warm-start of the EMA RVQ codebooks before "
-            "training. Run once eagerly via the trainer."
+            "Mini-batch k-means warm-start of the EMA RVQ codebooks before training. Run once eagerly via the trainer."
         ),
     )
 

@@ -42,9 +42,7 @@ ACQUISITION = "wearable-wrist-ppg-stress"
 ZIP_URL = "https://uni-siegen.sciebo.de/s/HGdUkoNlW1Ub0Gx/download"
 ZIP_NAME = "WESAD.zip"
 # WESAD ships subject IDs S2..S11, S13..S17 (S1 and S12 are intentionally absent).
-SUBJECTS: tuple[str, ...] = tuple(
-    f"S{i}" for i in range(2, 18) if i != 12
-)
+SUBJECTS: tuple[str, ...] = tuple(f"S{i}" for i in range(2, 18) if i != 12)
 
 
 def _ensure_extracted(raw_dir: Path, *, force: bool, logger) -> Path:
@@ -99,8 +97,7 @@ def _convert_subject(study_dir: Path, sid: str, out_dir: Path, *, logger) -> Pat
         h.attrs["source"] = SLUG
         h.attrs["acquisition"] = ACQUISITION
         h.attrs["patient_id"] = sid
-    logger.debug("Wrote %s ppg=%s ecg=%s acc=%s label=%s",
-                 out.name, ppg.shape, ecg.shape, acc_wrist.shape, label.shape)
+    logger.debug("Wrote %s ppg=%s ecg=%s acc=%s label=%s", out.name, ppg.shape, ecg.shape, acc_wrist.shape, label.shape)
     return out
 
 
@@ -141,8 +138,11 @@ def main() -> None:
         with h5py.File(sample, "r") as h:
             logger.info(
                 "  %s ppg=%s ecg=%s acc=%s label=%s acquisition=%s",
-                sample.name, tuple(h["data"].shape), tuple(h["ecg"].shape),
-                tuple(h["acc"].shape), tuple(h["stress_label"].shape),
+                sample.name,
+                tuple(h["data"].shape),
+                tuple(h["ecg"].shape),
+                tuple(h["acc"].shape),
+                tuple(h["stress_label"].shape),
                 h.attrs["acquisition"],
             )
 

@@ -211,6 +211,7 @@ def _inverse_transform_batch(
 # Synthetic ECG TFRecord helper
 # ---------------------------------------------------------------------------
 
+
 def _write_synthetic_ecg_tfrecord(
     *,
     cache_dir: Path,
@@ -232,6 +233,7 @@ def _write_synthetic_ecg_tfrecord(
     # Reuse existing synthetic TFRecord if params match
     if tfrecord_path.exists() and meta_path.exists():
         import json as _json
+
         existing = _json.load(meta_path.open())
         if (
             existing.get("num_segments") == num_segments
@@ -242,13 +244,17 @@ def _write_synthetic_ecg_tfrecord(
         ):
             logger.info(
                 "Reusing existing synthetic TFRecord (%d segments) at %s",
-                num_segments, tfrecord_path,
+                num_segments,
+                tfrecord_path,
             )
             return tfrecord_path
 
     logger.info(
         "Generating %d synthetic ECG segments (lead %d, sr=%d, len=%d)...",
-        num_segments, lead_index, sample_rate, segment_samples,
+        num_segments,
+        lead_index,
+        sample_rate,
+        segment_samples,
     )
     synth_data = generate_synthetic_ecg_batch(
         num_segments=num_segments,
@@ -263,18 +269,15 @@ def _write_synthetic_ecg_tfrecord(
     writer = tf.io.TFRecordWriter(str(tfrecord_path))
     for i in range(synth_data.shape[0]):
         feature = {
-            "signal": tf.train.Feature(
-                float_list=tf.train.FloatList(value=synth_data[i].ravel().tolist())
-            ),
+            "signal": tf.train.Feature(float_list=tf.train.FloatList(value=synth_data[i].ravel().tolist())),
         }
-        example = tf.train.Example(
-            features=tf.train.Features(feature=feature)
-        )
+        example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
     writer.close()
 
     # Write metadata for reuse detection
     import json as _json
+
     meta = {
         "num_segments": num_segments,
         "segment_samples": segment_samples,
@@ -292,6 +295,7 @@ def _write_synthetic_ecg_tfrecord(
 # ---------------------------------------------------------------------------
 # Dataset builder
 # ---------------------------------------------------------------------------
+
 
 def build_datasets(
     cfg: EcgRvqConfig,
@@ -373,12 +377,12 @@ def build_datasets(
             )
             train_paths.append(synth_path)
             info["synthetic_added"] = synthetic_added
-            info["synthetic_fraction_effective"] = float(
-                synthetic_added / max(n_real + synthetic_added, 1)
-            )
+            info["synthetic_fraction_effective"] = float(synthetic_added / max(n_real + synthetic_added, 1))
             logger.info(
                 "Synthetic mix: %d real + %d synthetic = %.1f%% synthetic",
-                n_real, synthetic_added, info["synthetic_fraction_effective"] * 100,
+                n_real,
+                synthetic_added,
+                info["synthetic_fraction_effective"] * 100,
             )
 
         train_ds = make_ecg_tfrecord_dataset(
@@ -487,12 +491,12 @@ def build_datasets(
             )
             train_data = np.concatenate([train_data, synth_data], axis=0)
             info["synthetic_added"] = synthetic_added
-            info["synthetic_fraction_effective"] = float(
-                synthetic_added / max(train_data.shape[0], 1)
-            )
+            info["synthetic_fraction_effective"] = float(synthetic_added / max(train_data.shape[0], 1))
             logger.info(
                 "Synthetic mix: %d real + %d synthetic = %.1f%% synthetic",
-                n_real, synthetic_added, info["synthetic_fraction_effective"] * 100,
+                n_real,
+                synthetic_added,
+                info["synthetic_fraction_effective"] * 100,
             )
 
         train_data = train_data[:, :, np.newaxis]
@@ -503,13 +507,17 @@ def build_datasets(
         val_target_data = None
         if data.input_filter.enabled:
             train_data = bandpass_filter_batch(
-                train_data, sample_rate=data.effective_sample_rate,
-                low_hz=data.input_filter.low_hz, high_hz=data.input_filter.high_hz,
+                train_data,
+                sample_rate=data.effective_sample_rate,
+                low_hz=data.input_filter.low_hz,
+                high_hz=data.input_filter.high_hz,
                 order=data.input_filter.order,
             )
             val_data = bandpass_filter_batch(
-                val_data, sample_rate=data.effective_sample_rate,
-                low_hz=data.input_filter.low_hz, high_hz=data.input_filter.high_hz,
+                val_data,
+                sample_rate=data.effective_sample_rate,
+                low_hz=data.input_filter.low_hz,
+                high_hz=data.input_filter.high_hz,
                 order=data.input_filter.order,
             )
         if data.target_filter.enabled:
@@ -526,25 +534,39 @@ def build_datasets(
                 raw_train = train_data.copy()
                 raw_val = val_data.copy()
                 train_target_data = bandpass_filter_batch(
-                    raw_train, sample_rate=data.effective_sample_rate,
-                    low_hz=data.target_filter.low_hz, high_hz=data.target_filter.high_hz,
+                    raw_train,
+                    sample_rate=data.effective_sample_rate,
+                    low_hz=data.target_filter.low_hz,
+                    high_hz=data.target_filter.high_hz,
                     order=data.target_filter.order,
                 )
                 val_target_data = bandpass_filter_batch(
-                    raw_val, sample_rate=data.effective_sample_rate,
-                    low_hz=data.target_filter.low_hz, high_hz=data.target_filter.high_hz,
+                    raw_val,
+                    sample_rate=data.effective_sample_rate,
+                    low_hz=data.target_filter.low_hz,
+                    high_hz=data.target_filter.high_hz,
                     order=data.target_filter.order,
                 )
 
         train_ds = make_ecg_inmemory_dataset(
-            train_data, frame_size=data.frame_size, batch_size=data.batch_size,
-            buffer_size=data.buffer_size, preprocessor=preprocessor,
-            augmenter=augmenter, target_data=train_target_data, shuffle=True,
+            train_data,
+            frame_size=data.frame_size,
+            batch_size=data.batch_size,
+            buffer_size=data.buffer_size,
+            preprocessor=preprocessor,
+            augmenter=augmenter,
+            target_data=train_target_data,
+            shuffle=True,
         )
         val_ds = make_ecg_inmemory_dataset(
-            val_data, frame_size=data.frame_size, batch_size=data.batch_size,
-            buffer_size=data.buffer_size, preprocessor=preprocessor,
-            augmenter=augmenter, target_data=val_target_data, shuffle=False,
+            val_data,
+            frame_size=data.frame_size,
+            batch_size=data.batch_size,
+            buffer_size=data.buffer_size,
+            preprocessor=preprocessor,
+            augmenter=augmenter,
+            target_data=val_target_data,
+            shuffle=False,
         )
 
     # Apply forward transform if configured (DWT / STFT)
@@ -564,6 +586,7 @@ def build_datasets(
 # ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
+
 
 def run_evaluation(
     cfg: EcgRvqConfig,
@@ -589,10 +612,16 @@ def run_evaluation(
     domain, transform_cfg = _build_transform_configs(cfg)
     if domain != "raw":
         sample_targets = _inverse_transform_batch(
-            sample_targets, domain, transform_cfg, data.frame_size,
+            sample_targets,
+            domain,
+            transform_cfg,
+            data.frame_size,
         )
         reconstructions = _inverse_transform_batch(
-            reconstructions, domain, transform_cfg, data.frame_size,
+            reconstructions,
+            domain,
+            transform_cfg,
+            data.frame_size,
         )
         logger.info("Inverse-transformed evaluation samples from %s → time domain", domain)
 
@@ -606,12 +635,18 @@ def run_evaluation(
         targets_seq = sample_targets.reshape(sample_targets.shape[0], -1).astype(np.float32)
         recon_seq = reconstructions.reshape(reconstructions.shape[0], -1).astype(np.float32)
         band_sample_targets = bandpass_filter_batch(
-            targets_seq, sample_rate=data.effective_sample_rate,
-            low_hz=band_cfg.low_hz, high_hz=band_cfg.high_hz, order=band_cfg.order,
+            targets_seq,
+            sample_rate=data.effective_sample_rate,
+            low_hz=band_cfg.low_hz,
+            high_hz=band_cfg.high_hz,
+            order=band_cfg.order,
         )
         band_reconstructions = bandpass_filter_batch(
-            recon_seq, sample_rate=data.effective_sample_rate,
-            low_hz=band_cfg.low_hz, high_hz=band_cfg.high_hz, order=band_cfg.order,
+            recon_seq,
+            sample_rate=data.effective_sample_rate,
+            low_hz=band_cfg.low_hz,
+            high_hz=band_cfg.high_hz,
+            order=band_cfg.order,
         )
         best_band_metrics = compute_signal_metrics(band_sample_targets, band_reconstructions)
 
@@ -624,7 +659,7 @@ def run_evaluation(
         for idx, (target, recon) in enumerate(zip(sample_targets, reconstructions)):
             # target/recon shape: (1, T, C) → squeeze to (T, C)
             t2d = target.squeeze()  # (T, C)
-            r2d = recon.squeeze()   # (T, C)
+            r2d = recon.squeeze()  # (T, C)
             save_plot_this = idx < plot_cap
             lead_metrics_list = []
             for lead_idx in range(num_leads):
@@ -657,7 +692,11 @@ def run_evaluation(
         plot_cap = max(0, min(eval_cfg.num_plot_samples, len(sample_targets)))
         sample_results = {
             str(idx): save_sample_artifacts(
-                idx, target.squeeze(), recon.squeeze(), data.effective_sample_rate, run_dir,
+                idx,
+                target.squeeze(),
+                recon.squeeze(),
+                data.effective_sample_rate,
+                run_dir,
                 band_original=None if band_sample_targets is None else band_sample_targets[idx],
                 band_reconstructed=None if band_reconstructions is None else band_reconstructions[idx],
                 save_plot=(idx < plot_cap),
@@ -671,7 +710,9 @@ def run_evaluation(
         targets_seq = sample_targets.reshape(sample_targets.shape[0], -1).astype(np.float32)
         recon_seq = reconstructions.reshape(reconstructions.shape[0], -1).astype(np.float32)
         ecg_summary, _ = summarize_ecg_alignment(
-            targets_seq, recon_seq, sample_rate=data.effective_sample_rate,
+            targets_seq,
+            recon_seq,
+            sample_rate=data.effective_sample_rate,
         )
         if ecg_summary is not None:
             ecg_physiology = ecg_summary
@@ -692,7 +733,9 @@ def run_evaluation(
         else:
             logger.info(
                 "Running stitching evaluation (methods=%s, %d recordings, %.0fs each)...",
-                stitching_cfg.methods, stitching_cfg.num_recordings, stitching_cfg.duration_sec,
+                stitching_cfg.methods,
+                stitching_cfg.num_recordings,
+                stitching_cfg.duration_sec,
             )
             stitching_results = evaluate_stitching(
                 model,
@@ -741,7 +784,8 @@ def build_model(cfg: EcgRvqConfig) -> keras.Model:
     if domain == "stft":
         logger.info(
             "Building 2-D spatial model for STFT domain (input=%dx%dx2)",
-            STFT_PAD_HEIGHT, STFT_PAD_WIDTH,
+            STFT_PAD_HEIGHT,
+            STFT_PAD_WIDTH,
         )
         _enc, _rvq, _dec, model = build_rvq_autoencoder_2d_spatial(
             input_height=STFT_PAD_HEIGHT,
@@ -832,17 +876,19 @@ def build_extra_losses(cfg: EcgRvqConfig) -> list[callable]:
         )
         logger.info(
             "Filtered MSE loss enabled, weight=%.2f, cutoff=%.1f Hz, taps=%d, sr=%d",
-            floss.weight, floss.cutoff_hz, floss.num_taps, eff_sr,
+            floss.weight,
+            floss.cutoff_hz,
+            floss.num_taps,
+            eff_sr,
         )
 
     sloss = cfg.training.spectral_loss
     if sloss.enabled:
-        extra.append(
-            _build_multi_scale_spectral_loss(weight=sloss.weight, fft_sizes=sloss.fft_sizes)
-        )
+        extra.append(_build_multi_scale_spectral_loss(weight=sloss.weight, fft_sizes=sloss.fft_sizes))
         logger.info(
             "Multi-scale spectral loss enabled, weight=%.2f, fft_sizes=%s",
-            sloss.weight, sloss.fft_sizes,
+            sloss.weight,
+            sloss.fft_sizes,
         )
 
     dwt_cfg = cfg.training.dwt_loss
@@ -857,7 +903,9 @@ def build_extra_losses(cfg: EcgRvqConfig) -> list[callable]:
         )
         logger.info(
             "DWT subband loss enabled, weight=%.2f, levels=%d, band_weights=%s",
-            dwt_cfg.weight, dwt_cfg.levels, dwt_cfg.band_weights,
+            dwt_cfg.weight,
+            dwt_cfg.levels,
+            dwt_cfg.band_weights,
         )
     return extra
 
@@ -895,11 +943,11 @@ def build_compression_stats(cfg: EcgRvqConfig) -> dict[str, Any]:
     """
     data = cfg.data
     mcfg = cfg.model
-    downsample_factor = 2 ** mcfg.num_stages
+    downsample_factor = 2**mcfg.num_stages
     domain, _ = _build_transform_configs(cfg)
 
     if domain == "stft":
-        ds_per_dim = 2 ** mcfg.num_stages
+        ds_per_dim = 2**mcfg.num_stages
         latent_positions = (STFT_PAD_HEIGHT // ds_per_dim) * (STFT_PAD_WIDTH // ds_per_dim)
         stats = compute_compression_stats(
             data.frame_size,

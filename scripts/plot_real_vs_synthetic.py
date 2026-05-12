@@ -34,14 +34,16 @@ def _norm(sig: np.ndarray) -> np.ndarray:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-dir", type=Path, required=True,
-                        help="Trained compressor run directory (contains config.json).")
-    parser.add_argument("--synth-dir", type=Path, default=None,
-                        help="Directory with samples.npy. Default: <run-dir>/generative_scaled/")
-    parser.add_argument("--num-real", type=int, default=8,
-                        help="Number of real recordings to show.")
-    parser.add_argument("--output", type=Path, default=None,
-                        help="Output PNG path. Default: <synth-dir>/real_vs_synthetic.png")
+    parser.add_argument(
+        "--run-dir", type=Path, required=True, help="Trained compressor run directory (contains config.json)."
+    )
+    parser.add_argument(
+        "--synth-dir", type=Path, default=None, help="Directory with samples.npy. Default: <run-dir>/generative_scaled/"
+    )
+    parser.add_argument("--num-real", type=int, default=8, help="Number of real recordings to show.")
+    parser.add_argument(
+        "--output", type=Path, default=None, help="Output PNG path. Default: <synth-dir>/real_vs_synthetic.png"
+    )
     args = parser.parse_args(argv)
 
     run_dir: Path = args.run_dir.resolve()
@@ -63,7 +65,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # Load real recordings (from validation set for fairness)
     _, val_files, _ = load_ecg_file_splits(
-        Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed,
+        Path(data.datasets_dir),
+        data.dataset_glob,
+        seed=data.shuffle_seed,
     )
     lead_index = getattr(data, "lead_index", 1) or 1
     n_real = min(args.num_real, len(val_files))
@@ -91,7 +95,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- Plot ---
     fig, axes = plt.subplots(
-        n_rows, 2,
+        n_rows,
+        2,
         figsize=(16, 1.8 * n_rows + 1.2),
         sharex=True,
         constrained_layout=True,
@@ -101,10 +106,8 @@ def main(argv: list[str] | None = None) -> int:
         axes = axes[np.newaxis, :]
 
     # Column titles
-    axes[0, 0].set_title("REAL  (PTB-XL validation)", fontsize=13, fontweight="bold",
-                          color="#1a659e", loc="center")
-    axes[0, 1].set_title("SYNTHETIC  (RVQ prior, T=0.9)", fontsize=13, fontweight="bold",
-                          color="#d1495b", loc="center")
+    axes[0, 0].set_title("REAL  (PTB-XL validation)", fontsize=13, fontweight="bold", color="#1a659e", loc="center")
+    axes[0, 1].set_title("SYNTHETIC  (RVQ prior, T=0.9)", fontsize=13, fontweight="bold", color="#d1495b", loc="center")
 
     t = np.arange(plot_len) / sr
 
@@ -136,7 +139,9 @@ def main(argv: list[str] | None = None) -> int:
 
     fig.suptitle(
         "Real vs Synthetic ECG — RVQ Token Prior (108K params, 50 epochs, 17K files)",
-        fontsize=14, fontweight="bold", y=1.01,
+        fontsize=14,
+        fontweight="bold",
+        y=1.01,
     )
 
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
@@ -147,7 +152,8 @@ def main(argv: list[str] | None = None) -> int:
     zoom_len = int(2.0 * sr)
     if plot_len >= zoom_len:
         fig2, axes2 = plt.subplots(
-            n_rows, 2,
+            n_rows,
+            2,
             figsize=(12, 1.8 * n_rows + 1.2),
             sharex=True,
             constrained_layout=True,
@@ -155,10 +161,8 @@ def main(argv: list[str] | None = None) -> int:
         if n_rows == 1:
             axes2 = axes2[np.newaxis, :]
 
-        axes2[0, 0].set_title("REAL  (2s zoom)", fontsize=13, fontweight="bold",
-                               color="#1a659e")
-        axes2[0, 1].set_title("SYNTHETIC  (2s zoom)", fontsize=13, fontweight="bold",
-                               color="#d1495b")
+        axes2[0, 0].set_title("REAL  (2s zoom)", fontsize=13, fontweight="bold", color="#1a659e")
+        axes2[0, 1].set_title("SYNTHETIC  (2s zoom)", fontsize=13, fontweight="bold", color="#d1495b")
 
         t_z = np.arange(zoom_len) / sr
         for i in range(n_rows):
@@ -182,8 +186,7 @@ def main(argv: list[str] | None = None) -> int:
 
         axes2[-1, 0].set_xlabel("time [s]", fontsize=9)
         axes2[-1, 1].set_xlabel("time [s]", fontsize=9)
-        fig2.suptitle("Real vs Synthetic ECG — 2-second zoom", fontsize=14,
-                       fontweight="bold", y=1.01)
+        fig2.suptitle("Real vs Synthetic ECG — 2-second zoom", fontsize=14, fontweight="bold", y=1.01)
 
         zoom_path = out_path.with_stem(out_path.stem + "_zoom")
         fig2.savefig(zoom_path, dpi=150, bbox_inches="tight")

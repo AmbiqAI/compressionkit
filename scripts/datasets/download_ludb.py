@@ -47,7 +47,10 @@ def verify(canonical_dir: Path, *, limit: int | None, logger) -> None:
             seg_shape = tuple(seg.shape) if seg is not None else None
             logger.info(
                 "  %s data=%s dtype=%s seg=%s",
-                fp.name, shape, data.dtype, seg_shape,
+                fp.name,
+                shape,
+                data.dtype,
+                seg_shape,
             )
             arr = np.asarray(data[:])
             if not np.isfinite(arr).all():

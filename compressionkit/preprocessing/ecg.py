@@ -49,7 +49,8 @@ def build_augmenter(
         if nf[1] > 0:
             layers.append(
                 helia.layers.preprocessing.RandomGaussianNoise1D(
-                    factor=nf, name="GaussianNoise",
+                    factor=nf,
+                    name="GaussianNoise",
                 )
             )
         if aug_cfg.amplitude_warp:
@@ -71,13 +72,15 @@ def build_augmenter(
     elif noise_factor is not None:
         layers.append(
             helia.layers.preprocessing.RandomGaussianNoise1D(
-                factor=noise_factor, name="GaussianNoise",
+                factor=noise_factor,
+                name="GaussianNoise",
             )
         )
     else:
         layers.append(
             helia.layers.preprocessing.RandomGaussianNoise1D(
-                factor=(0.01, 0.1), name="GaussianNoise",
+                factor=(0.01, 0.1),
+                name="GaussianNoise",
             )
         )
 
@@ -87,7 +90,7 @@ def build_augmenter(
 # ECG presets suitable for general-purpose training augmentation.
 _ECG_PRESETS: list[pk.ecg.EcgPreset] = [
     pk.ecg.EcgPreset.SR,
-    pk.ecg.EcgPreset.SR,          # double-weight normal sinus rhythm
+    pk.ecg.EcgPreset.SR,  # double-weight normal sinus rhythm
     pk.ecg.EcgPreset.AFIB,
     pk.ecg.EcgPreset.LBBB,
     pk.ecg.EcgPreset.LAHB,

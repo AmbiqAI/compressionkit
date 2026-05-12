@@ -247,11 +247,8 @@ def dwt_band_sizes(signal_length: int, cfg: DwtConfig) -> list[int]:
     Returns:
         List of ``levels + 1`` integers summing to *signal_length*.
     """
-    if signal_length % (2 ** cfg.levels) != 0:
-        raise ValueError(
-            f"signal_length {signal_length} must be divisible by "
-            f"2**levels = {2 ** cfg.levels}"
-        )
+    if signal_length % (2**cfg.levels) != 0:
+        raise ValueError(f"signal_length {signal_length} must be divisible by 2**levels = {2**cfg.levels}")
     sizes: list[int] = []
     remaining = signal_length
     for _ in range(cfg.levels):

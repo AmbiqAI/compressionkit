@@ -225,8 +225,7 @@ def summarize_sources(
                 if _should_skip(src, h):
                     continue
                 fs_in = int(h.attrs.get("fs", spec.target_fs))
-                signal = _resample(h["data"][0].astype(np.float32, copy=False),
-                                   fs_in, spec.target_fs)
+                signal = _resample(h["data"][0].astype(np.float32, copy=False), fs_in, spec.target_fs)
             n = signal.shape[0]
             for start in range(0, max(0, n - win + 1), hop):
                 total += 1

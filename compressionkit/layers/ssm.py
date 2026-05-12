@@ -90,9 +90,7 @@ class DiagonalSSM(keras.layers.Layer):
         if state_size <= 0:
             raise ValueError("state_size must be positive.")
         if not 0.0 <= min_decay < max_decay < 1.0:
-            raise ValueError(
-                "Require 0 <= min_decay < max_decay < 1 for stability."
-            )
+            raise ValueError("Require 0 <= min_decay < max_decay < 1 for stability.")
         if max_phase <= 0.0 or min_phase < 0.0 or min_phase >= max_phase:
             raise ValueError("Require 0 <= min_phase < max_phase.")
         self.state_size = int(state_size)
@@ -109,9 +107,7 @@ class DiagonalSSM(keras.layers.Layer):
     # ------------------------------------------------------------------ build
     def build(self, input_shape):
         if len(input_shape) != 3:
-            raise ValueError(
-                f"DiagonalSSM expects (batch, time, dim) input; got {input_shape}"
-            )
+            raise ValueError(f"DiagonalSSM expects (batch, time, dim) input; got {input_shape}")
         in_dim = int(input_shape[-1])
         out_dim = self.output_dim if self.output_dim is not None else in_dim
         N = self.state_size
@@ -130,9 +126,15 @@ class DiagonalSSM(keras.layers.Layer):
                 self.lo, self.hi, self.seed = lo, hi, seed
 
             def __call__(self, shape, dtype=None):
-                r = np.random.default_rng(self.seed).uniform(
-                    self.lo, self.hi, size=tuple(shape),
-                ).astype("float32")
+                r = (
+                    np.random.default_rng(self.seed)
+                    .uniform(
+                        self.lo,
+                        self.hi,
+                        size=tuple(shape),
+                    )
+                    .astype("float32")
+                )
                 r = np.clip(r, 1e-6, 1.0 - 1e-6)
                 return np.log(-np.log(r)).astype("float32")
 
@@ -141,20 +143,28 @@ class DiagonalSSM(keras.layers.Layer):
                 self.seed = seed
 
             def __call__(self, shape, dtype=None):
-                u = np.random.default_rng(self.seed).uniform(
-                    1e-4, 1.0 - 1e-4, size=tuple(shape),
-                ).astype("float32")
+                u = (
+                    np.random.default_rng(self.seed)
+                    .uniform(
+                        1e-4,
+                        1.0 - 1e-4,
+                        size=tuple(shape),
+                    )
+                    .astype("float32")
+                )
                 return np.log(u / (1.0 - u)).astype("float32")
 
         seed_a = int(rng.integers(0, 2**31 - 1))
         seed_b = int(rng.integers(0, 2**31 - 1))
         self.decay_log = self.add_weight(
-            name="decay_log", shape=(N,),
+            name="decay_log",
+            shape=(N,),
             initializer=_NuLogInit(self.min_decay, self.max_decay, seed_a),
             trainable=True,
         )
         self.phase_logit = self.add_weight(
-            name="phase_logit", shape=(N,),
+            name="phase_logit",
+            shape=(N,),
             initializer=_PhaseLogitInit(seed_b),
             trainable=True,
         )
@@ -166,22 +176,26 @@ class DiagonalSSM(keras.layers.Layer):
         b_std = 1.0 / math.sqrt(2.0 * max(N, 1))
         c_std = 1.0 / math.sqrt(max(N, 1))
         self.B_real = self.add_weight(
-            name="B_real", shape=(in_dim, N),
+            name="B_real",
+            shape=(in_dim, N),
             initializer=keras.initializers.RandomNormal(stddev=b_std),
             trainable=True,
         )
         self.B_imag = self.add_weight(
-            name="B_imag", shape=(in_dim, N),
+            name="B_imag",
+            shape=(in_dim, N),
             initializer=keras.initializers.RandomNormal(stddev=b_std),
             trainable=True,
         )
         self.C_real = self.add_weight(
-            name="C_real", shape=(N, out_dim),
+            name="C_real",
+            shape=(N, out_dim),
             initializer=keras.initializers.RandomNormal(stddev=c_std),
             trainable=True,
         )
         self.C_imag = self.add_weight(
-            name="C_imag", shape=(N, out_dim),
+            name="C_imag",
+            shape=(N, out_dim),
             initializer=keras.initializers.RandomNormal(stddev=c_std),
             trainable=True,
         )
@@ -189,7 +203,8 @@ class DiagonalSSM(keras.layers.Layer):
         # Optional skip
         if self.skip_connection:
             self.D_skip = self.add_weight(
-                name="D_skip", shape=(in_dim, out_dim),
+                name="D_skip",
+                shape=(in_dim, out_dim),
                 initializer=keras.initializers.GlorotUniform(),
                 trainable=True,
             )
@@ -199,8 +214,10 @@ class DiagonalSSM(keras.layers.Layer):
         # Initial state
         if self.initial_state_trainable:
             self.s0 = self.add_weight(
-                name="s0", shape=(N, 2),
-                initializer=keras.initializers.Zeros(), trainable=True,
+                name="s0",
+                shape=(N, 2),
+                initializer=keras.initializers.Zeros(),
+                trainable=True,
             )
         else:
             self.s0 = None
@@ -219,9 +236,7 @@ class DiagonalSSM(keras.layers.Layer):
         decay = ops.exp(-ops.exp(self.decay_log))
         # Hard clip to the configured ceiling for numerical safety.
         decay = ops.clip(decay, 0.0, self.max_decay)
-        theta = self.min_phase + (self.max_phase - self.min_phase) * ops.sigmoid(
-            self.phase_logit
-        )
+        theta = self.min_phase + (self.max_phase - self.min_phase) * ops.sigmoid(self.phase_logit)
         if self.gamma_normalize:
             gamma = ops.sqrt(ops.maximum(1.0 - decay * decay, 1e-8))
         else:
@@ -285,9 +300,7 @@ class DiagonalSSM(keras.layers.Layer):
         if initial_state is None:
             batch = ops.shape(u_steps[0])[0]
             if self.s0 is not None:
-                state = ops.broadcast_to(
-                    self.s0, (batch, self.state_size, 2)
-                )
+                state = ops.broadcast_to(self.s0, (batch, self.state_size, 2))
             else:
                 state = ops.zeros((batch, self.state_size, 2), dtype=u.dtype)
         else:
@@ -357,10 +370,7 @@ class S4DBlock(keras.layers.Layer):
         )
         self.proj = keras.layers.Dense(in_dim, name="proj")
         self.act = keras.layers.Activation("gelu")
-        self.drop = (
-            keras.layers.Dropout(self.dropout_rate)
-            if self.dropout_rate > 0.0 else None
-        )
+        self.drop = keras.layers.Dropout(self.dropout_rate) if self.dropout_rate > 0.0 else None
         super().build(input_shape)
 
     def call(self, x, training=False):

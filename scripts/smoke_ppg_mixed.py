@@ -72,7 +72,7 @@ def _build_rvq(window_samples: int, target_fs: int, log: logging.Logger) -> kera
         bit_depth=16,
         latent_width=latent_width,
         num_levels=num_levels,
-        downsample_factor=2 ** num_stages,
+        downsample_factor=2**num_stages,
     )
     log.info("RVQ compression stats: %s", json.dumps(stats, indent=2, default=str))
     log.info("sampling rate (Hz): %d", target_fs)
@@ -82,18 +82,18 @@ def _build_rvq(window_samples: int, target_fs: int, log: logging.Logger) -> kera
 
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--root", type=Path, default=DEFAULT_DATASET_ROOT,
-                   help="Parent dir holding per-dataset h5 folders.")
-    p.add_argument("--sources", nargs="+", default=list(DEFAULT_SOURCES),
-                   help="Dataset slugs to mix.")
+    p.add_argument("--root", type=Path, default=DEFAULT_DATASET_ROOT, help="Parent dir holding per-dataset h5 folders.")
+    p.add_argument("--sources", nargs="+", default=list(DEFAULT_SOURCES), help="Dataset slugs to mix.")
     p.add_argument("--target-fs", type=int, default=64)
     p.add_argument("--window-seconds", type=float, default=4.0)
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--steps", type=int, default=50)
-    p.add_argument("--model", choices=["tiny", "rvq"], default="tiny",
-                   help="'tiny' Conv1D AE (default) or real RVQ autoencoder.")
-    p.add_argument("--audit-files-per-source", type=int, default=5,
-                   help="Cap files-per-source for the reject-rate audit.")
+    p.add_argument(
+        "--model", choices=["tiny", "rvq"], default="tiny", help="'tiny' Conv1D AE (default) or real RVQ autoencoder."
+    )
+    p.add_argument(
+        "--audit-files-per-source", type=int, default=5, help="Cap files-per-source for the reject-rate audit."
+    )
     p.add_argument("--seed", type=int, default=1337)
     p.add_argument("-v", "--verbose", action="store_true")
     return p.parse_args()
@@ -114,8 +114,7 @@ def main() -> None:
     for src in sources:
         n = len(src.files())
         if n == 0:
-            log.warning("source %s: no h5 files at %s/%s — skipping",
-                        src.slug, src.root, src.slug)
+            log.warning("source %s: no h5 files at %s/%s — skipping", src.slug, src.root, src.slug)
     sources = [s for s in sources if s.files()]
     if not sources:
         log.error("no sources have h5 files; aborting")
@@ -126,16 +125,18 @@ def main() -> None:
         window_seconds=args.window_seconds,
     )
 
-    log.info("auditing reject rates (max %d files/source) …",
-             args.audit_files_per_source)
-    audit = summarize_sources(sources, spec,
-                              max_files_per_source=args.audit_files_per_source)
+    log.info("auditing reject rates (max %d files/source) …", args.audit_files_per_source)
+    audit = summarize_sources(sources, spec, max_files_per_source=args.audit_files_per_source)
     log.info("audit: %s", json.dumps(audit, indent=2, default=str))
 
-    log.info("building tf.data pipeline @ fs=%d, win=%d samples, batch=%d",
-             spec.target_fs, spec.window_samples, args.batch_size)
-    ds = make_h5_ppg_dataset(sources, spec,
-                             batch_size=args.batch_size, seed=args.seed)
+    log.info(
+        "building tf.data pipeline @ fs=%d, win=%d samples, batch=%d",
+        spec.target_fs,
+        spec.window_samples,
+        args.batch_size,
+    )
+    ds = make_h5_ppg_dataset(sources, spec, batch_size=args.batch_size, seed=args.seed)
+
     # Self-supervised reconstruction target = input. Loader yields (B, 1, T);
     # the conv1d model expects (B, T, 1).
     def _to_xy(x: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:

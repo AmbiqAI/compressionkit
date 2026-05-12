@@ -79,8 +79,7 @@ def evaluate_stitching(
 
     # Per-method accumulators
     per_method: dict[str, dict[str, list[float]]] = {
-        m: {"prd_percent": [], "cosine_similarity": [], "mse": [],
-            "seam_ratio": [], "seam_rms": [], "non_seam_rms": []}
+        m: {"prd_percent": [], "cosine_similarity": [], "mse": [], "seam_ratio": [], "seam_rms": [], "non_seam_rms": []}
         for m in methods
     }
     per_recording: list[dict[str, Any]] = []
@@ -109,7 +108,10 @@ def evaluate_stitching(
             # Seams only make sense for the actual stride used during reconstruction
             effective_hop = 1.0 if method == "hard_concat" else hop_ratio
             seam = seam_discontinuity_ratio(
-                recon, frame_size=frame_size, hop_ratio=effective_hop, radius=seam_radius,
+                recon,
+                frame_size=frame_size,
+                hop_ratio=effective_hop,
+                radius=seam_radius,
             )
             entry = {
                 "prd_percent": sig_metrics["prd_percent"],

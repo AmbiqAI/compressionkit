@@ -41,6 +41,7 @@ class Snake(keras.layers.Layer):
         channels = input_shape[-1]
         if self.alpha_logscale:
             import math
+
             init_val = math.log(self.alpha_init)
             self.log_alpha = self.add_weight(
                 name="log_alpha",
@@ -67,8 +68,10 @@ class Snake(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            "alpha_init": self.alpha_init,
-            "alpha_logscale": self.alpha_logscale,
-        })
+        config.update(
+            {
+                "alpha_init": self.alpha_init,
+                "alpha_logscale": self.alpha_logscale,
+            }
+        )
         return config

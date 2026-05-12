@@ -125,9 +125,7 @@ class PrefixSupervisedVQAutoencoder(VQAutoencoder):
                 continue
             zq_prefix, _indices = self.vq.call_at_level(z, level)
             y_prefix = self.decoder(zq_prefix, training=False)
-            total = total + self.prefix_loss_scale * weight * keras.ops.mean(
-                keras.ops.square(target - y_prefix)
-            )
+            total = total + self.prefix_loss_scale * weight * keras.ops.mean(keras.ops.square(target - y_prefix))
         return total
 
     def get_config(self):
@@ -155,13 +153,12 @@ class HierarchicalRVQAutoencoder(VQAutoencoder):
         self, x: keras.KerasTensor, training: bool = False, return_indices: bool = False
     ) -> keras.KerasTensor | tuple[keras.KerasTensor, list[keras.KerasTensor]]:
         if not hasattr(self.vq, "call_with_level_outputs"):
-            raise ValueError(
-                "HierarchicalRVQAutoencoder requires a VQ layer with "
-                "call_with_level_outputs()."
-            )
+            raise ValueError("HierarchicalRVQAutoencoder requires a VQ layer with call_with_level_outputs().")
         z = self.encoder(x, training=training)
         _zq, level_outputs, indices = self.vq.call_with_level_outputs(
-            z, training=training, return_indices=True,
+            z,
+            training=training,
+            return_indices=True,
         )
         inputs = [_zq, *level_outputs] if self.include_summed_latent else level_outputs
         z_hier = keras.ops.concatenate(inputs, axis=-1)
@@ -220,18 +217,21 @@ def build_rvq_autoencoder(
     prefix_loss_target: str = "lowpass",
     prefix_loss_lowpass_kernel: int = 9,
     prefix_loss_initial_scale: float = 1.0,
-) -> tuple[keras.Model, ResidualVectorQuantizer | EmaResidualVectorQuantizer | FiniteScalarQuantizer, keras.Model, VQAutoencoder]:
+) -> tuple[
+    keras.Model,
+    ResidualVectorQuantizer | EmaResidualVectorQuantizer | FiniteScalarQuantizer,
+    keras.Model,
+    VQAutoencoder,
+]:
     """Build encoder, bottleneck, decoder, and composite VQAutoencoder.
 
     Returns:
         ``(encoder, bottleneck, decoder, model)`` where *model* is a
         ``helia_edge.trainers.VQAutoencoder`` wrapping the three components.
     """
-    downsample_factor = 2 ** num_stages
+    downsample_factor = 2**num_stages
     if frame_size % downsample_factor != 0:
-        raise ValueError(
-            f"frame_size ({frame_size}) must be divisible by 2**num_stages ({downsample_factor})"
-        )
+        raise ValueError(f"frame_size ({frame_size}) must be divisible by 2**num_stages ({downsample_factor})")
 
     bottleneck_type = bottleneck_type.lower()
     if bottleneck_type == "fsq":
@@ -443,9 +443,11 @@ def build_rvq_autoencoder_2d_spatial(
         embedding_dim=embedding_dim,
         beta=beta,
     )
-    ds = 2 ** num_stages
+    ds = 2**num_stages
     model = VQAutoencoder(
-        encoder=encoder, vq=rvq, decoder=decoder,
+        encoder=encoder,
+        vq=rvq,
+        decoder=decoder,
         name=f"RVQAE_2D_spatial_ds{ds}",
     )
     return encoder, rvq, decoder, model
@@ -454,6 +456,7 @@ def build_rvq_autoencoder_2d_spatial(
 # ---------------------------------------------------------------------------
 # Compression statistics
 # ---------------------------------------------------------------------------
+
 
 def compute_compression_stats(
     frame_size: int,

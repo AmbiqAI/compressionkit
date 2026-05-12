@@ -78,15 +78,9 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
                 self.dropout_levels.append(self.M)
 
         # Metrics (same structure as helia-edge RVQ for drop-in compatibility)
-        self._lvl_perp = [
-            keras.metrics.Mean(name=f"rvq_l{lvl + 1}_perplexity") for lvl in range(self.M)
-        ]
-        self._lvl_usage = [
-            keras.metrics.Mean(name=f"rvq_l{lvl + 1}_usage") for lvl in range(self.M)
-        ]
-        self._lvl_bpi = [
-            keras.metrics.Mean(name=f"rvq_l{lvl + 1}_bits_per_index") for lvl in range(self.M)
-        ]
+        self._lvl_perp = [keras.metrics.Mean(name=f"rvq_l{lvl + 1}_perplexity") for lvl in range(self.M)]
+        self._lvl_usage = [keras.metrics.Mean(name=f"rvq_l{lvl + 1}_usage") for lvl in range(self.M)]
+        self._lvl_bpi = [keras.metrics.Mean(name=f"rvq_l{lvl + 1}_bits_per_index") for lvl in range(self.M)]
         self._perp_mean = keras.metrics.Mean(name="rvq_perplexity_mean")
         self._usage_mean = keras.metrics.Mean(name="rvq_usage_mean")
         self._bpi_sum = keras.metrics.Mean(name="rvq_bits_per_index_sum")
@@ -143,8 +137,11 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
         # extra ``kmeans_done`` variable).
         if self.kmeans_init:
             self._kmeans_done = self.add_weight(
-                name="kmeans_done", shape=(), initializer="zeros",
-                trainable=False, dtype="float32",
+                name="kmeans_done",
+                shape=(),
+                initializer="zeros",
+                trainable=False,
+                dtype="float32",
             )
         else:
             self._kmeans_done = None
@@ -168,9 +165,7 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
 
         # New cluster counts and embedding sums for this batch
         new_count = keras.ops.sum(one_hot, axis=0)  # (K,)
-        new_weight = keras.ops.matmul(
-            keras.ops.transpose(one_hot), r_flat
-        )  # (K, D)
+        new_weight = keras.ops.matmul(keras.ops.transpose(one_hot), r_flat)  # (K, D)
 
         # EMA update
         updated_count = gamma * self._ema_counts[lvl] + (1 - gamma) * new_count
@@ -197,17 +192,18 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
             n_rows = keras.ops.shape(r_flat)[0]
             # Sample K row indices (with replacement) into the current batch.
             sample_idx = keras.random.randint(
-                shape=(K,), minval=0, maxval=n_rows, dtype="int32",
+                shape=(K,),
+                minval=0,
+                maxval=n_rows,
+                dtype="int32",
             )
             replacement = keras.ops.take(r_flat, sample_idx, axis=0)  # (K, D)
-            dead_col = keras.ops.expand_dims(dead, axis=1)            # (K, 1)
+            dead_col = keras.ops.expand_dims(dead, axis=1)  # (K, 1)
             new_cb = (1.0 - dead_col) * new_cb + dead_col * replacement
             # Reset the EMA bookkeeping for revived rows so they get a fresh
             # statistical lease on life.
             updated_count = (1.0 - dead) * updated_count + dead * 1.0
-            updated_weight = (
-                (1.0 - dead_col) * updated_weight + dead_col * replacement
-            )
+            updated_weight = (1.0 - dead_col) * updated_weight + dead_col * replacement
 
         # Assign updates
         self._ema_counts[lvl].assign(updated_count)
@@ -244,7 +240,10 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
         n_rows = keras.ops.shape(r_flat)[0]
         # Seed: K random rows from the batch.
         seed_idx = keras.random.randint(
-            shape=(K,), minval=0, maxval=n_rows, dtype="int32",
+            shape=(K,),
+            minval=0,
+            maxval=n_rows,
+            dtype="int32",
         )
         centroids = keras.ops.take(r_flat, seed_idx, axis=0)  # (K, D)
         # A few Lloyd iterations.
@@ -272,13 +271,9 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
         # from the allowed level counts. Levels >= cutoff are masked (zeroed).
         if training and self.structured_dropout:
             # Sample an index into dropout_levels uniformly
-            choice_idx = keras.random.randint(
-                shape=(), minval=0, maxval=len(self.dropout_levels), dtype="int32"
-            )
+            choice_idx = keras.random.randint(shape=(), minval=0, maxval=len(self.dropout_levels), dtype="int32")
             # Build a lookup tensor of allowed levels and gather the choice
-            levels_tensor = keras.ops.convert_to_tensor(
-                self.dropout_levels, dtype="int32"
-            )
+            levels_tensor = keras.ops.convert_to_tensor(self.dropout_levels, dtype="int32")
             active_levels = keras.ops.take(levels_tensor, choice_idx)
         else:
             active_levels = self.M
@@ -344,12 +339,7 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
 
     @property
     def metrics(self):
-        return (
-            self._lvl_perp
-            + self._lvl_usage
-            + self._lvl_bpi
-            + [self._perp_mean, self._usage_mean, self._bpi_sum]
-        )
+        return self._lvl_perp + self._lvl_usage + self._lvl_bpi + [self._perp_mean, self._usage_mean, self._bpi_sum]
 
     def encode(self, x):
         """Return list of per-level flat index tensors [N] (no gradients)."""
@@ -408,12 +398,8 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
         flat = keras.ops.reshape(x, (-1, self.D))
 
         if training and self.structured_dropout:
-            choice_idx = keras.random.randint(
-                shape=(), minval=0, maxval=len(self.dropout_levels), dtype="int32"
-            )
-            levels_tensor = keras.ops.convert_to_tensor(
-                self.dropout_levels, dtype="int32"
-            )
+            choice_idx = keras.random.randint(shape=(), minval=0, maxval=len(self.dropout_levels), dtype="int32")
+            levels_tensor = keras.ops.convert_to_tensor(self.dropout_levels, dtype="int32")
             active_levels = keras.ops.take(levels_tensor, choice_idx)
         else:
             active_levels = self.M
@@ -479,14 +465,16 @@ class EmaResidualVectorQuantizer(keras.layers.Layer):
 
     def get_config(self):
         cfg = super().get_config()
-        cfg.update({
-            "num_levels": self.M,
-            "num_embeddings": self.Ks,
-            "embedding_dim": self.D,
-            "beta": self.beta,
-            "ema_decay": self.ema_decay,
-            "epsilon": self.epsilon,
-            "structured_dropout": self.structured_dropout,
-            "dropout_levels": self.dropout_levels,
-        })
+        cfg.update(
+            {
+                "num_levels": self.M,
+                "num_embeddings": self.Ks,
+                "embedding_dim": self.D,
+                "beta": self.beta,
+                "ema_decay": self.ema_decay,
+                "epsilon": self.epsilon,
+                "structured_dropout": self.structured_dropout,
+                "dropout_levels": self.dropout_levels,
+            }
+        )
         return cfg

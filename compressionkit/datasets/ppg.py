@@ -23,6 +23,7 @@ import tensorflow as tf
 # Single-file loading
 # ---------------------------------------------------------------------------
 
+
 def load_ppg_signal(
     edf_file: Path,
     *,
@@ -52,9 +53,7 @@ def load_ppg_signal(
 
     if num_samples is not None:
         if signal.shape[0] < num_samples:
-            raise ValueError(
-                f"Signal {edf_file} shorter ({signal.shape[0]}) than requested {num_samples} samples."
-            )
+            raise ValueError(f"Signal {edf_file} shorter ({signal.shape[0]}) than requested {num_samples} samples.")
         signal = signal[:num_samples]
 
     return signal
@@ -91,6 +90,7 @@ def load_ppg_dataset(
 # Train / val / test split helpers
 # ---------------------------------------------------------------------------
 
+
 def load_ppg_splits(
     datasets_dir: Path,
     glob_pattern: str,
@@ -103,9 +103,7 @@ def load_ppg_splits(
     """Load train/val/test numpy arrays of resampled PPG signals."""
     files = sorted(Path(datasets_dir).glob(glob_pattern))
     if not files:
-        raise FileNotFoundError(
-            f"No EDF files found for pattern {glob_pattern} in {datasets_dir}"
-        )
+        raise FileNotFoundError(f"No EDF files found for pattern {glob_pattern} in {datasets_dir}")
     rng = np.random.default_rng(seed)
     files = list(rng.permutation(files))
 
@@ -132,9 +130,7 @@ def load_ppg_file_splits(
     """Return train/val/test EDF file splits for subject-level separation."""
     files = sorted(Path(datasets_dir).glob(glob_pattern))
     if not files:
-        raise FileNotFoundError(
-            f"No EDF files found for pattern {glob_pattern} in {datasets_dir}"
-        )
+        raise FileNotFoundError(f"No EDF files found for pattern {glob_pattern} in {datasets_dir}")
     rng = np.random.default_rng(seed)
     files = list(rng.permutation(files))
 
@@ -149,6 +145,7 @@ def load_ppg_file_splits(
 # ---------------------------------------------------------------------------
 # EDF window sampling
 # ---------------------------------------------------------------------------
+
 
 def _sample_ppg_window_from_edf(
     *,
@@ -190,6 +187,7 @@ def _sample_ppg_window_from_edf(
 # ---------------------------------------------------------------------------
 # Bandpass filter helpers
 # ---------------------------------------------------------------------------
+
 
 def _maybe_filter(
     signal: np.ndarray,
@@ -252,6 +250,7 @@ def bandpass_filter_batch(
 # ---------------------------------------------------------------------------
 # TFRecord cache
 # ---------------------------------------------------------------------------
+
 
 def _build_ppg_cache_signature(
     *,
@@ -358,9 +357,7 @@ def build_ppg_tfrecord_cache(
     """
     all_files = sorted(Path(datasets_dir).glob(glob_pattern))
     if not all_files:
-        raise FileNotFoundError(
-            f"No EDF files found for pattern {glob_pattern} in {datasets_dir}"
-        )
+        raise FileNotFoundError(f"No EDF files found for pattern {glob_pattern} in {datasets_dir}")
 
     signature, signature_hash = _build_ppg_cache_signature(
         datasets_dir=Path(datasets_dir),
@@ -435,6 +432,7 @@ def build_ppg_tfrecord_cache(
 # ---------------------------------------------------------------------------
 # tf.data pipeline builders
 # ---------------------------------------------------------------------------
+
 
 def _get_epsilon(preprocessor: keras.layers.Layer | None) -> float:
     """Extract epsilon from preprocessor if available."""

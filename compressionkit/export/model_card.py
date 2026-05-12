@@ -181,8 +181,7 @@ def generate_model_card(
         )
     elif modality == "ecg":
         lines.append(
-            "Training data: PTB-XL (CC BY 4.0). Sample data may include "
-            "excerpts under the original license terms."
+            "Training data: PTB-XL (CC BY 4.0). Sample data may include excerpts under the original license terms."
         )
     lines.append("")
     lines.append(f"Model weights are released under the **{license_id.upper()}** license.")
@@ -219,9 +218,7 @@ def _add_scorecard_section(lines: list[str], scorecard: dict) -> None:
         ]:
             if key in td:
                 m = td[key]
-                lines.append(
-                    f"| {label} | {_fmt(m['mean'])} | {_fmt(m['median'])} | {_fmt(m['p90'])} |"
-                )
+                lines.append(f"| {label} | {_fmt(m['mean'])} | {_fmt(m['median'])} | {_fmt(m['p90'])} |")
         lines.append("")
 
     # Spectral

@@ -96,9 +96,7 @@ def list_nsrr_files(
         else:
             sub = entry.get("full_path", "")
             if sub:
-                items.extend(
-                    list_nsrr_files(db_slug, subfolder=sub, token=token)
-                )
+                items.extend(list_nsrr_files(db_slug, subfolder=sub, token=token))
 
     return items
 
@@ -128,10 +126,7 @@ def download_nsrr_file(
 
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
-    url = (
-        f"https://sleepdata.org/datasets/{db_slug}/files/a/{token}"
-        f"/m/compressionkit/{remote_path}"
-    )
+    url = f"https://sleepdata.org/datasets/{db_slug}/files/a/{token}/m/compressionkit/{remote_path}"
 
     resp = requests.get(url, stream=True, timeout=120)
     if resp.status_code != 200:
@@ -186,6 +181,7 @@ def download_nsrr(
 
     if pattern != "*":
         from fnmatch import fnmatch
+
         files = [f for f in files if fnmatch(f["full_path"], pattern)]
 
     logger.info("Found %d files to sync", len(files))

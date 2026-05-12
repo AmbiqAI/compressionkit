@@ -110,8 +110,11 @@ def main() -> None:
             r = h["r_peaks"]
             logger.info(
                 "  %s data=%s fs=%s leads=%s r_peaks=%d",
-                sample.name, tuple(data.shape), h.attrs["fs"],
-                h.attrs["lead_names"], r.shape[0],
+                sample.name,
+                tuple(data.shape),
+                h.attrs["fs"],
+                h.attrs["lead_names"],
+                r.shape[0],
             )
 
     maybe_upload_s3(canonical, args.upload_s3, slug=SLUG)

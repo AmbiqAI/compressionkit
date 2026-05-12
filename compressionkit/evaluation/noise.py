@@ -23,9 +23,7 @@ from scipy import signal as sps
 # ---------------------------------------------------------------------------
 
 
-def estimate_hf_noise_power(
-    x: np.ndarray, fs: int, *, hf_band: tuple[float, float] = (40.0, None)
-) -> dict[str, float]:
+def estimate_hf_noise_power(x: np.ndarray, fs: int, *, hf_band: tuple[float, float] = (40.0, None)) -> dict[str, float]:
     """Estimate noise power as the band power above the clinical band of interest.
 
     For ECG, the QRS complex and most clinical morphology lie below 40 Hz; the
@@ -46,8 +44,10 @@ def estimate_hf_noise_power(
     high = min(high, nyq * 0.999)
     if high <= low or x.size < 8:
         return {
-            "hf_noise_rms": 0.0, "hf_noise_power": 0.0,
-            "hf_band_low": low, "hf_band_high": high,
+            "hf_noise_rms": 0.0,
+            "hf_noise_power": 0.0,
+            "hf_band_low": low,
+            "hf_band_high": high,
         }
     # Welch PSD: trapezoidal integration over [low, high]
     nperseg = min(x.size, max(64, int(fs * 2)))
@@ -98,9 +98,12 @@ def estimate_bandpass_residual_noise(
     x = np.asarray(x, dtype=np.float64).ravel()
     if x.size < 8:
         return {
-            "bp_noise_rms": 0.0, "bp_noise_power": 0.0,
-            "bp_signal_rms": 0.0, "bp_signal_power": 0.0,
-            "bp_lowcut": lowcut, "bp_highcut": highcut,
+            "bp_noise_rms": 0.0,
+            "bp_noise_power": 0.0,
+            "bp_signal_rms": 0.0,
+            "bp_signal_power": 0.0,
+            "bp_lowcut": lowcut,
+            "bp_highcut": highcut,
         }
     clean = pk.signal.filter_signal(
         x.astype(np.float32),
@@ -216,9 +219,15 @@ def estimate_ecg_noise_floor(
     """
     out: dict[str, float] = {}
     out.update(estimate_hf_noise_power(x, fs, hf_band=hf_band))
-    out.update(estimate_bandpass_residual_noise(
-        x, fs, lowcut=bandpass[0], highcut=bandpass[1], order=bp_order,
-    ))
+    out.update(
+        estimate_bandpass_residual_noise(
+            x,
+            fs,
+            lowcut=bandpass[0],
+            highcut=bandpass[1],
+            order=bp_order,
+        )
+    )
     out.update(estimate_ecg_qrs_snr(x, fs, template_window_ms=qrs_window_ms))
     return out
 
@@ -234,9 +243,15 @@ def estimate_ppg_noise_floor(
     """Return PPG noise-floor estimates (HF + bandpass-residual)."""
     out: dict[str, float] = {}
     out.update(estimate_hf_noise_power(x, fs, hf_band=hf_band))
-    out.update(estimate_bandpass_residual_noise(
-        x, fs, lowcut=bandpass[0], highcut=bandpass[1], order=bp_order,
-    ))
+    out.update(
+        estimate_bandpass_residual_noise(
+            x,
+            fs,
+            lowcut=bandpass[0],
+            highcut=bandpass[1],
+            order=bp_order,
+        )
+    )
     return out
 
 

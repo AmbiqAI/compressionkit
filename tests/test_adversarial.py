@@ -18,11 +18,15 @@ FRAME = 64  # must be divisible by sub-disc total stride (4^3=64)
 
 # ---- Tiny model factories ------------------------------------------------
 
+
 def _tiny_encoder() -> keras.Model:
     inp = keras.Input(shape=(1, FRAME, 1))
     x = keras.layers.Conv2D(
-        EMBED, kernel_size=(1, FRAME // T_LAT), strides=(1, FRAME // T_LAT),
-        padding="valid", activation="relu",
+        EMBED,
+        kernel_size=(1, FRAME // T_LAT),
+        strides=(1, FRAME // T_LAT),
+        padding="valid",
+        activation="relu",
     )(inp)
     return keras.Model(inp, x, name="tiny_enc")
 
@@ -30,7 +34,9 @@ def _tiny_encoder() -> keras.Model:
 def _tiny_decoder() -> keras.Model:
     inp = keras.Input(shape=(1, T_LAT, EMBED))
     x = keras.layers.Conv2DTranspose(
-        1, kernel_size=(1, FRAME // T_LAT), strides=(1, FRAME // T_LAT),
+        1,
+        kernel_size=(1, FRAME // T_LAT),
+        strides=(1, FRAME // T_LAT),
         padding="valid",
     )(inp)
     return keras.Model(inp, x, name="tiny_dec")
@@ -39,7 +45,10 @@ def _tiny_decoder() -> keras.Model:
 def _build_ae() -> VQAutoencoder:
     enc = _tiny_encoder()
     vq = EmaResidualVectorQuantizer(
-        num_levels=1, num_embeddings=VOCAB, embedding_dim=EMBED, beta=0.25,
+        num_levels=1,
+        num_embeddings=VOCAB,
+        embedding_dim=EMBED,
+        beta=0.25,
     )
     dec = _tiny_decoder()
     ae = VQAutoencoder(encoder=enc, vq=vq, decoder=dec)
@@ -49,10 +58,13 @@ def _build_ae() -> VQAutoencoder:
 
 # ---- Discriminator tests --------------------------------------------------
 
+
 class TestMultiScaleDiscriminator:
     def test_output_shapes(self):
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(8, 16, 32, 64),
+            FRAME,
+            num_scales=2,
+            channels=(8, 16, 32, 64),
         )
         x = np.random.randn(B, 1, FRAME, 1).astype(np.float32)
         outputs = disc(x, training=False)
@@ -68,7 +80,9 @@ class TestMultiScaleDiscriminator:
 
     def test_three_scales(self):
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=3, channels=(8, 16, 32, 64),
+            FRAME,
+            num_scales=3,
+            channels=(8, 16, 32, 64),
         )
         x = np.random.randn(B, 1, FRAME, 1).astype(np.float32)
         outputs = disc(x, training=False)
@@ -76,7 +90,9 @@ class TestMultiScaleDiscriminator:
 
     def test_trainable_params_nonzero(self):
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(8, 16, 32, 64),
+            FRAME,
+            num_scales=2,
+            channels=(8, 16, 32, 64),
         )
         x = np.random.randn(1, 1, FRAME, 1).astype(np.float32)
         disc(x)  # build
@@ -84,8 +100,11 @@ class TestMultiScaleDiscriminator:
 
     def test_serialization_roundtrip(self):
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(8, 16),
-            kernel_width=7, final_kernel=3,
+            FRAME,
+            num_scales=2,
+            channels=(8, 16),
+            kernel_width=7,
+            final_kernel=3,
         )
         config = disc.get_config()
         disc2 = MultiScaleDiscriminator.from_config(config)
@@ -96,14 +115,20 @@ class TestMultiScaleDiscriminator:
 
 # ---- Adversarial wrapper tests --------------------------------------------
 
+
 class TestAdversarialVQAutoencoder:
     def test_forward_matches_autoencoder(self):
         ae = _build_ae()
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(4, 8, 16, 32),
+            FRAME,
+            num_scales=2,
+            channels=(4, 8, 16, 32),
         )
         adv = AdversarialVQAutoencoder(
-            ae, disc, adv_weight=1.0, feat_weight=10.0,
+            ae,
+            disc,
+            adv_weight=1.0,
+            feat_weight=10.0,
         )
         x = np.random.randn(B, 1, FRAME, 1).astype(np.float32)
         y_adv = adv(x, training=False)
@@ -111,7 +136,9 @@ class TestAdversarialVQAutoencoder:
 
     def test_hinge_losses_finite(self):
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(4, 8, 16, 32),
+            FRAME,
+            num_scales=2,
+            channels=(4, 8, 16, 32),
         )
         real = np.random.randn(B, 1, FRAME, 1).astype(np.float32)
         fake = np.random.randn(B, 1, FRAME, 1).astype(np.float32)
@@ -120,11 +147,13 @@ class TestAdversarialVQAutoencoder:
         disc_fake_out = disc(fake, training=False)
 
         d_loss = AdversarialVQAutoencoder._hinge_disc_loss(
-            disc_real_out, disc_fake_out,
+            disc_real_out,
+            disc_fake_out,
         )
         g_loss = AdversarialVQAutoencoder._hinge_gen_loss(disc_fake_out)
         fm_loss = AdversarialVQAutoencoder._feature_matching_loss(
-            disc_real_out, disc_fake_out,
+            disc_real_out,
+            disc_fake_out,
         )
 
         assert np.isfinite(float(d_loss))
@@ -135,10 +164,15 @@ class TestAdversarialVQAutoencoder:
     def test_train_step_runs(self):
         ae = _build_ae()
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(4, 8, 16, 32),
+            FRAME,
+            num_scales=2,
+            channels=(4, 8, 16, 32),
         )
         adv = AdversarialVQAutoencoder(
-            ae, disc, adv_weight=0.1, feat_weight=1.0,
+            ae,
+            disc,
+            adv_weight=0.1,
+            feat_weight=1.0,
         )
         adv.compile(
             gen_optimizer=keras.optimizers.Adam(1e-4),
@@ -158,10 +192,15 @@ class TestAdversarialVQAutoencoder:
     def test_disc_start_epoch_delays_adversarial(self):
         ae = _build_ae()
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(4, 8, 16, 32),
+            FRAME,
+            num_scales=2,
+            channels=(4, 8, 16, 32),
         )
         adv = AdversarialVQAutoencoder(
-            ae, disc, adv_weight=1.0, feat_weight=1.0,
+            ae,
+            disc,
+            adv_weight=1.0,
+            feat_weight=1.0,
             disc_start_epoch=5,
         )
         adv.compile(
@@ -186,7 +225,9 @@ class TestAdversarialVQAutoencoder:
     def test_set_epoch_callback(self):
         ae = _build_ae()
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(4, 8, 16, 32),
+            FRAME,
+            num_scales=2,
+            channels=(4, 8, 16, 32),
         )
         adv = AdversarialVQAutoencoder(ae, disc)
         cb = SetEpochCallback()
@@ -197,7 +238,9 @@ class TestAdversarialVQAutoencoder:
     def test_test_step_runs(self):
         ae = _build_ae()
         disc = MultiScaleDiscriminator(
-            FRAME, num_scales=2, channels=(4, 8, 16, 32),
+            FRAME,
+            num_scales=2,
+            channels=(4, 8, 16, 32),
         )
         adv = AdversarialVQAutoencoder(ae, disc)
         adv.compile(

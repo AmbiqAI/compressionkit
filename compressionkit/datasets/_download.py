@@ -35,6 +35,7 @@ _CHUNK = 1 << 20  # 1 MiB
 # HTTP download
 # ---------------------------------------------------------------------------
 
+
 def http_download(
     url: str,
     dst: str | os.PathLike,
@@ -91,14 +92,17 @@ def http_download(
                 mode = "wb"
                 initial = 0
             total_size = total + initial
-            with open(dst_path, mode) as fh, tqdm(
-                total=total_size or None,
-                initial=initial,
-                unit="B",
-                unit_scale=True,
-                desc=dst_path.name,
-                disable=not show_progress,
-            ) as bar:
+            with (
+                open(dst_path, mode) as fh,
+                tqdm(
+                    total=total_size or None,
+                    initial=initial,
+                    unit="B",
+                    unit_scale=True,
+                    desc=dst_path.name,
+                    disable=not show_progress,
+                ) as bar,
+            ):
                 for chunk in resp.iter_content(chunk_size=chunk_size):
                     if not chunk:
                         continue
@@ -108,9 +112,7 @@ def http_download(
             # Already complete on disk.
             logger.info("✓ %s already complete.", dst_path.name)
         else:
-            raise RuntimeError(
-                f"HTTP {resp.status_code} downloading {url}: {resp.text[:200]}"
-            )
+            raise RuntimeError(f"HTTP {resp.status_code} downloading {url}: {resp.text[:200]}")
 
     if sha256:
         actual = _file_sha256(dst_path)
@@ -133,6 +135,7 @@ def _file_sha256(path: Path) -> str:
 # ---------------------------------------------------------------------------
 # Extraction
 # ---------------------------------------------------------------------------
+
 
 def extract_archive(
     archive: str | os.PathLike,
@@ -178,6 +181,7 @@ def extract_archive(
 # ---------------------------------------------------------------------------
 # PhysioNet helpers
 # ---------------------------------------------------------------------------
+
 
 def physionet_url(slug: str, version: str, relpath: str) -> str:
     """Build a PhysioNet ``files`` URL.
@@ -276,7 +280,10 @@ def download_ambiq_s3_zip(
         # User asked for force; remove and retry.
         zip_path.unlink(missing_ok=True)
         helia.utils.download_s3_file(
-            key=s3_key, dst=zip_path, bucket=bucket, checksum="size",
+            key=s3_key,
+            dst=zip_path,
+            bucket=bucket,
+            checksum="size",
         )
 
     if extract and zip_path.exists():
@@ -315,7 +322,10 @@ def download_ambiq_s3_prefix(
     if not pfx.endswith("/"):
         pfx = pfx + "/"
     logger.info(
-        "Listing s3://%s/%s (max_objects=%s) …", bucket, pfx, max_objects,
+        "Listing s3://%s/%s (max_objects=%s) …",
+        bucket,
+        pfx,
+        max_objects,
     )
 
     cfg = Config(signature_version=UNSIGNED) if anonymous else None
@@ -334,12 +344,13 @@ def download_ambiq_s3_prefix(
 
     try:
         from tqdm import tqdm
+
         bar: Any = tqdm(total=len(keys), unit="file", desc=slug)
     except ImportError:  # pragma: no cover
         bar = None
 
     for key, size in keys:
-        rel = key[len(pfx):] if key.startswith(pfx) else Path(key).name
+        rel = key[len(pfx) :] if key.startswith(pfx) else Path(key).name
         out = dst / rel
         out.parent.mkdir(parents=True, exist_ok=True)
         if out.exists() and out.stat().st_size == size:
@@ -357,6 +368,7 @@ def download_ambiq_s3_prefix(
 # ---------------------------------------------------------------------------
 # S3 upload (sanitized re-publishing)
 # ---------------------------------------------------------------------------
+
 
 def s3_upload_zip(
     src_dir: str | os.PathLike,
@@ -403,8 +415,7 @@ def s3_upload_zip(
         import boto3  # type: ignore[import-not-found]
     except ImportError as exc:  # pragma: no cover - boto3 only in publish env
         raise RuntimeError(
-            "boto3 is required for S3 upload. Install it in your publishing "
-            "environment (`pip install boto3`).",
+            "boto3 is required for S3 upload. Install it in your publishing environment (`pip install boto3`).",
         ) from exc
 
     logger.info("Uploading to s3://%s/%s …", bucket, key)
@@ -416,6 +427,7 @@ def s3_upload_zip(
 # ---------------------------------------------------------------------------
 # Misc
 # ---------------------------------------------------------------------------
+
 
 def safe_rmtree(path: str | os.PathLike) -> None:
     """``shutil.rmtree`` that does not raise if the directory is missing."""

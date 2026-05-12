@@ -71,8 +71,7 @@ def _read_labels(ref_path: Path) -> dict[str, str]:
     return out
 
 
-def _convert_record(rec_dir: Path, record: str, label: str | None,
-                    out_dir: Path, *, logger) -> Path:
+def _convert_record(rec_dir: Path, record: str, label: str | None, out_dir: Path, *, logger) -> Path:
     rec = wfdb.rdrecord(str(rec_dir / record))
     sig = np.asarray(rec.p_signal, dtype=np.float32).T  # (1, samples)
     out = out_dir / f"{record}.h5"
@@ -128,9 +127,12 @@ def main() -> None:
             data = h["data"]
             logger.info(
                 "  %s data=%s fs=%s lead=%s rhythm=%s acquisition=%s",
-                sample.name, tuple(data.shape), h.attrs["fs"],
+                sample.name,
+                tuple(data.shape),
+                h.attrs["fs"],
                 h.attrs["lead_names"],
-                h.attrs.get("rhythm_class"), h.attrs["acquisition"],
+                h.attrs.get("rhythm_class"),
+                h.attrs["acquisition"],
             )
 
     maybe_upload_s3(canonical, args.upload_s3, slug=SLUG)

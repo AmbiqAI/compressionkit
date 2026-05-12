@@ -13,6 +13,7 @@ import keras
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_divisible(value: float, divisor: int, min_value: int | None = None) -> int:
     """Round *value* to the nearest multiple of *divisor*."""
     if min_value is None:
@@ -39,6 +40,7 @@ def _apply_activation(x: keras.KerasTensor, activation: str, name: str | None = 
     """Apply activation — supports 'snake' as well as standard Keras names."""
     if activation == "snake":
         from compressionkit.layers import Snake
+
         return Snake(name=name)(x)
     return keras.layers.Activation(activation, name=name)(x)
 
@@ -51,7 +53,10 @@ def _shortcut_2d(
 ) -> keras.KerasTensor:
     """1x1 projection shortcut with optional temporal stride."""
     return keras.layers.Conv2D(
-        filters, (1, 1), strides=(1, stride_w), padding="same",
+        filters,
+        (1, 1),
+        strides=(1, stride_w),
+        padding="same",
         name=None if name is None else f"{name}_proj",
     )(x)
 
@@ -59,6 +64,7 @@ def _shortcut_2d(
 # ---------------------------------------------------------------------------
 # Temporal building blocks (B, 1, T, C)
 # ---------------------------------------------------------------------------
+
 
 def conv2d_block(
     x: keras.KerasTensor,
@@ -70,7 +76,10 @@ def conv2d_block(
 ) -> keras.KerasTensor:
     """Standard Conv2D + norm + ReLU block."""
     x = keras.layers.Conv2D(
-        filters, (1, k_w), strides=(1, stride_w), padding="same",
+        filters,
+        (1, k_w),
+        strides=(1, stride_w),
+        padding="same",
         name=None if name is None else f"{name}_conv",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_norm")
@@ -88,13 +97,17 @@ def depthwise2d_block(
 ) -> keras.KerasTensor:
     """Depthwise-separable Conv2D + norm + ReLU block."""
     x = keras.layers.DepthwiseConv2D(
-        (1, k_w), strides=(1, stride_w), padding="same",
+        (1, k_w),
+        strides=(1, stride_w),
+        padding="same",
         name=None if name is None else f"{name}_dw",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_dw_norm")
     x = keras.layers.Activation("relu", name=None if name is None else f"{name}_dw_act")(x)
     x = keras.layers.Conv2D(
-        filters, (1, 1), padding="same",
+        filters,
+        (1, 1),
+        padding="same",
         name=None if name is None else f"{name}_pw",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_pw_norm")
@@ -127,7 +140,9 @@ def inverted_residual_2d_block(
 
     # 1) pointwise expand
     h = keras.layers.Conv2D(
-        hidden, (1, 1), padding="same",
+        hidden,
+        (1, 1),
+        padding="same",
         name=None if name is None else f"{name}_pw_exp",
     )(x)
     h = _apply_norm_2d(h, block_norm, name=None if name is None else f"{name}_pw_exp_norm")
@@ -145,7 +160,9 @@ def inverted_residual_2d_block(
         dw_padding = "same"
 
     h = keras.layers.DepthwiseConv2D(
-        (1, k_w), strides=(1, 1), padding=dw_padding,
+        (1, k_w),
+        strides=(1, 1),
+        padding=dw_padding,
         name=None if name is None else f"{name}_dw",
     )(h)
     h = _apply_norm_2d(h, block_norm, name=None if name is None else f"{name}_dw_norm")
@@ -160,7 +177,9 @@ def inverted_residual_2d_block(
 
     # 3) pointwise project (linear — no activation)
     h = keras.layers.Conv2D(
-        filters, (1, 1), padding="same",
+        filters,
+        (1, 1),
+        padding="same",
         name=None if name is None else f"{name}_pw_proj",
     )(h)
     h = _apply_norm_2d(h, block_norm, name=None if name is None else f"{name}_pw_proj_norm")
@@ -181,13 +200,17 @@ def up2d_block(
     """Upsample + conv + separable anti-alias block."""
     x = keras.layers.UpSampling2D(size=(1, 2), name=None if name is None else f"{name}_up")(x)
     x = keras.layers.Conv2D(
-        filters, (1, k_w), padding="same",
+        filters,
+        (1, k_w),
+        padding="same",
         name=None if name is None else f"{name}_conv",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_conv_norm")
     x = _apply_activation(x, activation, name=None if name is None else f"{name}_act")
     x = keras.layers.SeparableConv2D(
-        filters, (1, 5), padding="same",
+        filters,
+        (1, 5),
+        padding="same",
         name=None if name is None else f"{name}_aa",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_aa_norm")
@@ -233,10 +256,13 @@ def res_up2d_block(
 ) -> keras.KerasTensor:
     """Upsample block with residual shortcut around the conv pair."""
     shortcut = keras.layers.UpSampling2D(
-        size=(1, 2), name=None if name is None else f"{name}_skip_up",
+        size=(1, 2),
+        name=None if name is None else f"{name}_skip_up",
     )(x)
     shortcut = keras.layers.Conv2D(
-        filters, (1, 1), padding="same",
+        filters,
+        (1, 1),
+        padding="same",
         name=None if name is None else f"{name}_skip_proj",
     )(shortcut)
     x = up2d_block(x, filters, k_w=k_w, name=name, block_norm=block_norm, activation=activation)
@@ -246,6 +272,7 @@ def res_up2d_block(
 # ---------------------------------------------------------------------------
 # Spatial building blocks (B, H, W, C) — for STFT spectrograms
 # ---------------------------------------------------------------------------
+
 
 def conv2d_spatial_block(
     x: keras.KerasTensor,
@@ -257,7 +284,10 @@ def conv2d_spatial_block(
 ) -> keras.KerasTensor:
     """Conv2D with spatial (H, W) kernel + norm + ReLU."""
     x = keras.layers.Conv2D(
-        filters, (kernel_size, kernel_size), strides=(stride, stride), padding="same",
+        filters,
+        (kernel_size, kernel_size),
+        strides=(stride, stride),
+        padding="same",
         name=None if name is None else f"{name}_conv",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_norm")
@@ -275,13 +305,17 @@ def depthwise2d_spatial_block(
 ) -> keras.KerasTensor:
     """Depthwise-separable Conv2D with spatial kernels + norm + ReLU."""
     x = keras.layers.DepthwiseConv2D(
-        (kernel_size, kernel_size), strides=(stride, stride), padding="same",
+        (kernel_size, kernel_size),
+        strides=(stride, stride),
+        padding="same",
         name=None if name is None else f"{name}_dw",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_dw_norm")
     x = keras.layers.Activation("relu", name=None if name is None else f"{name}_dw_act")(x)
     x = keras.layers.Conv2D(
-        filters, (1, 1), padding="same",
+        filters,
+        (1, 1),
+        padding="same",
         name=None if name is None else f"{name}_pw",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_pw_norm")
@@ -299,13 +333,17 @@ def up2d_spatial_block(
     """Upsample (2,2) + conv + separable anti-alias for spatial data."""
     x = keras.layers.UpSampling2D(size=(2, 2), name=None if name is None else f"{name}_up")(x)
     x = keras.layers.Conv2D(
-        filters, (kernel_size, kernel_size), padding="same",
+        filters,
+        (kernel_size, kernel_size),
+        padding="same",
         name=None if name is None else f"{name}_conv",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_conv_norm")
     x = keras.layers.Activation("relu", name=None if name is None else f"{name}_act")(x)
     x = keras.layers.SeparableConv2D(
-        filters, (3, 3), padding="same",
+        filters,
+        (3, 3),
+        padding="same",
         name=None if name is None else f"{name}_aa",
     )(x)
     x = _apply_norm_2d(x, block_norm, name=None if name is None else f"{name}_aa_norm")

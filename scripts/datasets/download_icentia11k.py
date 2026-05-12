@@ -60,7 +60,11 @@ def verify(canonical_dir: Path, *, limit: int | None, logger) -> None:
             sample = h[f"{pkey}/{seg_keys[0]}/data"]
             logger.info(
                 "  %s patient=%s segments=%d sample=%s dtype=%s",
-                fp.name, pkey, n_seg, tuple(sample.shape), sample.dtype,
+                fp.name,
+                pkey,
+                n_seg,
+                tuple(sample.shape),
+                sample.dtype,
             )
             sl = np.asarray(sample[: min(1024, sample.shape[0])])
             if not np.isfinite(sl).all():

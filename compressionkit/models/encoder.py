@@ -44,13 +44,11 @@ def build_encoder_2d(
         blocks_per_stage: Number of blocks per stage. First block does stride-2,
             additional blocks run at stride-1 for extra capacity.
     """
-    downsample_factor = 2 ** num_stages
+    downsample_factor = 2**num_stages
     if num_stages < 1:
         raise ValueError(f"num_stages must be >= 1, got {num_stages}")
     if input_len % downsample_factor != 0:
-        raise ValueError(
-            f"input_len ({input_len}) must be divisible by 2**num_stages ({downsample_factor})"
-        )
+        raise ValueError(f"input_len ({input_len}) must be divisible by 2**num_stages ({downsample_factor})")
 
     conv_fn = res_conv2d_block if use_residual else conv2d_block
     dw_fn = res_depthwise2d_block if use_residual else depthwise2d_block
@@ -96,14 +94,11 @@ def build_encoder_2d_invres(
     When ``causal=True``, all convolutions use left-only padding so the
     encoder's receptive field is strictly backward in time.
     """
-    downsample_factor = 2 ** num_stages
+    downsample_factor = 2**num_stages
     if num_stages < 1:
         raise ValueError(f"num_stages must be >= 1, got {num_stages}")
     if input_len % downsample_factor != 0:
-        raise ValueError(
-            f"input_len ({input_len}) must be divisible by "
-            f"2**num_stages ({downsample_factor})"
-        )
+        raise ValueError(f"input_len ({input_len}) must be divisible by 2**num_stages ({downsample_factor})")
     if discard_tail > 0 and not causal:
         raise ValueError("discard_tail > 0 requires causal=True")
 
@@ -132,12 +127,18 @@ def build_encoder_2d_invres(
                 name=f"enc_s{stage + 1}_pad",
             )(x)
             x = keras.layers.Conv2D(
-                filters, (1, k_w), strides=(1, 2), padding="valid",
+                filters,
+                (1, k_w),
+                strides=(1, 2),
+                padding="valid",
                 name=f"enc_s{stage + 1}_conv",
             )(x)
         else:
             x = keras.layers.Conv2D(
-                filters, (1, 7), strides=(1, 2), padding="same",
+                filters,
+                (1, 7),
+                strides=(1, 2),
+                padding="same",
                 name=f"enc_s{stage + 1}_conv",
             )(x)
         x = _apply_norm_2d(x, block_norm, name=f"enc_s{stage + 1}_norm")
@@ -147,7 +148,9 @@ def build_encoder_2d_invres(
     # Remaining stages: inverted-residual with stride-2
     for stage in range(conv_stages, num_stages):
         x = inverted_residual_2d_block(
-            x, filters, stride_w=2,
+            x,
+            filters,
+            stride_w=2,
             expand_ratio=expand_ratio,
             name=f"enc_s{stage + 1}",
             block_norm=block_norm,
@@ -189,7 +192,7 @@ def build_encoder_2d_spatial(
 
     Each stage applies stride-(2,2) downsampling in both spatial dimensions.
     """
-    ds = 2 ** num_stages
+    ds = 2**num_stages
     inp = keras.layers.Input(shape=(input_height, input_width, in_ch), name="enc_in")
     x = inp
     filters = base

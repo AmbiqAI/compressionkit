@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Run PPG RVQ wavelet experiments."""
+
 from __future__ import annotations
 
 import sys
@@ -16,9 +17,9 @@ def main() -> None:
 
     spec = get_recipe("train-ppg-rvq")
     for config_path in sys.argv[1:]:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Running: {config_path}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
         cfg = PpgRvqConfig.from_yaml(config_path)
         result = spec.train_fn(cfg)
         prd = result.get("primary_metrics", {}).get("prd_percent", "N/A")

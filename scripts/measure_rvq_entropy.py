@@ -54,6 +54,7 @@ from compressionkit.preprocessing.sanitize import SanitizeConfig
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _detect_modality(config_json: str) -> str:
     cfg_dict = json.loads(config_json)
     data = cfg_dict.get("data", {})
@@ -65,7 +66,9 @@ def _detect_modality(config_json: str) -> str:
 
 
 def _load_compressor(
-    run_dir: Path, *, modality: str = "auto",
+    run_dir: Path,
+    *,
+    modality: str = "auto",
 ) -> tuple[keras.Model, EcgRvqConfig | PpgRvqConfig | PpgH5RvqConfig, str]:
     config_json = (run_dir / "config.json").read_text()
     detected = _detect_modality(config_json) if modality == "auto" else modality
@@ -307,7 +310,9 @@ def _interleave_levels(tokens: np.ndarray) -> np.ndarray:
 
 
 def _build_windows(
-    stream: np.ndarray, context_length: int, stride: int,
+    stream: np.ndarray,
+    context_length: int,
+    stride: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     n = stream.size
     if n < context_length + 1:
@@ -328,6 +333,7 @@ def _baseline_bits_per_token(vocab_size: int, tokens: np.ndarray) -> float:
 # ---------------------------------------------------------------------------
 # Prior builders
 # ---------------------------------------------------------------------------
+
 
 def _build_cnn_prior(
     *,
@@ -351,19 +357,21 @@ def _build_cnn_prior(
     """
     tokens_in = keras.Input(shape=(context_length,), dtype="int32", name="tokens")
     x = keras.layers.Embedding(
-        input_dim=vocab_size, output_dim=embed_dim, name="token_embedding",
+        input_dim=vocab_size,
+        output_dim=embed_dim,
+        name="token_embedding",
     )(tokens_in)
     for i in range(num_layers):
         x = keras.layers.Conv1D(
             filters=embed_dim,
             kernel_size=kernel_size,
             padding="causal",
-            dilation_rate=2 ** i,
+            dilation_rate=2**i,
             activation="relu",
-            name=f"causal_conv_d{2 ** i}",
+            name=f"causal_conv_d{2**i}",
         )(x)
         if dropout > 0:
-            x = keras.layers.Dropout(dropout, name=f"drop_d{2 ** i}")(x)
+            x = keras.layers.Dropout(dropout, name=f"drop_d{2**i}")(x)
     x = keras.layers.LayerNormalization(epsilon=1e-5, name="final_ln")(x)
     logits = keras.layers.Dense(vocab_size, name="lm_head")(x)
     return keras.Model(tokens_in, logits, name=name)
@@ -409,17 +417,20 @@ def _build_dscnn_prior(
         proj_dim = embed_dim
     tokens_in = keras.Input(shape=(context_length,), dtype="int32", name="tokens")
     x = keras.layers.Embedding(
-        input_dim=vocab_size, output_dim=proj_dim, name="token_embedding",
+        input_dim=vocab_size,
+        output_dim=proj_dim,
+        name="token_embedding",
     )(tokens_in)
     if proj_dim != embed_dim:
         x = keras.layers.Dense(embed_dim, name="embed_proj")(x)
     for i in range(num_layers):
-        d = 2 ** i
+        d = 2**i
         # Manual causal left-pad: DepthwiseConv1D doesn't support
         # padding="causal", so we ZeroPad1D by (k-1)*dilation on the
         # left then run a "valid" depthwise conv.
         x = keras.layers.ZeroPadding1D(
-            padding=((kernel_size - 1) * d, 0), name=f"causal_pad_d{d}",
+            padding=((kernel_size - 1) * d, 0),
+            name=f"causal_pad_d{d}",
         )(x)
         x = keras.layers.DepthwiseConv1D(
             kernel_size=kernel_size,
@@ -486,7 +497,9 @@ def _build_hybrid_prior(
         proj_dim = embed_dim
     tokens_in = keras.Input(shape=(context_length,), dtype="int32", name="tokens")
     x = keras.layers.Embedding(
-        input_dim=vocab_size, output_dim=proj_dim, name="token_embedding",
+        input_dim=vocab_size,
+        output_dim=proj_dim,
+        name="token_embedding",
     )(tokens_in)
     if proj_dim != embed_dim:
         x = keras.layers.Dense(embed_dim, name="embed_proj")(x)
@@ -494,7 +507,7 @@ def _build_hybrid_prior(
     layer_idx = 0
     # ---- Dense Conv1D stem (causal, BN, ReLU) ------------------------------
     for _ in range(stem_layers):
-        d = 2 ** layer_idx
+        d = 2**layer_idx
         x = keras.layers.Conv1D(
             filters=embed_dim,
             kernel_size=kernel_size,
@@ -511,11 +524,12 @@ def _build_hybrid_prior(
 
     # ---- Residual DSConv body (causal depthwise + pointwise, BN, ReLU) ----
     for _ in range(ds_layers):
-        d = 2 ** layer_idx
+        d = 2**layer_idx
         residual = x
         # Manual causal pad for depthwise (DepthwiseConv1D rejects "causal").
         y = keras.layers.ZeroPadding1D(
-            padding=((kernel_size - 1) * d, 0), name=f"ds_pad_d{d}",
+            padding=((kernel_size - 1) * d, 0),
+            name=f"ds_pad_d{d}",
         )(x)
         y = keras.layers.DepthwiseConv1D(
             kernel_size=kernel_size,
@@ -565,7 +579,9 @@ def _build_gru_prior(
     """
     tokens_in = keras.Input(shape=(context_length,), dtype="int32", name="tokens")
     x = keras.layers.Embedding(
-        input_dim=vocab_size, output_dim=embed_dim, name="token_embedding",
+        input_dim=vocab_size,
+        output_dim=embed_dim,
+        name="token_embedding",
     )(tokens_in)
     for i in range(num_layers):
         x = keras.layers.GRU(
@@ -606,11 +622,13 @@ def _build_wavenet_prior(
     """
     tokens_in = keras.Input(shape=(context_length,), dtype="int32", name="tokens")
     x = keras.layers.Embedding(
-        input_dim=vocab_size, output_dim=embed_dim, name="token_embedding",
+        input_dim=vocab_size,
+        output_dim=embed_dim,
+        name="token_embedding",
     )(tokens_in)
     skip_total = None
     for i in range(num_layers):
-        d = 2 ** i
+        d = 2**i
         h = keras.layers.Conv1D(
             filters=2 * embed_dim,
             kernel_size=kernel_size,
@@ -627,23 +645,37 @@ def _build_wavenet_prior(
         b = keras.layers.Activation("sigmoid", name=f"sig_d{d}")(b)
         y = keras.layers.Multiply(name=f"gate_d{d}")([a, b])
         res = keras.layers.Conv1D(
-            filters=embed_dim, kernel_size=1, name=f"res_d{d}",
+            filters=embed_dim,
+            kernel_size=1,
+            name=f"res_d{d}",
         )(y)
         skip = keras.layers.Conv1D(
-            filters=embed_dim, kernel_size=1, name=f"skip_d{d}",
+            filters=embed_dim,
+            kernel_size=1,
+            name=f"skip_d{d}",
         )(y)
         x = keras.layers.Add(name=f"res_add_d{d}")([x, res])
-        skip_total = skip if skip_total is None else keras.layers.Add(
-            name=f"skip_add_d{d}",
-        )([skip_total, skip])
+        skip_total = (
+            skip
+            if skip_total is None
+            else keras.layers.Add(
+                name=f"skip_add_d{d}",
+            )([skip_total, skip])
+        )
         if dropout > 0:
             x = keras.layers.Dropout(dropout, name=f"drop_d{d}")(x)
     h = keras.layers.ReLU(name="head_relu_1")(skip_total)
     h = keras.layers.Conv1D(
-        filters=embed_dim, kernel_size=1, activation="relu", name="head_1x1_1",
+        filters=embed_dim,
+        kernel_size=1,
+        activation="relu",
+        name="head_1x1_1",
     )(h)
     h = keras.layers.Conv1D(
-        filters=embed_dim, kernel_size=1, activation="relu", name="head_1x1_2",
+        filters=embed_dim,
+        kernel_size=1,
+        activation="relu",
+        name="head_1x1_2",
     )(h)
     logits = keras.layers.Dense(vocab_size, name="lm_head")(h)
     return keras.Model(tokens_in, logits, name=name)
@@ -670,19 +702,21 @@ def _build_cnngru_prior(
     """
     tokens_in = keras.Input(shape=(context_length,), dtype="int32", name="tokens")
     x = keras.layers.Embedding(
-        input_dim=vocab_size, output_dim=embed_dim, name="token_embedding",
+        input_dim=vocab_size,
+        output_dim=embed_dim,
+        name="token_embedding",
     )(tokens_in)
     for i in range(cnn_layers):
         x = keras.layers.Conv1D(
             filters=embed_dim,
             kernel_size=kernel_size,
             padding="causal",
-            dilation_rate=2 ** i,
+            dilation_rate=2**i,
             activation="relu",
-            name=f"causal_conv_d{2 ** i}",
+            name=f"causal_conv_d{2**i}",
         )(x)
         if dropout > 0:
-            x = keras.layers.Dropout(dropout, name=f"cnn_drop_d{2 ** i}")(x)
+            x = keras.layers.Dropout(dropout, name=f"cnn_drop_d{2**i}")(x)
     for i in range(gru_layers):
         x = keras.layers.GRU(
             gru_hidden,
@@ -711,12 +745,17 @@ class _UnigramLayer(keras.layers.Layer):
 
 
 def _build_unigram_prior(
-    train_stream: np.ndarray, vocab_size: int,
+    train_stream: np.ndarray,
+    vocab_size: int,
 ) -> tuple[keras.Model, np.ndarray]:
     """Static unigram prior fitted on train counts (Laplace smoothed)."""
-    counts = np.bincount(
-        train_stream.astype(np.int64), minlength=vocab_size,
-    ).astype(np.float64) + 1.0
+    counts = (
+        np.bincount(
+            train_stream.astype(np.int64),
+            minlength=vocab_size,
+        ).astype(np.float64)
+        + 1.0
+    )
     probs = counts / counts.sum()
     log_probs = np.log(probs).astype(np.float32)
 
@@ -728,6 +767,7 @@ def _build_unigram_prior(
 # ---------------------------------------------------------------------------
 # Per-token / per-frame bitrate analysis
 # ---------------------------------------------------------------------------
+
 
 def _per_token_nll_bits(
     prior: keras.Model,
@@ -801,28 +841,43 @@ def _per_frame_summary(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
-    parser.add_argument("--modality", choices=["auto", "ecg", "ppg", "ppg-h5"], default="auto",
-                        help="Codec/data path to use. Default detects from config.json.")
-    parser.add_argument("--num-train-files", type=int, default=400,
-                        help="Number of train files to encode for ECG/PPG EDF runs (-1 = all).")
-    parser.add_argument("--num-val-files", type=int, default=80,
-                        help="Number of val files to encode for ECG/PPG EDF runs (-1 = all).")
-    parser.add_argument("--max-train-frames", type=int, default=None,
-                        help="Optional cap on encoded training frames/windows.")
-    parser.add_argument("--max-val-frames", type=int, default=None,
-                        help="Optional cap on encoded validation frames/windows.")
-    parser.add_argument("--token-cache-dir", type=Path, default=None,
-                        help="Where to cache extracted token streams. "
-                             "Default: <run_dir>/entropy_prior/_token_cache.")
-    parser.add_argument("--no-token-cache", action="store_true",
-                        help="Disable read/write of cached token streams.")
-    parser.add_argument("--prior-type",
-                        choices=["unigram", "cnn", "dscnn", "hybrid",
-                                 "gru", "wavenet", "cnngru", "transformer"],
-                        default="transformer")
+    parser.add_argument(
+        "--modality",
+        choices=["auto", "ecg", "ppg", "ppg-h5"],
+        default="auto",
+        help="Codec/data path to use. Default detects from config.json.",
+    )
+    parser.add_argument(
+        "--num-train-files",
+        type=int,
+        default=400,
+        help="Number of train files to encode for ECG/PPG EDF runs (-1 = all).",
+    )
+    parser.add_argument(
+        "--num-val-files", type=int, default=80, help="Number of val files to encode for ECG/PPG EDF runs (-1 = all)."
+    )
+    parser.add_argument(
+        "--max-train-frames", type=int, default=None, help="Optional cap on encoded training frames/windows."
+    )
+    parser.add_argument(
+        "--max-val-frames", type=int, default=None, help="Optional cap on encoded validation frames/windows."
+    )
+    parser.add_argument(
+        "--token-cache-dir",
+        type=Path,
+        default=None,
+        help="Where to cache extracted token streams. Default: <run_dir>/entropy_prior/_token_cache.",
+    )
+    parser.add_argument("--no-token-cache", action="store_true", help="Disable read/write of cached token streams.")
+    parser.add_argument(
+        "--prior-type",
+        choices=["unigram", "cnn", "dscnn", "hybrid", "gru", "wavenet", "cnngru", "transformer"],
+        default="transformer",
+    )
     parser.add_argument("--context-frames", type=int, default=4)
     parser.add_argument("--stride-tokens", type=int, default=8)
     # Transformer hyperparams
@@ -835,18 +890,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cnn-num-layers", type=int, default=4)
     parser.add_argument("--cnn-kernel", type=int, default=5)
     # DSCNN hyperparams (lean depthwise-separable variant)
-    parser.add_argument("--dscnn-embed-dim", type=int, default=64,
-                        help="Channel width through the DSConv stack.")
-    parser.add_argument("--dscnn-proj-dim", type=int, default=None,
-                        help="Optional embedding bottleneck dim (factored embed). "
-                             "None = same as --dscnn-embed-dim.")
+    parser.add_argument("--dscnn-embed-dim", type=int, default=64, help="Channel width through the DSConv stack.")
+    parser.add_argument(
+        "--dscnn-proj-dim",
+        type=int,
+        default=None,
+        help="Optional embedding bottleneck dim (factored embed). None = same as --dscnn-embed-dim.",
+    )
     parser.add_argument("--dscnn-num-layers", type=int, default=5)
     parser.add_argument("--dscnn-kernel", type=int, default=5)
     parser.add_argument("--dscnn-norm", choices=["layer", "none"], default="layer")
     # Hybrid hyperparams (dense stem + residual DSConv body, BatchNorm)
     parser.add_argument("--hybrid-embed-dim", type=int, default=64)
-    parser.add_argument("--hybrid-proj-dim", type=int, default=None,
-                        help="Optional embedding bottleneck dim; None = same as --hybrid-embed-dim.")
+    parser.add_argument(
+        "--hybrid-proj-dim",
+        type=int,
+        default=None,
+        help="Optional embedding bottleneck dim; None = same as --hybrid-embed-dim.",
+    )
     parser.add_argument("--hybrid-stem-layers", type=int, default=2)
     parser.add_argument("--hybrid-ds-layers", type=int, default=4)
     parser.add_argument("--hybrid-kernel", type=int, default=5)
@@ -877,7 +938,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     run_dir: Path = args.run_dir.resolve()
-    out_root = (args.output_dir or (run_dir / "entropy_prior"))
+    out_root = args.output_dir or (run_dir / "entropy_prior")
     out_dir = out_root / args.tag
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -889,7 +950,7 @@ def main(argv: list[str] | None = None) -> int:
     frame_size = _get_frame_size(cfg, modality)
     num_leads = int(getattr(data, "num_leads", 1) or 1)
     lead_index = int(getattr(data, "lead_index", 1) or 1)
-    tokens_per_frame_per_level = frame_size // (2 ** mcfg.num_stages)
+    tokens_per_frame_per_level = frame_size // (2**mcfg.num_stages)
     num_levels = int(mcfg.num_levels)
     tokens_per_frame = tokens_per_frame_per_level * num_levels
     bits_per_frame_uniform = math.log2(vocab_size) * tokens_per_frame
@@ -903,27 +964,26 @@ def main(argv: list[str] | None = None) -> int:
     print("[2/5] Splitting files & extracting tokens ...", file=sys.stderr)
     train_files: list[Path] = []
     val_files: list[Path] = []
-    use_unified_cache = (
-        modality == "ppg"
-        and hasattr(data, "unified_cache")
-        and data.unified_cache.enabled
-    )
+    use_unified_cache = modality == "ppg" and hasattr(data, "unified_cache") and data.unified_cache.enabled
     if use_unified_cache:
         print("      unified_cache mode: loading from TFRecord cache", file=sys.stderr)
     elif modality == "ppg-h5":
         if args.max_train_frames is None or args.max_val_frames is None:
             print(
-                "      h5 mode: consider --max-train-frames/--max-val-frames "
-                "to bound extraction cost",
+                "      h5 mode: consider --max-train-frames/--max-val-frames to bound extraction cost",
                 file=sys.stderr,
             )
     elif modality == "ppg":
         train_files, val_files, _ = load_ppg_file_splits(
-            Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed,
+            Path(data.datasets_dir),
+            data.dataset_glob,
+            seed=data.shuffle_seed,
         )
     else:
         train_files, val_files, _ = load_ecg_file_splits(
-            Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed,
+            Path(data.datasets_dir),
+            data.dataset_glob,
+            seed=data.shuffle_seed,
         )
     if not use_unified_cache and modality != "ppg-h5":
         if args.num_train_files is not None and args.num_train_files >= 0:
@@ -935,56 +995,65 @@ def main(argv: list[str] | None = None) -> int:
 
     cache_root: Path | None = None
     if not args.no_token_cache:
-        cache_root = (args.token_cache_dir or (run_dir / "entropy_prior" / "_token_cache"))
+        cache_root = args.token_cache_dir or (run_dir / "entropy_prior" / "_token_cache")
         cache_root.mkdir(parents=True, exist_ok=True)
 
     def _cache_path(split: str, n_files: int) -> Path | None:
         if cache_root is None:
             return None
         frame_cap = args.max_train_frames if split == "train" else args.max_val_frames
-        key = (
-            f"{modality}_{split}_n{n_files}_max{frame_cap}_fs{frame_size}_"
-            f"l{num_leads}_li{lead_index}.npy"
-        )
+        key = f"{modality}_{split}_n{n_files}_max{frame_cap}_fs{frame_size}_l{num_leads}_li{lead_index}.npy"
         return cache_root / key
 
     def _get_or_extract(split: str, files: list[Path]) -> np.ndarray:
         path = _cache_path(split, len(files))
         if path is not None and path.exists():
-            print(f"      [cache] reuse {split} tokens \u2190 {path.name}",
-                  file=sys.stderr)
+            print(f"      [cache] reuse {split} tokens \u2190 {path.name}", file=sys.stderr)
             return np.load(path)
         max_frames = args.max_train_frames if split == "train" else args.max_val_frames
         if use_unified_cache:
             tokens = _extract_unified_cache_tokens(
-                compressor, cfg, split=split, max_frames=max_frames, batch_size=64,
+                compressor,
+                cfg,
+                split=split,
+                max_frames=max_frames,
+                batch_size=64,
             )
         elif modality == "ppg-h5":
             tokens = _extract_ppg_h5_split_tokens(
-                compressor, cfg, split=split, max_frames=max_frames, batch_size=64,
+                compressor,
+                cfg,
+                split=split,
+                max_frames=max_frames,
+                batch_size=64,
             )
         elif modality == "ppg":
             tokens = _extract_ppg_split_tokens(
-                files, compressor, cfg, max_frames=max_frames, batch_size=64,
+                files,
+                compressor,
+                cfg,
+                max_frames=max_frames,
+                batch_size=64,
             )
         else:
             tokens = _extract_split_tokens(
-                files, compressor,
-                frame_size=frame_size, num_leads=num_leads,
-                epsilon=data.epsilon, lead_index=lead_index,
+                files,
+                compressor,
+                frame_size=frame_size,
+                num_leads=num_leads,
+                epsilon=data.epsilon,
+                lead_index=lead_index,
             )
         if path is not None:
             np.save(path, tokens)
-            print(f"      [cache] saved {split} tokens \u2192 {path.name}",
-                  file=sys.stderr)
+            print(f"      [cache] saved {split} tokens \u2192 {path.name}", file=sys.stderr)
         return tokens
 
     train_tok = _get_or_extract("train", train_files)
     val_tok = _get_or_extract("val", val_files)
     if train_tok.size == 0 or val_tok.size == 0:
         raise RuntimeError("Token extraction produced an empty train or validation split.")
-    print(f"      train tokens {train_tok.shape}  val tokens {val_tok.shape}",
-          file=sys.stderr)
+    print(f"      train tokens {train_tok.shape}  val tokens {val_tok.shape}", file=sys.stderr)
 
     train_stream = _interleave_levels(train_tok)
     val_stream = _interleave_levels(val_tok)
@@ -997,14 +1066,12 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     context_length = args.context_frames * tokens_per_frame
-    print(f"[3/5] Building prior (type={args.prior_type}, ctx={context_length}) ...",
-          file=sys.stderr)
+    print(f"[3/5] Building prior (type={args.prior_type}, ctx={context_length}) ...", file=sys.stderr)
 
     history_dict: dict = {}
     if args.prior_type == "unigram":
         prior, log_probs = _build_unigram_prior(train_stream, vocab_size)
-        prior_meta = {"type": "unigram", "params": 0, "context_length": 1,
-                      "fit": "train_counts_with_laplace_smoothing"}
+        prior_meta = {"type": "unigram", "params": 0, "context_length": 1, "fit": "train_counts_with_laplace_smoothing"}
         # Fully-deterministic eval: bits[t] = -log2 p[c_t] for every t.
         bits_full = (-log_probs[val_stream.astype(np.int64)] / math.log(2.0)).astype(np.float64)
         skipped = 0
@@ -1023,7 +1090,7 @@ def main(argv: list[str] | None = None) -> int:
                 "embed_dim": args.cnn_embed_dim,
                 "num_layers": args.cnn_num_layers,
                 "kernel": args.cnn_kernel,
-                "receptive_field": 1 + (args.cnn_kernel - 1) * (2 ** args.cnn_num_layers - 1),
+                "receptive_field": 1 + (args.cnn_kernel - 1) * (2**args.cnn_num_layers - 1),
             }
         elif args.prior_type == "dscnn":
             prior = _build_dscnn_prior(
@@ -1043,7 +1110,7 @@ def main(argv: list[str] | None = None) -> int:
                 "num_layers": args.dscnn_num_layers,
                 "kernel": args.dscnn_kernel,
                 "norm": args.dscnn_norm,
-                "receptive_field": 1 + (args.dscnn_kernel - 1) * (2 ** args.dscnn_num_layers - 1),
+                "receptive_field": 1 + (args.dscnn_kernel - 1) * (2**args.dscnn_num_layers - 1),
             }
         elif args.prior_type == "hybrid":
             prior = _build_hybrid_prior(
@@ -1064,7 +1131,7 @@ def main(argv: list[str] | None = None) -> int:
                 "stem_layers": args.hybrid_stem_layers,
                 "ds_layers": args.hybrid_ds_layers,
                 "kernel": args.hybrid_kernel,
-                "receptive_field": 1 + (args.hybrid_kernel - 1) * (2 ** total_layers - 1),
+                "receptive_field": 1 + (args.hybrid_kernel - 1) * (2**total_layers - 1),
             }
         elif args.prior_type == "gru":
             prior = _build_gru_prior(
@@ -1095,7 +1162,7 @@ def main(argv: list[str] | None = None) -> int:
                 "embed_dim": args.wavenet_embed_dim,
                 "num_layers": args.wavenet_num_layers,
                 "kernel": args.wavenet_kernel,
-                "receptive_field": 1 + (args.wavenet_kernel - 1) * (2 ** args.wavenet_num_layers - 1),
+                "receptive_field": 1 + (args.wavenet_kernel - 1) * (2**args.wavenet_num_layers - 1),
             }
         elif args.prior_type == "cnngru":
             prior = _build_cnngru_prior(
@@ -1136,36 +1203,39 @@ def main(argv: list[str] | None = None) -> int:
         prior.summary(print_fn=lambda s: print("      " + s, file=sys.stderr))
         prior.compile(
             optimizer=keras.optimizers.AdamW(
-                learning_rate=args.learning_rate, weight_decay=args.weight_decay,
+                learning_rate=args.learning_rate,
+                weight_decay=args.weight_decay,
             ),
             loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=[keras.metrics.SparseCategoricalAccuracy(name="token_acc")],
         )
         x_tr, y_tr = _build_windows(train_stream, context_length, args.stride_tokens)
         x_val, y_val = _build_windows(val_stream, context_length, args.stride_tokens)
-        print(f"      train windows={x_tr.shape[0]}  val windows={x_val.shape[0]}",
-              file=sys.stderr)
+        print(f"      train windows={x_tr.shape[0]}  val windows={x_val.shape[0]}", file=sys.stderr)
         early_stop = keras.callbacks.EarlyStopping(
-            monitor="val_loss", mode="min",
-            patience=args.patience, restore_best_weights=True,
+            monitor="val_loss",
+            mode="min",
+            patience=args.patience,
+            restore_best_weights=True,
         )
         print(f"[4/5] Training prior ({args.prior_type}) ...", file=sys.stderr)
         history = prior.fit(
-            x_tr, y_tr,
+            x_tr,
+            y_tr,
             validation_data=(x_val, y_val),
             batch_size=args.batch_size,
             epochs=args.epochs,
             callbacks=[early_stop],
             verbose=2,
         )
-        history_dict = {
-            k: [float(v) for v in vals] for k, vals in history.history.items()
-        }
+        history_dict = {k: [float(v) for v in vals] for k, vals in history.history.items()}
         prior_meta["params"] = int(prior.count_params())
         prior_meta["context_length"] = context_length
         bits_full = _per_token_nll_bits(
-            prior, val_stream,
-            context_length=context_length, batch_size=args.per_frame_batch,
+            prior,
+            val_stream,
+            context_length=context_length,
+            batch_size=args.per_frame_batch,
         )
         skipped = context_length
 
@@ -1184,7 +1254,9 @@ def main(argv: list[str] | None = None) -> int:
     cr_codec_learned = raw_input_bits_per_frame / bits_per_frame_learned
 
     per_frame = _per_frame_summary(
-        bits_full, tokens_per_frame=tokens_per_frame, skipped_tokens=skipped,
+        bits_full,
+        tokens_per_frame=tokens_per_frame,
+        skipped_tokens=skipped,
     )
     cr_per_frame = {}
     if per_frame:
@@ -1246,38 +1318,40 @@ def main(argv: list[str] | None = None) -> int:
     print("", file=sys.stderr)
     print(f"===== Entropy Measurement ({args.prior_type}) =====", file=sys.stderr)
     print(f"  vocab K                    : {vocab_size}", file=sys.stderr)
-    print(f"  uniform   bits/token       : {math.log2(vocab_size):>8.4f}",
-          file=sys.stderr)
+    print(f"  uniform   bits/token       : {math.log2(vocab_size):>8.4f}", file=sys.stderr)
     print(f"  unigram   bits/token (val) : {val_unigram:>8.4f}", file=sys.stderr)
-    print(f"  prior     bits/token (val) : {val_bits_per_token:>8.4f}  "
-          f"(std {val_bits_per_token_std:.3f})", file=sys.stderr)
     print(
-        f"  bits/frame uniform / mean  : {bits_per_frame_uniform:>8.2f} / "
-        f"{bits_per_frame_learned:>8.2f}",
+        f"  prior     bits/token (val) : {val_bits_per_token:>8.4f}  (std {val_bits_per_token_std:.3f})",
         file=sys.stderr,
     )
     print(
-        f"  bitrate uniform / learned  : {uniform_bitrate_bps:>8.2f} / "
-        f"{learned_bitrate_bps:>8.2f} bps",
+        f"  bits/frame uniform / mean  : {bits_per_frame_uniform:>8.2f} / {bits_per_frame_learned:>8.2f}",
+        file=sys.stderr,
+    )
+    print(
+        f"  bitrate uniform / learned  : {uniform_bitrate_bps:>8.2f} / {learned_bitrate_bps:>8.2f} bps",
         file=sys.stderr,
     )
     if per_frame:
         print("  bits/frame   min /  p05 /  med /  p95 /  max:", file=sys.stderr)
-        print(f"    {per_frame['min']:>7.1f} / {per_frame['p05']:>6.1f} / "
-              f"{per_frame['median']:>6.1f} / {per_frame['p95']:>6.1f} / "
-              f"{per_frame['max']:>7.1f}", file=sys.stderr)
+        print(
+            f"    {per_frame['min']:>7.1f} / {per_frame['p05']:>6.1f} / "
+            f"{per_frame['median']:>6.1f} / {per_frame['p95']:>6.1f} / "
+            f"{per_frame['max']:>7.1f}",
+            file=sys.stderr,
+        )
         print("  effective CR best / p95 / med / p05 / worst:", file=sys.stderr)
-        print(f"    x{cr_per_frame['best']:>5.2f} / "
-              f"x{cr_per_frame['p95_cr']:>5.2f} / "
-              f"x{cr_per_frame['median_cr']:>5.2f} / "
-              f"x{cr_per_frame['p05_cr']:>5.2f} / "
-              f"x{cr_per_frame['worst']:>5.2f}", file=sys.stderr)
-    print(f"  CR uplift vs uniform / uni : x{cr_uplift_vs_uniform:.3f} / "
-          f"x{cr_uplift_vs_unigram:.3f}", file=sys.stderr)
-    print(f"  Codec CR uniform / learned : x{cr_codec_uniform:.2f} / "
-          f"x{cr_codec_learned:.2f}", file=sys.stderr)
-    print(f"  prior params               : {prior_meta.get('params', 0):,}",
-          file=sys.stderr)
+        print(
+            f"    x{cr_per_frame['best']:>5.2f} / "
+            f"x{cr_per_frame['p95_cr']:>5.2f} / "
+            f"x{cr_per_frame['median_cr']:>5.2f} / "
+            f"x{cr_per_frame['p05_cr']:>5.2f} / "
+            f"x{cr_per_frame['worst']:>5.2f}",
+            file=sys.stderr,
+        )
+    print(f"  CR uplift vs uniform / uni : x{cr_uplift_vs_uniform:.3f} / x{cr_uplift_vs_unigram:.3f}", file=sys.stderr)
+    print(f"  Codec CR uniform / learned : x{cr_codec_uniform:.2f} / x{cr_codec_learned:.2f}", file=sys.stderr)
+    print(f"  prior params               : {prior_meta.get('params', 0):,}", file=sys.stderr)
     print(f"  report → {report_path}", file=sys.stderr)
     return 0
 

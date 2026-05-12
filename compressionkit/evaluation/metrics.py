@@ -117,7 +117,11 @@ def compute_ppg_physiokit_metrics(
         return None
     try:
         cleaned = pk.ppg.clean(
-            sig, lowcut=low_hz, highcut=high_hz, sample_rate=sample_rate, order=order,
+            sig,
+            lowcut=low_hz,
+            highcut=high_hz,
+            sample_rate=sample_rate,
+            order=order,
         )
         hr_bpm, hr_qos = pk.ppg.compute_heart_rate(cleaned, sample_rate=sample_rate, method="peak")
         peaks = pk.ppg.find_peaks(cleaned, sample_rate=sample_rate)
@@ -281,18 +285,20 @@ def summarize_ppg_peak_alignment(
             sample_ibi_errors.append(ibi_err_ms)
             ibi_errors_ms.append(ibi_err_ms)
 
-        per_sample.append({
-            "target_num_peaks": target_count,
-            "reconstructed_num_peaks": recon_count,
-            "matched_num_peaks": matched,
-            "missed_peaks": missed,
-            "extra_peaks": extra,
-            "precision": float(precision),
-            "recall": float(recall),
-            "f1": float(f1),
-            "peak_timing_mae_ms": float(np.mean(sample_timing_errors)) if sample_timing_errors else None,
-            "ibi_mae_ms": float(np.mean(sample_ibi_errors)) if sample_ibi_errors else None,
-        })
+        per_sample.append(
+            {
+                "target_num_peaks": target_count,
+                "reconstructed_num_peaks": recon_count,
+                "matched_num_peaks": matched,
+                "missed_peaks": missed,
+                "extra_peaks": extra,
+                "precision": float(precision),
+                "recall": float(recall),
+                "f1": float(f1),
+                "peak_timing_mae_ms": float(np.mean(sample_timing_errors)) if sample_timing_errors else None,
+                "ibi_mae_ms": float(np.mean(sample_ibi_errors)) if sample_ibi_errors else None,
+            }
+        )
 
     if not precision_vals:
         return None, per_sample
@@ -314,22 +320,24 @@ def summarize_ppg_peak_alignment(
         "peak_f1_pct": float(100.0 * np.mean(f1_vals)),
     }
     if timing_errors_ms:
-        within_one_sample = sum(
-            1 for err in timing_errors_ms if err <= (1000.0 / sample_rate)
+        within_one_sample = sum(1 for err in timing_errors_ms if err <= (1000.0 / sample_rate))
+        summary.update(
+            {
+                "peak_timing_mae_ms": float(np.mean(timing_errors_ms)),
+                "peak_timing_median_ms": float(np.median(timing_errors_ms)),
+                "peak_timing_p90_ms": float(np.percentile(timing_errors_ms, 90)),
+                "peak_timing_max_ms": float(np.max(timing_errors_ms)),
+                "peak_timing_within_1sample_pct": float(100.0 * within_one_sample / len(timing_errors_ms)),
+            }
         )
-        summary.update({
-            "peak_timing_mae_ms": float(np.mean(timing_errors_ms)),
-            "peak_timing_median_ms": float(np.median(timing_errors_ms)),
-            "peak_timing_p90_ms": float(np.percentile(timing_errors_ms, 90)),
-            "peak_timing_max_ms": float(np.max(timing_errors_ms)),
-            "peak_timing_within_1sample_pct": float(100.0 * within_one_sample / len(timing_errors_ms)),
-        })
     if ibi_errors_ms:
-        summary.update({
-            "ibi_mae_ms": float(np.mean(ibi_errors_ms)),
-            "ibi_median_ae_ms": float(np.median(ibi_errors_ms)),
-            "ibi_p90_ae_ms": float(np.percentile(ibi_errors_ms, 90)),
-        })
+        summary.update(
+            {
+                "ibi_mae_ms": float(np.mean(ibi_errors_ms)),
+                "ibi_median_ae_ms": float(np.median(ibi_errors_ms)),
+                "ibi_p90_ae_ms": float(np.percentile(ibi_errors_ms, 90)),
+            }
+        )
     return summary, per_sample
 
 
@@ -358,12 +366,20 @@ def summarize_physiokit_alignment(
 
     for target, recon in zip(originals, reconstructions):
         target_metrics = compute_ppg_physiokit_metrics(
-            target, sample_rate=sample_rate, low_hz=low_hz, high_hz=high_hz,
-            order=order, min_peaks=min_peaks,
+            target,
+            sample_rate=sample_rate,
+            low_hz=low_hz,
+            high_hz=high_hz,
+            order=order,
+            min_peaks=min_peaks,
         )
         recon_metrics = compute_ppg_physiokit_metrics(
-            recon, sample_rate=sample_rate, low_hz=low_hz, high_hz=high_hz,
-            order=order, min_peaks=min_peaks,
+            recon,
+            sample_rate=sample_rate,
+            low_hz=low_hz,
+            high_hz=high_hz,
+            order=order,
+            min_peaks=min_peaks,
         )
         if target_metrics is None or recon_metrics is None:
             per_sample.append(None)
@@ -382,15 +398,17 @@ def summarize_physiokit_alignment(
         hr_biases.append(hr_diff)
         rmssd_abs_errors.append(abs(rmssd_diff))
         sdnn_abs_errors.append(abs(sdnn_diff))
-        per_sample.append({
-            "target": target_metrics,
-            "reconstructed": recon_metrics,
-            "delta": {
-                "hr_bpm": float(hr_diff),
-                "rmssd_ms": float(rmssd_diff),
-                "sdnn_ms": float(sdnn_diff),
-            },
-        })
+        per_sample.append(
+            {
+                "target": target_metrics,
+                "reconstructed": recon_metrics,
+                "delta": {
+                    "hr_bpm": float(hr_diff),
+                    "rmssd_ms": float(rmssd_diff),
+                    "sdnn_ms": float(sdnn_diff),
+                },
+            }
+        )
 
     valid_pairs = len(hr_abs_errors)
     if valid_pairs == 0:
@@ -500,12 +518,14 @@ def summarize_ecg_alignment(
 
     for target, recon in zip(originals, reconstructions):
         tm = compute_ecg_hr_hrv(
-            target, sample_rate=sample_rate,
+            target,
+            sample_rate=sample_rate,
             min_peaks_for_hr=min_peaks_for_hr,
             min_peaks_for_hrv=min_peaks_for_hrv,
         )
         rm = compute_ecg_hr_hrv(
-            recon, sample_rate=sample_rate,
+            recon,
+            sample_rate=sample_rate,
             min_peaks_for_hr=min_peaks_for_hr,
             min_peaks_for_hrv=min_peaks_for_hrv,
         )
@@ -569,9 +589,7 @@ def summarize_ecg_alignment(
         summary["peak_timing_std_ms"] = float(np.std(peak_timing_errors))
         summary["peak_timing_p90_ms"] = float(np.percentile(peak_timing_errors, 90))
         summary["peak_timing_max_ms"] = float(np.max(peak_timing_errors))
-        summary[f"peak_timing_within_{timing_tolerance_ms:g}ms_pct"] = (
-            100.0 * within / len(peak_timing_errors)
-        )
+        summary[f"peak_timing_within_{timing_tolerance_ms:g}ms_pct"] = 100.0 * within / len(peak_timing_errors)
     if sdnn_abs_errors:
         summary["sdnn_mae_ms"] = float(np.mean(sdnn_abs_errors))
         summary["sdnn_std_ae_ms"] = float(np.std(sdnn_abs_errors))

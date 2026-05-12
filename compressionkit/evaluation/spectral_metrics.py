@@ -18,7 +18,10 @@ from scipy import signal as sps
 
 
 def _welch_psd(
-    x: np.ndarray, fs: int, *, nperseg: int | None = None,
+    x: np.ndarray,
+    fs: int,
+    *,
+    nperseg: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return ``(freqs, psd)`` for a 1-D signal using Welch's method."""
     x = np.asarray(x, dtype=np.float64).ravel()
@@ -173,8 +176,8 @@ def spectral_coherence(
 
 
 ECG_DEFAULT_BANDS: list[tuple[float, float]] = [
-    (0.5, 5.0),    # baseline / P-wave / T-wave
-    (5.0, 15.0),   # QRS body
+    (0.5, 5.0),  # baseline / P-wave / T-wave
+    (5.0, 15.0),  # QRS body
     (15.0, 40.0),  # QRS edges, fast morphology
     (40.0, 80.0),  # noise / EMG (out of clinical band)
 ]
@@ -190,8 +193,8 @@ ECG_DEFAULT_FREQ_WEIGHTS: list[tuple[float, float, float]] = [
 ECG_DEFAULT_COHERENCE_BAND: tuple[float, float] = (5.0, 40.0)
 
 PPG_DEFAULT_BANDS: list[tuple[float, float]] = [
-    (0.5, 3.0),   # fundamental + first harmonic
-    (3.0, 8.0),   # higher harmonics
+    (0.5, 3.0),  # fundamental + first harmonic
+    (3.0, 8.0),  # higher harmonics
 ]
 
 PPG_DEFAULT_FREQ_WEIGHTS: list[tuple[float, float, float]] = [

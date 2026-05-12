@@ -42,7 +42,10 @@ def verify(canonical_dir: Path, *, limit: int | None, logger) -> None:
             sl_shape = tuple(slabels.shape) if slabels is not None else None
             logger.info(
                 "  %s data=%s dtype=%s slabels=%s",
-                fp.name, shape, data.dtype, sl_shape,
+                fp.name,
+                shape,
+                data.dtype,
+                sl_shape,
             )
             arr = np.asarray(data[:])
             if not np.isfinite(arr).all():

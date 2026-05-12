@@ -124,7 +124,7 @@ def _predict(model, batch: np.ndarray, *, batch_size: int) -> np.ndarray:
 
 def _compression_context(cfg: PpgH5RvqConfig) -> dict[str, float | int]:
     raw_bits_per_frame = cfg.data.window_samples * cfg.evaluation.input_bit_depth
-    downsample_factor = 2 ** cfg.model.num_stages
+    downsample_factor = 2**cfg.model.num_stages
     latent_positions = cfg.data.window_samples // downsample_factor
     bits_per_index = 8
     bits_per_frame = latent_positions * cfg.model.num_levels * bits_per_index
@@ -201,12 +201,14 @@ def _write_sample_artifacts(
 ) -> None:
     for idx, (target, recon) in enumerate(zip(targets, recons)):
         path = run_dir / f"sample_{idx:03d}.csv"
-        pd.DataFrame({
-            "sample": np.arange(target.size, dtype=np.int32),
-            "time_sec": np.arange(target.size, dtype=np.float32) / float(sample_rate),
-            "original": target.astype(np.float32),
-            "reconstructed": recon.astype(np.float32),
-        }).to_csv(path, index=False)
+        pd.DataFrame(
+            {
+                "sample": np.arange(target.size, dtype=np.int32),
+                "time_sec": np.arange(target.size, dtype=np.float32) / float(sample_rate),
+                "original": target.astype(np.float32),
+                "reconstructed": recon.astype(np.float32),
+            }
+        ).to_csv(path, index=False)
 
 
 def _purge_old_sample_artifacts(run_dir: Path) -> None:
@@ -402,13 +404,15 @@ def _evaluate_long_recordings(
         if san_cfg is not None:
             clean = is_clean_window(raw[np.newaxis, :], san_cfg)
             if not clean.ok:
-                per_recording.append({
-                    "source": src.slug,
-                    "file": path.name,
-                    "patient_id": pid,
-                    "quality_rejected": True,
-                    "reject_reason": clean.reason,
-                })
+                per_recording.append(
+                    {
+                        "source": src.slug,
+                        "file": path.name,
+                        "patient_id": pid,
+                        "quality_rejected": True,
+                        "reject_reason": clean.reason,
+                    }
+                )
                 continue
         recon = _reconstruct_overlap_add_h5_norm(
             model,
@@ -418,11 +422,11 @@ def _evaluate_long_recordings(
             batch_size=batch_size,
         )
         noise_floor = estimate_ppg_noise_floor(raw, fs=cfg.data.target_fs)
-        sig_metrics = compute_signal_metrics(
-            raw, recon, noise_power=float(noise_floor.get("bp_noise_power", 0.0))
-        )
+        sig_metrics = compute_signal_metrics(raw, recon, noise_power=float(noise_floor.get("bp_noise_power", 0.0)))
         spectral = _spectral_summary(
-            raw[np.newaxis, :], recon[np.newaxis, :], sample_rate=cfg.data.target_fs,
+            raw[np.newaxis, :],
+            recon[np.newaxis, :],
+            sample_rate=cfg.data.target_fs,
         )
         seam = seam_discontinuity_ratio(
             recon,
@@ -431,11 +435,19 @@ def _evaluate_long_recordings(
             radius=4,
         )
         orig_pk = compute_ppg_physiokit_metrics(
-            raw, sample_rate=cfg.data.target_fs, low_hz=0.5, high_hz=8.0, order=3,
+            raw,
+            sample_rate=cfg.data.target_fs,
+            low_hz=0.5,
+            high_hz=8.0,
+            order=3,
             min_peaks=min_peaks,
         )
         recon_pk = compute_ppg_physiokit_metrics(
-            recon, sample_rate=cfg.data.target_fs, low_hz=0.5, high_hz=8.0, order=3,
+            recon,
+            sample_rate=cfg.data.target_fs,
+            low_hz=0.5,
+            high_hz=8.0,
+            order=3,
             min_peaks=min_peaks,
         )
         entry: dict[str, Any] = {
@@ -474,15 +486,9 @@ def _evaluate_long_recordings(
             seam_ratios.append(float(seam.get("ratio", float("nan"))))
             seam_rms_vals.append(float(seam.get("seam_rms", float("nan"))))
             non_seam_rms_vals.append(float(seam.get("non_seam_rms", float("nan"))))
-            spectral_band_total_vals.append(
-                float(spectral["band_total_rel_error"].get("mean", float("nan")))
-            )
-            spectral_weighted_prd_vals.append(
-                float(spectral["weighted_freq_prd_percent"].get("mean", float("nan")))
-            )
-            spectral_coherence_vals.append(
-                float(spectral["coherence"].get("mean", float("nan")))
-            )
+            spectral_band_total_vals.append(float(spectral["band_total_rel_error"].get("mean", float("nan"))))
+            spectral_weighted_prd_vals.append(float(spectral["weighted_freq_prd_percent"].get("mean", float("nan"))))
+            spectral_coherence_vals.append(float(spectral["coherence"].get("mean", float("nan"))))
         per_recording.append(entry)
 
     valid = len(hr_abs)
@@ -539,7 +545,11 @@ def evaluate_run(
     metric_samples = cfg.evaluation.num_samples if num_samples is None else num_samples
     _purge_old_sample_artifacts(run_dir)
     short = _evaluate_short_windows(
-        model, cfg, run_dir=run_dir, num_samples=metric_samples, seed=seed,
+        model,
+        cfg,
+        run_dir=run_dir,
+        num_samples=metric_samples,
+        seed=seed,
     )
     long = _evaluate_long_recordings(
         model,
@@ -628,12 +638,18 @@ def main() -> None:
         long_pk = result["long_recording"] or {}
         print(
             result["run_name"],
-            "short_hr_mae=", short_pk.get("hr_mae_bpm"),
-            "short_sdnn_mae=", short_pk.get("sdnn_mae_ms"),
-            "short_rmssd_mae=", short_pk.get("rmssd_mae_ms"),
-            "long_hr_mae=", long_pk.get("hr_mae_bpm"),
-            "long_sdnn_mae=", long_pk.get("sdnn_mae_ms"),
-            "long_rmssd_mae=", long_pk.get("rmssd_mae_ms"),
+            "short_hr_mae=",
+            short_pk.get("hr_mae_bpm"),
+            "short_sdnn_mae=",
+            short_pk.get("sdnn_mae_ms"),
+            "short_rmssd_mae=",
+            short_pk.get("rmssd_mae_ms"),
+            "long_hr_mae=",
+            long_pk.get("hr_mae_bpm"),
+            "long_sdnn_mae=",
+            long_pk.get("sdnn_mae_ms"),
+            "long_rmssd_mae=",
+            long_pk.get("rmssd_mae_ms"),
         )
 
 

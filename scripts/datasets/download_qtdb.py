@@ -68,7 +68,8 @@ def main() -> None:
             "Found %d existing h5 files under %s — skipping re-download. "
             "Pass --force to re-pull the raw bundle (it contains WFDB files, "
             "not h5; you'll need a converter).",
-            len(existing), canonical,
+            len(existing),
+            canonical,
         )
     elif not args.skip_download:
         # Pulls raw WFDB files into <raw> rather than the canonical dir.
@@ -80,8 +81,8 @@ def main() -> None:
             force=args.force,
         )
         logger.warning(
-            "Raw WFDB files extracted to %s — you'll need a wfdb→h5 converter "
-            "(see download_mitdb.py for the pattern).", raw,
+            "Raw WFDB files extracted to %s — you'll need a wfdb→h5 converter (see download_mitdb.py for the pattern).",
+            raw,
         )
 
     verify(canonical, limit=args.limit, logger=logger)

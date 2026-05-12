@@ -13,6 +13,7 @@ from dataclasses import dataclass
 @dataclass
 class BitWriter:
     """Simple fixed-size bit writer."""
+
     capacity_bits: int
 
     def __post_init__(self):
@@ -26,7 +27,7 @@ class BitWriter:
         byte_idx = self.bit_pos // 8
         shift = 7 - (self.bit_pos % 8)
         if bit & 1:
-            self.buffer[byte_idx] |= (1 << shift)
+            self.buffer[byte_idx] |= 1 << shift
         self.bit_pos += 1
 
     def write_bits(self, value: int, num_bits: int) -> None:
@@ -40,6 +41,7 @@ class BitWriter:
 @dataclass
 class BitReader:
     """Simple fixed-size bit reader."""
+
     data: bytes
     total_bits: int
 

@@ -7,6 +7,7 @@ Three checks:
 3. Gradients flow (loss decreases on a 1-step optimizer) — sanity check the
    layer is trainable.
 """
+
 from __future__ import annotations
 
 import os
@@ -54,9 +55,7 @@ def _torch_ref(layer: DiagonalSSM, u_np: np.ndarray) -> np.ndarray:
     decay_log = torch.from_numpy(keras.ops.convert_to_numpy(layer.decay_log))
     decay = torch.exp(-torch.exp(decay_log)).clamp(max=layer.max_decay)
     phase_logit = torch.from_numpy(keras.ops.convert_to_numpy(layer.phase_logit))
-    theta = layer.min_phase + (layer.max_phase - layer.min_phase) * torch.sigmoid(
-        phase_logit
-    )
+    theta = layer.min_phase + (layer.max_phase - layer.min_phase) * torch.sigmoid(phase_logit)
     cos_t, sin_t = torch.cos(theta), torch.sin(theta)
     gamma = torch.sqrt(torch.clamp(1.0 - decay * decay, min=1e-8))
     if not layer.gamma_normalize:
