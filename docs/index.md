@@ -21,6 +21,20 @@ compressionKIT helps teams reduce memory footprint, wireless bandwidth, and ener
 
 ---
 
+## What compressionKIT is — and isn't
+
+**Is:** a focused toolkit for *compressing* continuous physiological waveforms (PPG, ECG)
+on edge devices. It ships release-grade [golden experiments](experiments/index.md), edge
+deploy artifacts (INT8 TFLite + C headers), and a reproducible lifecycle runner that links
+configs → training → evaluation → deployment → HuggingFace.
+
+**Is not:** a general-purpose physiological-signal ML framework. It does not classify
+arrhythmias, predict sleep stages, or detect events. It focuses on the codec problem and
+leaves analytic downstream tasks to dedicated libraries. It is also pre-v1: APIs and
+configs may shift on major versions until v1.
+
+---
+
 ## Key Features
 
 <div class="grid cards" markdown="1">

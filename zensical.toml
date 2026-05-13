@@ -16,6 +16,32 @@ nav = [
     { "PPG Models" = "models/ppg.md" },
     { "ECG Models" = "models/ecg.md" },
   ]},
+  { "Experiments" = [
+    { "Overview" = "experiments/index.md" },
+    { "PPG codecs" = [
+      { "ppg-rvq-2x" = "experiments/ppg-rvq-2x.md" },
+      { "ppg-rvq-4x" = "experiments/ppg-rvq-4x.md" },
+      { "ppg-rvq-8x" = "experiments/ppg-rvq-8x.md" },
+      { "ppg-rvq-16x" = "experiments/ppg-rvq-16x.md" },
+      { "ppg-rvq-32x" = "experiments/ppg-rvq-32x.md" },
+    ]},
+    { "PPG two-stage" = [
+      { "ppg-rvq-4x-prior" = "experiments/ppg-rvq-4x-prior.md" },
+      { "ppg-rvq-8x-prior" = "experiments/ppg-rvq-8x-prior.md" },
+    ]},
+    { "ECG codecs" = [
+      { "ecg-rvq-2x" = "experiments/ecg-rvq-2x.md" },
+      { "ecg-rvq-4x" = "experiments/ecg-rvq-4x.md" },
+      { "ecg-rvq-8x" = "experiments/ecg-rvq-8x.md" },
+      { "ecg-rvq-16x" = "experiments/ecg-rvq-16x.md" },
+      { "ecg-rvq-32x" = "experiments/ecg-rvq-32x.md" },
+      { "ecg-rvq-64x" = "experiments/ecg-rvq-64x.md" },
+    ]},
+    { "ECG two-stage" = [
+      { "ecg-rvq-4x-prior" = "experiments/ecg-rvq-4x-prior.md" },
+      { "ecg-rvq-8x-prior" = "experiments/ecg-rvq-8x-prior.md" },
+    ]},
+  ]},
   { "Signals" = [
     { "Overview" = "signals/index.md" },
     { "PPG" = [
@@ -33,6 +59,7 @@ nav = [
   { "Reference" = [
     { "CLI" = "cli.md" },
     { "Deployment" = "deployment.md" },
+    { "HuggingFace" = "huggingface.md" },
     { "API" = [
       { "Configs" = "api/configs.md" },
       { "Datasets" = "api/datasets.md" },

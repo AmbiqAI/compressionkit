@@ -6,6 +6,17 @@ icon: lucide/activity
 
 Golden reference models for PPG compression, trained on the MESA dataset at 64 Hz.
 
+!!! tip "Per-experiment reproduction pages"
+    Each entry below has a dedicated [experiment page](../experiments/index.md) with the
+    one-command lifecycle (`compressionkit golden run <id>`), dataset details, and deploy
+    artifact layout: [`ppg-rvq-2x`](../experiments/ppg-rvq-2x.md) ·
+    [`ppg-rvq-4x`](../experiments/ppg-rvq-4x.md) ·
+    [`ppg-rvq-8x`](../experiments/ppg-rvq-8x.md) ·
+    [`ppg-rvq-16x`](../experiments/ppg-rvq-16x.md) ·
+    [`ppg-rvq-32x`](../experiments/ppg-rvq-32x.md).
+    Two-stage variants: [`ppg-rvq-4x-prior`](../experiments/ppg-rvq-4x-prior.md) ·
+    [`ppg-rvq-8x-prior`](../experiments/ppg-rvq-8x-prior.md).
+
 ## Results Summary
 
 | Model | Config | CR | PRD (%) | MSE | Cosine | HR MAE (bpm) | SDNN MAE (ms) |
