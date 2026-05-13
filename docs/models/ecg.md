@@ -6,6 +6,17 @@ icon: lucide/heart-pulse
 
 Golden reference models for ECG compression, trained on the PTB-XL dataset at 256 Hz (Lead II).
 
+!!! tip "Per-experiment reproduction pages"
+    Each entry has a dedicated [experiment page](../experiments/index.md):
+    [`ecg-rvq-2x`](../experiments/ecg-rvq-2x.md) ·
+    [`ecg-rvq-4x`](../experiments/ecg-rvq-4x.md) ·
+    [`ecg-rvq-8x`](../experiments/ecg-rvq-8x.md) ·
+    [`ecg-rvq-16x`](../experiments/ecg-rvq-16x.md) ·
+    [`ecg-rvq-32x`](../experiments/ecg-rvq-32x.md) ·
+    [`ecg-rvq-64x`](../experiments/ecg-rvq-64x.md).
+    Two-stage variants: [`ecg-rvq-4x-prior`](../experiments/ecg-rvq-4x-prior.md) ·
+    [`ecg-rvq-8x-prior`](../experiments/ecg-rvq-8x-prior.md).
+
 ## Results Summary
 
 | Model | Config | CR | PRD (%) | MSE | Cosine |
