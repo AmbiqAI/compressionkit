@@ -35,9 +35,7 @@ def _resolve_run_dir(experiment: GoldenExperiment, results_root: Path) -> Path:
 def _publish(experiment: GoldenExperiment, run_dir: Path, dry_run: bool) -> int:
     deploy_dir = run_dir / "deploy"
     if not deploy_dir.is_dir():
-        raise FileNotFoundError(
-            f"deploy directory missing for {experiment.experiment_id!r}: {deploy_dir}"
-        )
+        raise FileNotFoundError(f"deploy directory missing for {experiment.experiment_id!r}: {deploy_dir}")
     scorecard = run_dir / "quality_scorecard.json"
     cmd: list[str] = [
         sys.executable,
@@ -51,7 +49,9 @@ def _publish(experiment: GoldenExperiment, run_dir: Path, dry_run: bool) -> int:
         cmd.extend(["--scorecard", str(scorecard)])
     if dry_run:
         cmd.append("--dry-run")
-    logger.info("Publishing %s → %s%s", experiment.experiment_id, experiment.hf_repo_id, " (dry-run)" if dry_run else "")
+    logger.info(
+        "Publishing %s → %s%s", experiment.experiment_id, experiment.hf_repo_id, " (dry-run)" if dry_run else ""
+    )
     return subprocess.run(cmd, check=False).returncode
 
 
@@ -85,11 +85,11 @@ def run_golden(
     trained = False
     if not skip_train:
         if not experiment.config_path.is_file():
-            raise FileNotFoundError(
-                f"config for {experiment.experiment_id!r} not found: {experiment.config_path}"
-            )
+            raise FileNotFoundError(f"config for {experiment.experiment_id!r} not found: {experiment.config_path}")
         spec = get_recipe(experiment.recipe)
-        logger.info("Training %s via recipe %r with %s", experiment.experiment_id, experiment.recipe, experiment.config_path)
+        logger.info(
+            "Training %s via recipe %r with %s", experiment.experiment_id, experiment.recipe, experiment.config_path
+        )
         cfg = spec.config_cls.from_yaml(str(experiment.config_path))  # type: ignore[attr-defined]
         spec.train_fn(cfg)
         trained = True

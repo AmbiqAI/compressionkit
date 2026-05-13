@@ -69,17 +69,12 @@ class GoldenExperiment(BaseModel):
         expected_repo = f"AmbiqAI/compressionkit-{self.modality}-{self.compression_ratio}x"
         if self.family == "codec" and self.hf_repo_id != expected_repo:
             raise ValueError(
-                f"hf_repo_id {self.hf_repo_id!r} does not match {expected_repo!r} "
-                f"for experiment {self.experiment_id!r}"
+                f"hf_repo_id {self.hf_repo_id!r} does not match {expected_repo!r} for experiment {self.experiment_id!r}"
             )
         if self.family == "two_stage" and self.parent is None:
-            raise ValueError(
-                f"two_stage experiment {self.experiment_id!r} must declare a parent codec id"
-            )
+            raise ValueError(f"two_stage experiment {self.experiment_id!r} must declare a parent codec id")
         if self.family == "codec" and self.parent is not None:
-            raise ValueError(
-                f"codec experiment {self.experiment_id!r} must not declare a parent"
-            )
+            raise ValueError(f"codec experiment {self.experiment_id!r} must not declare a parent")
         return self
 
 
@@ -137,9 +132,7 @@ def get_golden(experiment_id: str) -> GoldenExperiment:
     try:
         return _BY_ID[experiment_id]
     except KeyError as err:
-        raise KeyError(
-            f"Unknown golden experiment {experiment_id!r}. Known: {sorted(_BY_ID)}"
-        ) from err
+        raise KeyError(f"Unknown golden experiment {experiment_id!r}. Known: {sorted(_BY_ID)}") from err
 
 
 __all__ = [
