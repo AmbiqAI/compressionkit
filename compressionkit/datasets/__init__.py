@@ -11,6 +11,12 @@ Provides two layers:
    for RVQ training (TFRecord caching, streaming, in-memory).
 """
 
+from compressionkit.datasets.contract import (
+    DATASET_REGISTRY,
+    DatasetNotAvailableError,
+    ensure_dataset_available,
+    resolve_dataset,
+)
 from compressionkit.datasets.defines import DatasetInfo
 from compressionkit.datasets.ecg import (
     build_ecg_tfrecord_cache,
@@ -36,13 +42,16 @@ from compressionkit.datasets.ptbxl import PtbxlDataset
 
 __all__ = [
     # Dataset classes
+    "DATASET_REGISTRY",
     "DatasetInfo",
+    "DatasetNotAvailableError",
     "MesaDataset",
     "PtbxlDataset",
     # ECG pipeline helpers
     "build_ecg_tfrecord_cache",
     # PPG pipeline helpers
     "build_ppg_tfrecord_cache",
+    "ensure_dataset_available",
     "load_ecg_dataset",
     "load_ecg_file_splits",
     "load_ecg_signal",
@@ -56,4 +65,5 @@ __all__ = [
     "make_ecg_tfrecord_dataset",
     "make_ppg_stream_dataset",
     "make_ppg_tfrecord_dataset",
+    "resolve_dataset",
 ]

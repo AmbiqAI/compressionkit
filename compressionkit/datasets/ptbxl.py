@@ -77,6 +77,7 @@ INFO = DatasetInfo(
     num_leads=12,
     description=("21,799 clinical 12-lead ECGs (10 s, 500 Hz) from 18,885 subjects."),
     license="CC BY 4.0",
+    license_tier="open",
     requires_agreement=False,
 )
 
@@ -100,6 +101,22 @@ class PtbxlDataset:
 
     def __init__(self, path: str | os.PathLike = "datasets/ptbxl") -> None:
         self.path = Path(path)
+
+    def ensure_available(self) -> None:
+        """Raise :class:`DatasetNotAvailableError` if no H5 files are present.
+
+        Suggests the canonical download command (``ds.download()``) as
+        remediation.
+        """
+        from compressionkit.datasets.contract import DatasetNotAvailableError
+
+        if self.path.is_dir() and any(self.path.glob("*.h5")):
+            return
+        remediation = (
+            f'python -c "from compressionkit.datasets import PtbxlDataset;'
+            f" PtbxlDataset(path='{self.path}').download()\""
+        )
+        raise DatasetNotAvailableError("ptb-xl", self.path, remediation)
 
     @property
     def info(self) -> DatasetInfo:
