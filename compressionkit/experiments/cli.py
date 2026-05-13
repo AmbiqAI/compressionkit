@@ -20,6 +20,7 @@ import argparse
 import logging
 from pathlib import Path
 
+from compressionkit.datasets.contract import DatasetNotAvailableError
 from compressionkit.experiments.registry import (
     GoldenModality,
     get_golden,
@@ -84,15 +85,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.action == "run":
         get_golden(args.experiment_id)  # validate early
-        summary = run_golden(
-            args.experiment_id,
-            results_root=args.results_root,
-            datasets_root=args.datasets_root,
-            skip_train=args.skip_train,
-            skip_dataset_check=args.skip_dataset_check,
-            publish=args.publish,
-            dry_run=args.dry_run,
-        )
+        try:
+            summary = run_golden(
+                args.experiment_id,
+                results_root=args.results_root,
+                datasets_root=args.datasets_root,
+                skip_train=args.skip_train,
+                skip_dataset_check=args.skip_dataset_check,
+                publish=args.publish,
+                dry_run=args.dry_run,
+            )
+        except DatasetNotAvailableError as err:
+            logger.error("%s", err)
+            return 2
         logger.info("golden run summary: %s", summary)
         return 0 if (not args.publish or summary["published"] or args.dry_run) else 1
 
