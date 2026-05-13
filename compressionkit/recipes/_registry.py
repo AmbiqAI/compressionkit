@@ -129,6 +129,9 @@ def dispatch(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="recipe", metavar="RECIPE", required=True)
     sub.add_parser("list", help="List all registered recipes.")
+    # `golden` forwards every remaining argument to the experiments CLI.
+    golden = sub.add_parser("golden", help="Run v1 golden experiments (see 'compressionkit golden --help').")
+    golden.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     for spec in list_recipes():
         sp = sub.add_parser(spec.name, help=spec.description or None, description=spec.description or None)
         _build_config_parser(spec, sp)
@@ -138,6 +141,10 @@ def dispatch(argv: list[str] | None = None) -> int:
         for spec in list_recipes():
             print(f"{spec.name:30s}  {spec.description}")
         return 0
+    if args.recipe == "golden":
+        from compressionkit.experiments.cli import main as golden_main
+
+        return golden_main(args.args)
     return _run_single(get_recipe(args.recipe), ["--config", str(args.config)])
 
 
