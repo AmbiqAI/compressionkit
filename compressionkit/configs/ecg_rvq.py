@@ -409,6 +409,8 @@ class StitchingEvalConfig(BaseModel):
     duration_sec: float = 30.0
     seam_radius: int = 4
     batch_size: int = 32
+    hr_hrv: bool = True
+    """Compute HR/HRV metrics on each stitched trace (issue #3)."""
 
 
 class EvaluationConfig(BaseModel):

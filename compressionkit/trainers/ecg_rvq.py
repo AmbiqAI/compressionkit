@@ -752,6 +752,7 @@ def run_evaluation(
                 seed=data.shuffle_seed,
                 lead_index=data.lead_index if hasattr(data, "lead_index") else 1,
                 seam_radius=stitching_cfg.seam_radius,
+                hr_hrv=stitching_cfg.hr_hrv,
             )
 
     return {

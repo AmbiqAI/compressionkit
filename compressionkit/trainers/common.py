@@ -152,6 +152,18 @@ def write_summary(summary: dict[str, Any], run_dir: Path) -> Path:
     return path
 
 
+def write_long_recording_eval(payload: dict[str, Any], run_dir: Path) -> Path:
+    """Serialize *payload* to ``run_dir/long_recording_eval.json``.
+
+    Centralizes the long-recording report (HR/HRV on stitched traces)
+    referenced by issue #3. Returns the written path.
+    """
+    path = run_dir / "long_recording_eval.json"
+    with path.open("w") as f:
+        json.dump(payload, f, indent=2, default=float)
+    return path
+
+
 __all__ = [
     "BEST_CKPT_NAME",
     "collect_rep_dataset",
@@ -160,5 +172,6 @@ __all__ = [
     "save_config_snapshot",
     "save_model_artifacts",
     "setup_run_dir",
+    "write_long_recording_eval",
     "write_summary",
 ]

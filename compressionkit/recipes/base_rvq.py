@@ -25,9 +25,34 @@ from compressionkit.trainers.common import (
     save_config_snapshot,
     save_model_artifacts,
     setup_run_dir,
+    write_long_recording_eval,
     write_summary,
 )
 from compressionkit.trainers.utils import build_callbacks, build_learning_rate, setup_logger
+
+
+def _build_long_recording_payload(eval_results: dict[str, Any]) -> dict[str, Any] | None:
+    """Extract long-recording HR/HRV results for ``long_recording_eval.json``.
+
+    Returns ``None`` when the run did not produce long-recording results
+    (typical for short smoke runs or modalities with the eval disabled).
+    Packaged shape:
+
+    - PPG: ``{"modality": "ppg", "summary": {...}, "per_recording": [...]}``
+    - ECG: ``{"modality": "ecg", "stitching": {...}}`` where the stitching
+      block now includes per-method HR/HRV aggregates (issue #3).
+    """
+    long_ppg = eval_results.get("long_recording_metrics")
+    if long_ppg is not None:
+        return {
+            "modality": "ppg",
+            "summary": long_ppg,
+            "per_recording": eval_results.get("long_recording_per_recording") or [],
+        }
+    stitching = eval_results.get("stitching")
+    if stitching is not None:
+        return {"modality": "ecg", "stitching": stitching}
+    return None
 
 
 class BaseRVQTrainer[ConfigT](ABC):
@@ -250,6 +275,9 @@ class BaseRVQTrainer[ConfigT](ABC):
             validation_steps=validation_steps,
         )
         write_summary(summary, run_dir)
+        _long_payload = _build_long_recording_payload(eval_results)
+        if _long_payload is not None:
+            write_long_recording_eval(_long_payload, run_dir)
         self.logger.info(
             "Best epoch by %s: %d (value=%.6f)",
             selection_metric,
