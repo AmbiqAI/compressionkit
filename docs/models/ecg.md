@@ -106,11 +106,46 @@ results/ecg_rvq_256hz_08x_golden/
     ├── encoder.tflite          # INT8 quantized encoder
     ├── encoder.h               # C header for encoder
     ├── decoder.keras           # Keras decoder model
+    ├── decoder_float32.tflite  # Float32 LiteRT decoder for host-side decode
+    ├── decoder.tflite          # Optional INT8 decoder for on-device decode
+    ├── decoder.h               # Optional C header for INT8 decoder
     ├── codebook.npz            # RVQ codebook weights
     ├── codebook.h              # C header for codebook
     ├── sample_data.npz         # 50 validation samples
+    ├── model_card.json         # Metadata used for publishing
     └── deploy_manifest.json    # Artifact manifest
 ```
+
+## Deployment
+
+For the full runtime guide, see [Deployment Guide](../deployment.md).
+
+### Runtime Profile
+
+- Frame shape: `(1, 1, 512, 1)` float32
+- Sample rate: `256 Hz`
+- Default HuggingFace repo pattern: `AmbiqAI/compressionkit-ecg-{cr}x`
+
+### Quickstart
+
+```python
+import numpy as np
+
+from compressionkit.runtime import RVQCodec
+
+t = np.arange(512, dtype=np.float32) / 256.0
+signal = (0.75 * np.sin(2.0 * np.pi * 1.1 * t) + 0.12 * np.sin(2.0 * np.pi * 9.0 * t)).reshape(1, 1, 512, 1)
+
+codec = RVQCodec.from_pretrained("AmbiqAI/compressionkit-ecg-4x")
+indices = codec.encode(signal.astype(np.float32))
+reconstruction = codec.decode(indices)
+```
+
+### Deployment Notes
+
+- PTB-XL-based examples can be validated with synthetic waveforms; deployment does not require dataset access.
+- The most common split is encoder plus codebook on-device, decoder off-device.
+- ECG models can use the same `RVQCodec` runtime API as PPG even when the training recipe uses transform-domain branches internally.
 
 ## Extending
 

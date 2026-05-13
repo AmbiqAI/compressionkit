@@ -32,6 +32,7 @@ nav = [
   ]},
   { "Reference" = [
     { "CLI" = "cli.md" },
+    { "Deployment" = "deployment.md" },
     { "API" = [
       { "Configs" = "api/configs.md" },
       { "Datasets" = "api/datasets.md" },
