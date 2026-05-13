@@ -108,16 +108,63 @@ def _ecg_codec(cr: int) -> GoldenExperiment:
     )
 
 
+def _ppg_two_stage(cr: int) -> GoldenExperiment:
+    parent_id = f"ppg-rvq-{cr}x"
+    return GoldenExperiment(
+        experiment_id=f"ppg-rvq-{cr}x-prior",
+        modality="ppg",
+        family="two_stage",
+        parent=parent_id,
+        recipe="train-rvq-prior",
+        config_path=Path(f"configs/ppg_rvq_64hz_{cr:02d}x_golden_prior.yaml"),
+        run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
+        sample_rate=64,
+        compression_ratio=cr,
+        hf_repo_id=f"AmbiqAI/compressionkit-ppg-{cr}x",
+        dataset_id="mesa",
+    )
+
+
+def _ecg_two_stage(cr: int) -> GoldenExperiment:
+    parent_id = f"ecg-rvq-{cr}x"
+    return GoldenExperiment(
+        experiment_id=f"ecg-rvq-{cr}x-prior",
+        modality="ecg",
+        family="two_stage",
+        parent=parent_id,
+        recipe="train-rvq-prior",
+        config_path=Path(f"configs/ecg_rvq_256hz_{cr:02d}x_golden_prior.yaml"),
+        run_name=f"ecg_rvq_256hz_{cr:02d}x_golden",
+        sample_rate=256,
+        compression_ratio=cr,
+        hf_repo_id=f"AmbiqAI/compressionkit-ecg-{cr}x",
+        dataset_id="ptb-xl",
+    )
+
+
 # v1 golden codec experiments. Two-stage paired entries land via #27.
 GOLDEN_REGISTRY: list[GoldenExperiment] = [
     *(_ppg_codec(cr) for cr in (2, 4, 8, 16, 32)),
     *(_ecg_codec(cr) for cr in (2, 4, 8, 16, 32, 64)),
+    # Two-stage (codec + entropy prior) paired entries for selected operating points.
+    *(_ppg_two_stage(cr) for cr in (4, 8)),
+    *(_ecg_two_stage(cr) for cr in (4, 8)),
 ]
 
 
 _BY_ID: dict[str, GoldenExperiment] = {exp.experiment_id: exp for exp in GOLDEN_REGISTRY}
 if len(_BY_ID) != len(GOLDEN_REGISTRY):
     raise RuntimeError("duplicate experiment_id in GOLDEN_REGISTRY")
+
+# Every two_stage entry must point at a registered codec parent.
+for _exp in GOLDEN_REGISTRY:
+    if _exp.family == "two_stage" and _exp.parent not in _BY_ID:
+        raise RuntimeError(f"two_stage {_exp.experiment_id!r} parent {_exp.parent!r} not in registry")
+
+
+def list_two_stage_children(parent_id: str) -> list[GoldenExperiment]:
+    """Return every two_stage experiment paired to the given codec parent."""
+    return [exp for exp in GOLDEN_REGISTRY if exp.family == "two_stage" and exp.parent == parent_id]
 
 
 def list_goldens(modality: GoldenModality | None = None) -> list[GoldenExperiment]:
@@ -142,4 +189,5 @@ __all__ = [
     "GoldenModality",
     "get_golden",
     "list_goldens",
+    "list_two_stage_children",
 ]

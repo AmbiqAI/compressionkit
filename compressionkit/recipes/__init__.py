@@ -25,7 +25,12 @@ from __future__ import annotations
 
 # Import shipped recipes so registration side-effects fire. Kept at the
 # bottom to avoid any circular imports from the registry module.
-from compressionkit.recipes import train_ecg_rvq, train_ppg_h5_rvq, train_ppg_rvq
+from compressionkit.recipes import (
+    train_ecg_rvq,
+    train_ppg_h5_rvq,
+    train_ppg_rvq,
+    train_rvq_prior,
+)
 from compressionkit.recipes._registry import (
     RecipeSpec,
     dispatch,

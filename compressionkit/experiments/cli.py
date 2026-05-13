@@ -61,6 +61,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--datasets-root", type=Path, default=None, help="Override dataset root for the pre-flight check."
     )
     p_run.add_argument("--skip-train", action="store_true", help="Skip training; assume run_dir already exists.")
+    p_run.add_argument(
+        "--skip-parent", action="store_true", help="For two_stage entries: skip retraining the parent codec."
+    )
     p_run.add_argument("--skip-dataset-check", action="store_true", help="Skip the dataset availability pre-flight.")
     p_run.add_argument("--publish", action="store_true", help="Publish to HuggingFace after training.")
     p_run.add_argument("--dry-run", action="store_true", help="Stage publish files without uploading.")
@@ -91,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
                 results_root=args.results_root,
                 datasets_root=args.datasets_root,
                 skip_train=args.skip_train,
+                skip_parent=args.skip_parent,
                 skip_dataset_check=args.skip_dataset_check,
                 publish=args.publish,
                 dry_run=args.dry_run,
