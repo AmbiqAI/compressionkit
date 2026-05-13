@@ -92,6 +92,9 @@ uv sync --extra hf
 
 Then load a codec directly from the Hub:
 
+!!! note
+    The `AmbiqAI/compressionkit-{modality}-{cr}x` repos are published as part of the v1 golden release (tracked in #25 / #28). Once a golden run is published, the snippet below works against it; until then the call returns a 404 and you can substitute a local `RVQCodec("results/<run_name>/deploy")` path.
+
 ```python
 import numpy as np
 
@@ -128,6 +131,9 @@ The two-stage path is for advanced users who want additional bitrate reduction b
 
 Stage 1 uses the standard RVQ codec to produce token indices. Stage 2 runs a causal entropy prior over those tokens and arithmetic-codes them into a compressed bitstream.
 
+!!! note
+    The example below is illustrative. Paired two-stage golden artifacts (`prior.tflite` alongside the codec deploy package) ship with the two-stage golden family tracked in #27. Until then, train a prior with `scripts/train_rvq_prior.py` and point `EntropyPrior` at its output.
+
 ```python
 import numpy as np
 
@@ -142,8 +148,9 @@ def synthetic_ppg_frame(frame_size: int = 320, sample_rate: int = 64) -> np.ndar
     return waveform.reshape(1, 1, frame_size, 1).astype(np.float32)
 
 
-codec = RVQCodec("results/ppg_rvq_64hz_04x_golden/deploy")
-prior = EntropyPrior("artifacts/ppg_prior.tflite")
+run_dir = "results/ppg_rvq_64hz_04x_golden"
+codec = RVQCodec(f"{run_dir}/deploy")
+prior = EntropyPrior(f"{run_dir}/prior/prior.tflite")
 two_stage = TwoStageCodec(codec, prior)
 
 signal = synthetic_ppg_frame()
