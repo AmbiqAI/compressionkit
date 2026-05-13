@@ -131,11 +131,46 @@ results/ppg_rvq_64hz_08x_golden/
     ├── encoder.tflite          # INT8 quantized encoder
     ├── encoder.h               # C header for encoder
     ├── decoder.keras           # Keras decoder model
+    ├── decoder_float32.tflite  # Float32 LiteRT decoder for host-side decode
+    ├── decoder.tflite          # Optional INT8 decoder for on-device decode
+    ├── decoder.h               # Optional C header for INT8 decoder
     ├── codebook.npz            # RVQ codebook weights
     ├── codebook.h              # C header for codebook
     ├── sample_data.npz         # 50 validation samples
+    ├── model_card.json         # Metadata used for publishing
     └── deploy_manifest.json    # Artifact manifest
 ```
+
+## Deployment
+
+For the full runtime guide, see [Deployment Guide](../deployment.md).
+
+### Runtime Profile
+
+- Frame shape: `(1, 1, 320, 1)` float32
+- Sample rate: `64 Hz`
+- Default HuggingFace repo pattern: `AmbiqAI/compressionkit-ppg-{cr}x`
+
+### Quickstart
+
+```python
+import numpy as np
+
+from compressionkit.runtime import RVQCodec
+
+t = np.arange(320, dtype=np.float32) / 64.0
+signal = (0.6 * np.sin(2.0 * np.pi * 1.2 * t) + 0.1 * np.sin(2.0 * np.pi * 2.4 * t)).reshape(1, 1, 320, 1)
+
+codec = RVQCodec.from_pretrained("AmbiqAI/compressionkit-ppg-4x")
+indices = codec.encode(signal.astype(np.float32))
+reconstruction = codec.decode(indices)
+```
+
+### Deployment Notes
+
+- Use `encoder.tflite` plus `codebook.h` for the lowest-footprint embedded path.
+- Use `decoder_float32.tflite` when reconstruction runs on a host or cloud service.
+- Add the two-stage prior only when bitrate is more constrained than compute or memory.
 
 ## Extending
 
