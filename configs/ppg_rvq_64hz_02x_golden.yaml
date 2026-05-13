@@ -3,6 +3,7 @@
 run_name: ppg_rvq_64hz_02x_golden
 
 data:
+  dataset_id: mesa
   datasets_dir: /home/vscode/datasets
   dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
   sampling_rate: 64

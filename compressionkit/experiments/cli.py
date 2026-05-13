@@ -20,6 +20,7 @@ import argparse
 import logging
 from pathlib import Path
 
+from compressionkit.datasets.contract import DatasetNotAvailableError
 from compressionkit.experiments.registry import (
     GoldenModality,
     get_golden,
@@ -56,13 +57,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="Run a single golden experiment end-to-end.")
     p_run.add_argument("experiment_id")
     p_run.add_argument("--results-root", type=Path, default=Path("results"))
+    p_run.add_argument(
+        "--datasets-root", type=Path, default=None, help="Override dataset root for the pre-flight check."
+    )
     p_run.add_argument("--skip-train", action="store_true", help="Skip training; assume run_dir already exists.")
+    p_run.add_argument("--skip-dataset-check", action="store_true", help="Skip the dataset availability pre-flight.")
     p_run.add_argument("--publish", action="store_true", help="Publish to HuggingFace after training.")
     p_run.add_argument("--dry-run", action="store_true", help="Stage publish files without uploading.")
 
     p_all = sub.add_parser("run-all", help="Run every golden in a modality, sequentially.")
     p_all.add_argument("--modality", choices=["ppg", "ecg"], required=True)
     p_all.add_argument("--results-root", type=Path, default=Path("results"))
+    p_all.add_argument("--datasets-root", type=Path, default=None)
+    p_all.add_argument("--skip-dataset-check", action="store_true")
     p_all.add_argument("--publish", action="store_true")
     p_all.add_argument("--dry-run", action="store_true")
 
@@ -78,13 +85,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.action == "run":
         get_golden(args.experiment_id)  # validate early
-        summary = run_golden(
-            args.experiment_id,
-            results_root=args.results_root,
-            skip_train=args.skip_train,
-            publish=args.publish,
-            dry_run=args.dry_run,
-        )
+        try:
+            summary = run_golden(
+                args.experiment_id,
+                results_root=args.results_root,
+                datasets_root=args.datasets_root,
+                skip_train=args.skip_train,
+                skip_dataset_check=args.skip_dataset_check,
+                publish=args.publish,
+                dry_run=args.dry_run,
+            )
+        except DatasetNotAvailableError as err:
+            logger.error("%s", err)
+            return 2
         logger.info("golden run summary: %s", summary)
         return 0 if (not args.publish or summary["published"] or args.dry_run) else 1
 
@@ -95,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
             run_golden(
                 exp.experiment_id,
                 results_root=args.results_root,
+                datasets_root=args.datasets_root,
+                skip_dataset_check=args.skip_dataset_check,
                 publish=args.publish,
                 dry_run=args.dry_run,
             )

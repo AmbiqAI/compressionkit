@@ -115,6 +115,10 @@ class UnifiedCacheConfig(BaseModel):
 class DataConfig(BaseModel):
     """Data loading and preprocessing configuration."""
 
+    dataset_id: str | None = Field(
+        default=None,
+        description="Identifier registered in compressionkit.datasets.contract (see #26).",
+    )
     datasets_dir: str = "/home/vscode/datasets"
     dataset_glob: str = "mesa-commercial-use/polysomnography/edfs/*.edf"
     sampling_rate: int = 64

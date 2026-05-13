@@ -31,6 +31,7 @@ INFO = DatasetInfo(
     num_leads=1,
     description=("Overnight PPG recordings (256 Hz) from the MESA polysomnography study.  ~1,900 subjects."),
     license="NSRR Data Use Agreement",
+    license_tier="restricted",
     requires_agreement=True,
 )
 
@@ -63,6 +64,23 @@ class MesaDataset:
         self.path = Path(path)
         self.ppg_label = ppg_label
         self._edf_paths: list[Path] | None = None
+
+    def ensure_available(self) -> None:
+        """Raise :class:`DatasetNotAvailableError` if no EDF files are present.
+
+        MESA is a restricted dataset; the remediation message points
+        at ``MesaDataset.download()`` which requires an NSRR token.
+        """
+        from compressionkit.datasets.contract import DatasetNotAvailableError
+
+        if self.path.is_dir() and any(self.path.glob(_DEFAULT_GLOB)):
+            return
+        remediation = (
+            "export NSRR_TOKEN=<your-token>\n"
+            f'  python -c "from compressionkit.datasets import MesaDataset;'
+            f" MesaDataset(path='{self.path}').download()\""
+        )
+        raise DatasetNotAvailableError("mesa", self.path, remediation)
 
     @property
     def info(self) -> DatasetInfo:

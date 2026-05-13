@@ -59,7 +59,9 @@ def run_golden(
     experiment_id: str,
     *,
     results_root: Path | str = Path("results"),
+    datasets_root: Path | str | None = None,
     skip_train: bool = False,
+    skip_dataset_check: bool = False,
     publish: bool = False,
     dry_run: bool = False,
 ) -> dict[str, object]:
@@ -68,8 +70,11 @@ def run_golden(
     Args:
         experiment_id: Registered golden experiment id.
         results_root: Root directory for run outputs (defaults to ``results/``).
+        datasets_root: Optional override for the dataset root used by the
+            pre-flight check. ``None`` uses each dataset class's default.
         skip_train: If True, only publish an already-trained run (requires the
             deploy directory to exist).
+        skip_dataset_check: If True, do not pre-flight dataset availability.
         publish: If True, upload the deploy package to HuggingFace after training.
         dry_run: If True (and ``publish`` is set), generate the staging
             directory but do not upload.
@@ -86,6 +91,11 @@ def run_golden(
     if not skip_train:
         if not experiment.config_path.is_file():
             raise FileNotFoundError(f"config for {experiment.experiment_id!r} not found: {experiment.config_path}")
+        if not skip_dataset_check:
+            from compressionkit.datasets.contract import ensure_dataset_available
+
+            root = Path(datasets_root) if datasets_root is not None else None
+            ensure_dataset_available(experiment.dataset_id, root=root)
         spec = get_recipe(experiment.recipe)
         logger.info(
             "Training %s via recipe %r with %s", experiment.experiment_id, experiment.recipe, experiment.config_path

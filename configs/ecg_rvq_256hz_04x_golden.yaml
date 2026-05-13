@@ -11,6 +11,7 @@
 run_name: ecg_rvq_256hz_04x_golden
 
 data:
+  dataset_id: ptb-xl
   datasets_dir: datasets
   dataset_glob: ptbxl/*.h5
   sampling_rate: 500
