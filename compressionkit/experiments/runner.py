@@ -61,33 +61,44 @@ def run_golden(
     results_root: Path | str = Path("results"),
     datasets_root: Path | str | None = None,
     skip_train: bool = False,
+    skip_parent: bool = False,
     skip_dataset_check: bool = False,
     publish: bool = False,
     dry_run: bool = False,
 ) -> dict[str, object]:
     """Run a single golden experiment end-to-end.
 
+    For ``two_stage`` experiments the parent codec is trained first
+    (unless already on disk or ``skip_parent`` is set), then the prior
+    is trained against the parent's run directory. The bundled deploy
+    artifacts (encoder/decoder/codebook + ``prior_int8.tflite``) live in
+    the parent's ``run_dir/deploy/``.
+
     Args:
         experiment_id: Registered golden experiment id.
         results_root: Root directory for run outputs (defaults to ``results/``).
         datasets_root: Optional override for the dataset root used by the
-            pre-flight check. ``None`` uses each dataset class's default.
-        skip_train: If True, only publish an already-trained run (requires the
-            deploy directory to exist).
+            pre-flight check.
+        skip_train: If True, only publish an already-trained run.
+        skip_parent: For two_stage entries: assume the parent codec is
+            already trained. Skips the parent training step.
         skip_dataset_check: If True, do not pre-flight dataset availability.
-        publish: If True, upload the deploy package to HuggingFace after training.
-        dry_run: If True (and ``publish`` is set), generate the staging
-            directory but do not upload.
+        publish: If True, upload the deploy package to HuggingFace.
+        dry_run: If True (and ``publish`` is set), stage without upload.
 
     Returns:
-        A dict summarising the run: ``experiment_id``, ``run_dir``,
-        ``trained`` (bool), ``published`` (bool), ``publish_returncode``.
+        Run summary with ``experiment_id``, ``run_dir``, ``trained``,
+        ``published``, ``publish_returncode``, and for two_stage runs
+        ``parent_trained`` and ``prior_summary``.
     """
     experiment = get_golden(experiment_id)
     results_root = Path(results_root)
     run_dir = _resolve_run_dir(experiment, results_root)
 
+    parent_trained = False
+    prior_summary: dict[str, object] | None = None
     trained = False
+
     if not skip_train:
         if not experiment.config_path.is_file():
             raise FileNotFoundError(f"config for {experiment.experiment_id!r} not found: {experiment.config_path}")
@@ -96,13 +107,43 @@ def run_golden(
 
             root = Path(datasets_root) if datasets_root is not None else None
             ensure_dataset_available(experiment.dataset_id, root=root)
-        spec = get_recipe(experiment.recipe)
-        logger.info(
-            "Training %s via recipe %r with %s", experiment.experiment_id, experiment.recipe, experiment.config_path
-        )
-        cfg = spec.config_cls.from_yaml(str(experiment.config_path))  # type: ignore[attr-defined]
-        spec.train_fn(cfg)
-        trained = True
+
+        if experiment.family == "two_stage":
+            assert experiment.parent is not None  # validator enforces this
+            parent_exp = get_golden(experiment.parent)
+            parent_run_dir = _resolve_run_dir(parent_exp, results_root)
+            if not (parent_run_dir / "deploy").is_dir() and not skip_parent:
+                logger.info("Parent codec %s not yet trained; chaining its training.", parent_exp.experiment_id)
+                parent_spec = get_recipe(parent_exp.recipe)
+                parent_cfg = parent_spec.config_cls.from_yaml(str(parent_exp.config_path))  # type: ignore[attr-defined]
+                parent_spec.train_fn(parent_cfg)
+                parent_trained = True
+            elif skip_parent:
+                logger.info(
+                    "--skip-parent: assuming %s is already trained at %s", parent_exp.experiment_id, parent_run_dir
+                )
+            spec = get_recipe(experiment.recipe)
+            logger.info(
+                "Training prior %s via recipe %r with %s",
+                experiment.experiment_id,
+                experiment.recipe,
+                experiment.config_path,
+            )
+            cfg = spec.config_cls.from_yaml(str(experiment.config_path))  # type: ignore[attr-defined]
+            cfg = cfg.model_copy(update={"parent_run_dir": parent_run_dir})
+            prior_summary = spec.train_fn(cfg)
+            trained = True
+        else:
+            spec = get_recipe(experiment.recipe)
+            logger.info(
+                "Training %s via recipe %r with %s",
+                experiment.experiment_id,
+                experiment.recipe,
+                experiment.config_path,
+            )
+            cfg = spec.config_cls.from_yaml(str(experiment.config_path))  # type: ignore[attr-defined]
+            spec.train_fn(cfg)
+            trained = True
 
     published = False
     publish_rc: int | None = None
@@ -110,13 +151,17 @@ def run_golden(
         publish_rc = _publish(experiment, run_dir, dry_run=dry_run)
         published = publish_rc == 0
 
-    return {
+    summary: dict[str, object] = {
         "experiment_id": experiment.experiment_id,
         "run_dir": str(run_dir),
         "trained": trained,
         "published": published,
         "publish_returncode": publish_rc,
     }
+    if experiment.family == "two_stage":
+        summary["parent_trained"] = parent_trained
+        summary["prior_summary"] = prior_summary
+    return summary
 
 
 __all__ = ["run_golden"]

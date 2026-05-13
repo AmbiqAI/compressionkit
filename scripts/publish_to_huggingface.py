@@ -49,6 +49,10 @@ _DEPLOY_FILE_MAP: dict[str, str] = {
     "sample_stimulus.npz": "sample_stimulus.npz",
     "deploy_manifest.json": "config.json",
     "model_card.json": "model_card.json",
+    # Two-stage prior artifacts (only present for two_stage golden runs, #27).
+    "prior_int8.tflite": "prior_int8.tflite",
+    "prior_int8.h": "prior_int8.h",
+    "prior_manifest.json": "prior_manifest.json",
 }
 
 
