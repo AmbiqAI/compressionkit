@@ -118,7 +118,9 @@ class TestCodebookOperations:
         num_embeddings = 256
         embedding_dim = 16
         rng = np.random.default_rng(42)
-        codec._codebooks = [rng.standard_normal((num_embeddings, embedding_dim)).astype(np.float32) for _ in range(num_levels)]
+        codec._codebooks = [
+            rng.standard_normal((num_embeddings, embedding_dim)).astype(np.float32) for _ in range(num_levels)
+        ]
         codec._num_levels = num_levels
         codec._num_embeddings = num_embeddings
         codec._embedding_dim = embedding_dim
@@ -131,7 +133,7 @@ class TestCodebookOperations:
         # RVQ with 4 levels of 256 entries should reconstruct reasonably
         assert recon.shape == latent.shape
         error = np.mean((latent - recon) ** 2)
-        assert error < np.mean(latent ** 2)  # better than zero prediction
+        assert error < np.mean(latent**2)  # better than zero prediction
 
     def test_dequantize_deterministic(self):
         """dequantize_indices is deterministic — same indices give same output."""

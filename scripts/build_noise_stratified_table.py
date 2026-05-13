@@ -22,12 +22,8 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-ECG_GOLDEN_RUNS = [
-    f"ecg_rvq_256hz_{cr}_golden" for cr in ("02x", "04x", "08x", "16x", "32x", "64x")
-]
-PPG_GOLDEN_RUNS = [
-    f"ppg_rvq_64hz_{cr}_golden" for cr in ("02x", "04x", "08x", "16x", "32x")
-]
+ECG_GOLDEN_RUNS = [f"ecg_rvq_256hz_{cr}_golden" for cr in ("02x", "04x", "08x", "16x", "32x", "64x")]
+PPG_GOLDEN_RUNS = [f"ppg_rvq_64hz_{cr}_golden" for cr in ("02x", "04x", "08x", "16x", "32x")]
 PPG_H5_GOLDEN_RUNS = [
     "ppg_h5_rvq_2x_mixed_golden_sched",
     "ppg_h5_rvq_4x_mixed_golden_sched",
@@ -50,7 +46,8 @@ def _safe_get(d: dict, *keys: str, default: float | None = None) -> float | None
 
 
 def _extract_rows(
-    scorecard: dict, run_name: str,
+    scorecard: dict,
+    run_name: str,
 ) -> list[dict]:
     """Extract per-tertile rows from a single scorecard."""
     bnt = scorecard.get("by_noise_tertile", {})
@@ -116,28 +113,30 @@ def _extract_rows(
     # For physiology "all", use the top-level vs_raw_original or the flat dict
     phys_top = phys_all.get("vs_raw_original", phys_all)
 
-    rows.append({
-        "run_name": run_name,
-        "cr_label": cr_str,
-        "compression_ratio": cr_raw,
-        "noise_tertile": "all",
-        "n_samples": scorecard.get("num_samples", 0),
-        "noise_threshold_clean_max": thresholds.get("clean_max"),
-        "noise_threshold_median_max": thresholds.get("median_max"),
-        "prd_mean": _safe_get(td_all, "prd_percent", "mean"),
-        "prd_p90": _safe_get(td_all, "prd_percent", "p90"),
-        "prdn_mean": _safe_get(td_all, "prdn_noise_percent", "mean"),
-        "prdn_p90": _safe_get(td_all, "prdn_noise_percent", "p90"),
-        "rmse_mean": _safe_get(td_all, "rmse", "mean"),
-        "cosine_mean": _safe_get(td_all, "cosine_similarity", "mean"),
-        "band_err_mean": _safe_get(sp_all, "band_total_rel_error", "mean"),
-        "wfprd_mean": _safe_get(sp_all, "weighted_freq_prd_percent", "mean"),
-        "coherence_mean": _safe_get(sp_all, "coherence", "mean"),
-        "hr_mae_mean": phys_top.get("hr_mae_bpm") if isinstance(phys_top, dict) else None,
-        "hr_mae_p90": phys_top.get("hr_p90_ae_bpm") if isinstance(phys_top, dict) else None,
-        "sdnn_mae_mean": phys_top.get("sdnn_mae_ms") if isinstance(phys_top, dict) else None,
-        "rmssd_mae_mean": phys_top.get("rmssd_mae_ms") if isinstance(phys_top, dict) else None,
-    })
+    rows.append(
+        {
+            "run_name": run_name,
+            "cr_label": cr_str,
+            "compression_ratio": cr_raw,
+            "noise_tertile": "all",
+            "n_samples": scorecard.get("num_samples", 0),
+            "noise_threshold_clean_max": thresholds.get("clean_max"),
+            "noise_threshold_median_max": thresholds.get("median_max"),
+            "prd_mean": _safe_get(td_all, "prd_percent", "mean"),
+            "prd_p90": _safe_get(td_all, "prd_percent", "p90"),
+            "prdn_mean": _safe_get(td_all, "prdn_noise_percent", "mean"),
+            "prdn_p90": _safe_get(td_all, "prdn_noise_percent", "p90"),
+            "rmse_mean": _safe_get(td_all, "rmse", "mean"),
+            "cosine_mean": _safe_get(td_all, "cosine_similarity", "mean"),
+            "band_err_mean": _safe_get(sp_all, "band_total_rel_error", "mean"),
+            "wfprd_mean": _safe_get(sp_all, "weighted_freq_prd_percent", "mean"),
+            "coherence_mean": _safe_get(sp_all, "coherence", "mean"),
+            "hr_mae_mean": phys_top.get("hr_mae_bpm") if isinstance(phys_top, dict) else None,
+            "hr_mae_p90": phys_top.get("hr_p90_ae_bpm") if isinstance(phys_top, dict) else None,
+            "sdnn_mae_mean": phys_top.get("sdnn_mae_ms") if isinstance(phys_top, dict) else None,
+            "rmssd_mae_mean": phys_top.get("rmssd_mae_ms") if isinstance(phys_top, dict) else None,
+        }
+    )
 
     return rows
 
@@ -211,10 +210,15 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--modality", choices=("ecg", "ppg"), required=True)
     ap.add_argument("--results-dir", type=Path, default=Path("results"))
-    ap.add_argument("--output", type=Path, default=None,
-                    help="Output prefix (writes .csv and .md). Default: results/<modality>_noise_stratified")
-    ap.add_argument("--include-h5", action="store_true",
-                    help="Include PPG H5 mixed golden runs alongside standard PPG goldens.")
+    ap.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output prefix (writes .csv and .md). Default: results/<modality>_noise_stratified",
+    )
+    ap.add_argument(
+        "--include-h5", action="store_true", help="Include PPG H5 mixed golden runs alongside standard PPG goldens."
+    )
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO)

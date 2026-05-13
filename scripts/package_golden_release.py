@@ -32,10 +32,14 @@ def main() -> None:
     parser.add_argument("--modality", choices=["ecg", "ppg"], required=True)
     parser.add_argument("--sample-rate", type=int, required=True)
     parser.add_argument("--compression-ratio", type=int, required=True)
-    parser.add_argument("--output-dir", type=Path, default=None, help="Override output dir (default: golden-dir/deploy).")
+    parser.add_argument(
+        "--output-dir", type=Path, default=None, help="Override output dir (default: golden-dir/deploy)."
+    )
     parser.add_argument("--num-stimulus", type=int, default=10, help="Number of synthetic stimulus samples.")
     parser.add_argument("--export-decoder-int8", action="store_true", help="Also export INT8 decoder TFLite.")
-    parser.add_argument("--scorecard", type=Path, default=None, help="Path to quality_scorecard.json to embed in model card.")
+    parser.add_argument(
+        "--scorecard", type=Path, default=None, help="Path to quality_scorecard.json to embed in model card."
+    )
     args = parser.parse_args()
 
     golden_dir = args.golden_dir
@@ -78,9 +82,7 @@ def main() -> None:
     from compressionkit.export.stimulus import generate_stimulus
 
     input_shape = encoder.input_shape  # e.g. (None, 1, 320, 1)
-    if len(input_shape) == 4:
-        frame_size = input_shape[-2]
-    elif len(input_shape) == 3:
+    if len(input_shape) == 4 or len(input_shape) == 3:
         frame_size = input_shape[-2]
     else:
         frame_size = input_shape[-1]

@@ -85,22 +85,26 @@ def _parse_summary(path: Path, signal: str) -> dict | None:
     h5_eval = raw.get("h5_eval_metrics", {})
     lr_pk = metrics.get("long_recording_physiokit") or h5_eval.get("long_recording") or {}
     if lr_pk:
-        row.update({
-            "hr_mae_bpm": lr_pk.get("hr_mae_bpm"),
-            "hr_median_ae_bpm": lr_pk.get("hr_median_ae_bpm"),
-            "hr_bias_bpm": lr_pk.get("hr_bias_bpm"),
-            "sdnn_mae_ms": lr_pk.get("sdnn_mae_ms"),
-            "rmssd_mae_ms": lr_pk.get("rmssd_mae_ms"),
-        })
+        row.update(
+            {
+                "hr_mae_bpm": lr_pk.get("hr_mae_bpm"),
+                "hr_median_ae_bpm": lr_pk.get("hr_median_ae_bpm"),
+                "hr_bias_bpm": lr_pk.get("hr_bias_bpm"),
+                "sdnn_mae_ms": lr_pk.get("sdnn_mae_ms"),
+                "rmssd_mae_ms": lr_pk.get("rmssd_mae_ms"),
+            }
+        )
 
     # Short-window physiokit (best_physiokit)
     bp = metrics.get("best_physiokit") or h5_eval.get("short_window", {}).get("physiokit") or {}
     if bp:
-        row.update({
-            "sw_hr_mae_bpm": bp.get("hr_mae_bpm"),
-            "sw_sdnn_mae_ms": bp.get("sdnn_mae_ms"),
-            "sw_rmssd_mae_ms": bp.get("rmssd_mae_ms"),
-        })
+        row.update(
+            {
+                "sw_hr_mae_bpm": bp.get("hr_mae_bpm"),
+                "sw_sdnn_mae_ms": bp.get("sdnn_mae_ms"),
+                "sw_rmssd_mae_ms": bp.get("rmssd_mae_ms"),
+            }
+        )
 
     return row
 

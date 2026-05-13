@@ -14,11 +14,8 @@ Augmentations:
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 from scipy import signal as scipy_signal
-
 
 # ---------------------------------------------------------------------------
 # Baseline wander (low-frequency drift)
@@ -152,7 +149,7 @@ def add_motion_artifact(
             noise = scipy_signal.sosfilt(sos, noise).astype(np.float32)
 
         # Scale noise to target power
-        current_noise_power = np.mean(noise ** 2) + 1e-10
+        current_noise_power = np.mean(noise**2) + 1e-10
         noise = noise * np.sqrt(target_noise_power / current_noise_power)
         result[i] += noise
 
@@ -210,7 +207,9 @@ def scale_beat_amplitudes(
 
     # Interpolate scale factors to sample level
     sample_scales = np.interp(
-        np.arange(length), peaks, scales,
+        np.arange(length),
+        peaks,
+        scales,
     ).astype(np.float32)
 
     # Apply around the mean to preserve DC offset
@@ -318,7 +317,7 @@ def extract_noise_segments(
         return np.empty((0, window_size), dtype=np.float32)
 
     windows = residual[: n_windows * window_size].reshape(n_windows, window_size)
-    energies = np.mean(windows ** 2, axis=1)
+    energies = np.mean(windows**2, axis=1)
 
     # Select high-noise windows
     median_energy = np.median(energies)
@@ -375,7 +374,7 @@ def add_empirical_noise(
         sig_power = np.mean(ppg[i] ** 2) + 1e-10
         target_snr_db = rng.uniform(snr_range[0], snr_range[1])
         target_noise_power = sig_power / (10 ** (target_snr_db / 10))
-        current_noise_power = np.mean(noise ** 2) + 1e-10
+        current_noise_power = np.mean(noise**2) + 1e-10
         noise = noise * np.sqrt(target_noise_power / current_noise_power)
 
         result[i] += noise.astype(np.float32)
@@ -443,29 +442,39 @@ class PPGAugmenter:
 
         if self.rng.random() < self.baseline_wander_prob:
             result = add_baseline_wander(
-                result, sample_rate=self.sample_rate, rng=self.rng,
+                result,
+                sample_rate=self.sample_rate,
+                rng=self.rng,
             )
 
         if self.rng.random() < self.motion_artifact_prob:
             result = add_motion_artifact(
-                result, sample_rate=self.sample_rate,
-                snr_range=self.motion_snr_range, rng=self.rng,
+                result,
+                sample_rate=self.sample_rate,
+                snr_range=self.motion_snr_range,
+                rng=self.rng,
             )
 
         if self.rng.random() < self.beat_scale_prob:
             result = scale_beat_amplitudes(
-                result, sample_rate=self.sample_rate, rng=self.rng,
+                result,
+                sample_rate=self.sample_rate,
+                rng=self.rng,
             )
 
         if self.rng.random() < self.time_warp_prob:
             result = time_warp(
-                result, sample_rate=self.sample_rate, rng=self.rng,
+                result,
+                sample_rate=self.sample_rate,
+                rng=self.rng,
             )
 
         if self.noise_bank is not None and self.rng.random() < self.empirical_noise_prob:
             result = add_empirical_noise(
-                result, self.noise_bank,
-                snr_range=self.empirical_snr_range, rng=self.rng,
+                result,
+                self.noise_bank,
+                snr_range=self.empirical_snr_range,
+                rng=self.rng,
             )
 
         return result
@@ -530,7 +539,9 @@ def build_noise_bank_from_h5(
             signal = resample_poly(signal, target_fs // gcd, fs // gcd).astype(np.float32)
 
         noise_segs = extract_noise_segments(
-            signal, sample_rate=target_fs, window_size=window_size,
+            signal,
+            sample_rate=target_fs,
+            window_size=window_size,
         )
         if len(noise_segs) > 0:
             all_noise.append(noise_segs)

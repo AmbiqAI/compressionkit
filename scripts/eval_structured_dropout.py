@@ -133,7 +133,9 @@ def main():
     vq_layer = model.vq
 
     # Determine levels to evaluate
-    levels_to_eval = cfg.model.dropout_levels or [2**i for i in range(cfg.model.num_levels.bit_length()) if 2**i <= cfg.model.num_levels]
+    levels_to_eval = cfg.model.dropout_levels or [
+        2**i for i in range(cfg.model.num_levels.bit_length()) if 2**i <= cfg.model.num_levels
+    ]
 
     print("\n" + "=" * 80)
     print("STRUCTURED DROPOUT EVALUATION — Unified Model at Each Level")

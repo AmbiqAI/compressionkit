@@ -105,10 +105,7 @@ class FiniteScalarQuantizer(keras.layers.Layer):
     def build(self, input_shape):
         last = input_shape[-1]
         if last is not None and int(last) != self.D:
-            raise ValueError(
-                f"FSQ input last dim {int(last)} does not match D={self.D} "
-                f"(levels={self.levels})"
-            )
+            raise ValueError(f"FSQ input last dim {int(last)} does not match D={self.D} (levels={self.levels})")
         super().build(input_shape)
 
     # ------------------------------------------------------------------

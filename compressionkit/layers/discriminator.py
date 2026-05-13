@@ -91,16 +91,24 @@ def build_sub_discriminator(
 
     # First conv with stride 1 (no downsampling)
     x = _disc_block(
-        x, channels[0], kernel_width, stride=1,
-        use_weight_norm=use_weight_norm, name_prefix=f"{name}_s0",
+        x,
+        channels[0],
+        kernel_width,
+        stride=1,
+        use_weight_norm=use_weight_norm,
+        name_prefix=f"{name}_s0",
     )
     features.append(x)
 
     # Strided conv blocks (downsample by 4 each)
     for i, ch in enumerate(channels[1:], start=1):
         x = _disc_block(
-            x, ch, kernel_width, stride=4,
-            use_weight_norm=use_weight_norm, name_prefix=f"{name}_s{i}",
+            x,
+            ch,
+            kernel_width,
+            stride=4,
+            use_weight_norm=use_weight_norm,
+            name_prefix=f"{name}_s{i}",
         )
         features.append(x)
 
@@ -113,7 +121,7 @@ def build_sub_discriminator(
         name=f"{name}_logits",
     )(x)
 
-    return keras.Model(inp, features + [logits], name=name)
+    return keras.Model(inp, [*features, logits], name=name)
 
 
 @keras.saving.register_keras_serializable(package="compressionkit")
@@ -167,7 +175,8 @@ class MultiScaleDiscriminator(keras.Model):
             if s < num_scales - 1:
                 self.downsamplers.append(
                     layers.AveragePooling2D(
-                        pool_size=(1, 2), padding="same",
+                        pool_size=(1, 2),
+                        padding="same",
                         name=f"pool_scale_{s}",
                     )
                 )
@@ -192,13 +201,15 @@ class MultiScaleDiscriminator(keras.Model):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            "frame_size": self._frame_size,
-            "num_scales": self._num_scales,
-            "channels": self._channels,
-            "kernel_width": self._kernel_width,
-            "final_kernel": self._final_kernel,
-        })
+        config.update(
+            {
+                "frame_size": self._frame_size,
+                "num_scales": self._num_scales,
+                "channels": self._channels,
+                "kernel_width": self._kernel_width,
+                "final_kernel": self._final_kernel,
+            }
+        )
         return config
 
     @classmethod

@@ -32,20 +32,22 @@ from compressionkit.evaluation.metrics import (
     summarize_physiokit_alignment,
 )
 from compressionkit.evaluation.overlap_add import evaluate_long_recordings
+from compressionkit.losses import (
+    build_derivative_loss as _build_derivative_loss,
+)
+from compressionkit.losses import (
+    build_multi_scale_spectral_loss as _build_multi_scale_spectral_loss,
+)
 from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,
     compute_compression_stats,
-)
-from compressionkit.preprocessing.ppg import (
-    generate_synthetic_ppg_batch,
 )
 from compressionkit.preprocessing.augmentations import (
     PPGAugmenter,
     build_noise_bank_from_h5,
 )
-from compressionkit.losses import (
-    build_derivative_loss as _build_derivative_loss,
-    build_multi_scale_spectral_loss as _build_multi_scale_spectral_loss,
+from compressionkit.preprocessing.ppg import (
+    generate_synthetic_ppg_batch,
 )
 from compressionkit.trainers.utils import (
     build_learning_rate,
@@ -173,6 +175,7 @@ def _wrap_dataset_with_augmentation(
 # Dataset builder
 # ---------------------------------------------------------------------------
 
+
 def build_datasets(
     cfg: PpgRvqConfig,
     preprocessor: keras.layers.Layer,
@@ -198,9 +201,7 @@ def build_datasets(
 
     enabled_modes = sum([cache_cfg.enabled, streaming_cfg.enabled, unified_cfg.enabled])
     if enabled_modes > 1:
-        raise ValueError(
-            "Enable at most one of data.cache, data.streaming, or data.unified_cache."
-        )
+        raise ValueError("Enable at most one of data.cache, data.streaming, or data.unified_cache.")
 
     input_filter_dict = data.input_filter.model_dump() if data.input_filter.enabled else {}
     target_filter_dict = data.target_filter.model_dump() if data.target_filter.enabled else {}
@@ -214,9 +215,7 @@ def build_datasets(
         )
 
         info["mode"] = "unified_cache"
-        source_weights = [
-            SourceWeight(slug=s.slug, weight=s.weight) for s in unified_cfg.sources
-        ]
+        source_weights = [SourceWeight(slug=s.slug, weight=s.weight) for s in unified_cfg.sources]
         cache_root = Path(unified_cfg.cache_root)
         if not cache_root.is_absolute():
             cache_root = cache_root.resolve()
@@ -244,10 +243,7 @@ def build_datasets(
         info["unified_sources"] = train_info["sources"]
 
         if validation_steps is None:
-            total_val = sum(
-                load_cache_metadata(cache_root, s.slug)["val_examples"]
-                for s in unified_cfg.sources
-            )
+            total_val = sum(load_cache_metadata(cache_root, s.slug)["val_examples"] for s in unified_cfg.sources)
             validation_steps = max(1, total_val // data.batch_size)
 
     elif cache_cfg.enabled:
@@ -398,13 +394,17 @@ def build_datasets(
         val_target_data = None
         if data.input_filter.enabled:
             train_data = bandpass_filter_batch(
-                train_data, sample_rate=data.sampling_rate,
-                low_hz=data.input_filter.low_hz, high_hz=data.input_filter.high_hz,
+                train_data,
+                sample_rate=data.sampling_rate,
+                low_hz=data.input_filter.low_hz,
+                high_hz=data.input_filter.high_hz,
                 order=data.input_filter.order,
             )
             val_data = bandpass_filter_batch(
-                val_data, sample_rate=data.sampling_rate,
-                low_hz=data.input_filter.low_hz, high_hz=data.input_filter.high_hz,
+                val_data,
+                sample_rate=data.sampling_rate,
+                low_hz=data.input_filter.low_hz,
+                high_hz=data.input_filter.high_hz,
                 order=data.input_filter.order,
             )
         if data.target_filter.enabled:
@@ -421,25 +421,39 @@ def build_datasets(
                 raw_train = train_data.copy()
                 raw_val = val_data.copy()
                 train_target_data = bandpass_filter_batch(
-                    raw_train, sample_rate=data.sampling_rate,
-                    low_hz=data.target_filter.low_hz, high_hz=data.target_filter.high_hz,
+                    raw_train,
+                    sample_rate=data.sampling_rate,
+                    low_hz=data.target_filter.low_hz,
+                    high_hz=data.target_filter.high_hz,
                     order=data.target_filter.order,
                 )
                 val_target_data = bandpass_filter_batch(
-                    raw_val, sample_rate=data.sampling_rate,
-                    low_hz=data.target_filter.low_hz, high_hz=data.target_filter.high_hz,
+                    raw_val,
+                    sample_rate=data.sampling_rate,
+                    low_hz=data.target_filter.low_hz,
+                    high_hz=data.target_filter.high_hz,
                     order=data.target_filter.order,
                 )
 
         train_ds = make_ppg_inmemory_dataset(
-            train_data, frame_size=data.frame_size, batch_size=data.batch_size,
-            buffer_size=data.buffer_size, preprocessor=preprocessor,
-            augmenter=augmenter, target_data=train_target_data, shuffle=True,
+            train_data,
+            frame_size=data.frame_size,
+            batch_size=data.batch_size,
+            buffer_size=data.buffer_size,
+            preprocessor=preprocessor,
+            augmenter=augmenter,
+            target_data=train_target_data,
+            shuffle=True,
         )
         val_ds = make_ppg_inmemory_dataset(
-            val_data, frame_size=data.frame_size, batch_size=data.batch_size,
-            buffer_size=data.buffer_size, preprocessor=preprocessor,
-            augmenter=augmenter, target_data=val_target_data, shuffle=False,
+            val_data,
+            frame_size=data.frame_size,
+            batch_size=data.batch_size,
+            buffer_size=data.buffer_size,
+            preprocessor=preprocessor,
+            augmenter=augmenter,
+            target_data=val_target_data,
+            shuffle=False,
         )
 
     # Apply Tier-1 augmentation (input-only corruption for denoising)
@@ -451,8 +465,12 @@ def build_datasets(
     # Apply DWT transform if configured
     transform_cfg = data.transform
     if transform_cfg.domain.strip().lower() != "raw":
-        logger.info("Applying %s transform (levels=%d, wavelet=%s)",
-                    transform_cfg.domain, transform_cfg.dwt_levels, transform_cfg.dwt_wavelet)
+        logger.info(
+            "Applying %s transform (levels=%d, wavelet=%s)",
+            transform_cfg.domain,
+            transform_cfg.dwt_levels,
+            transform_cfg.dwt_wavelet,
+        )
         train_ds = _wrap_dataset_with_dwt(train_ds, transform_cfg, data.frame_size)
         val_ds = _wrap_dataset_with_dwt(val_ds, transform_cfg, data.frame_size)
 
@@ -465,6 +483,7 @@ def build_datasets(
 # ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
+
 
 def run_evaluation(
     cfg: PpgRvqConfig,
@@ -489,12 +508,8 @@ def run_evaluation(
         dwt_cfg = DwtConfig(levels=transform_cfg.dwt_levels, wavelet=transform_cfg.dwt_wavelet)
         N = sample_targets.shape[0]
         for i in range(N):
-            sample_targets[i, 0, :, 0] = dwt_unpack(
-                sample_targets[i, 0, :, 0], dwt_cfg, data.frame_size
-            )
-            reconstructions[i, 0, :, 0] = dwt_unpack(
-                reconstructions[i, 0, :, 0], dwt_cfg, data.frame_size
-            )
+            sample_targets[i, 0, :, 0] = dwt_unpack(sample_targets[i, 0, :, 0], dwt_cfg, data.frame_size)
+            reconstructions[i, 0, :, 0] = dwt_unpack(reconstructions[i, 0, :, 0], dwt_cfg, data.frame_size)
 
     band_cfg = eval_cfg.band_metrics
     physio_cfg = eval_cfg.physiokit_metrics
@@ -512,12 +527,18 @@ def run_evaluation(
         targets_seq = sample_targets.reshape(sample_targets.shape[0], -1).astype(np.float32)
         recon_seq = reconstructions.reshape(reconstructions.shape[0], -1).astype(np.float32)
         band_sample_targets = bandpass_filter_batch(
-            targets_seq, sample_rate=data.sampling_rate,
-            low_hz=band_cfg.low_hz, high_hz=band_cfg.high_hz, order=band_cfg.order,
+            targets_seq,
+            sample_rate=data.sampling_rate,
+            low_hz=band_cfg.low_hz,
+            high_hz=band_cfg.high_hz,
+            order=band_cfg.order,
         )
         band_reconstructions = bandpass_filter_batch(
-            recon_seq, sample_rate=data.sampling_rate,
-            low_hz=band_cfg.low_hz, high_hz=band_cfg.high_hz, order=band_cfg.order,
+            recon_seq,
+            sample_rate=data.sampling_rate,
+            low_hz=band_cfg.low_hz,
+            high_hz=band_cfg.high_hz,
+            order=band_cfg.order,
         )
         best_band_metrics = compute_signal_metrics(band_sample_targets, band_reconstructions)
 
@@ -525,17 +546,21 @@ def run_evaluation(
         targets_seq = sample_targets.reshape(sample_targets.shape[0], -1).astype(np.float32)
         recon_seq = reconstructions.reshape(reconstructions.shape[0], -1).astype(np.float32)
         best_physiokit_metrics, best_physio_per_sample = summarize_physiokit_alignment(
-            targets_seq, recon_seq,
+            targets_seq,
+            recon_seq,
             sample_rate=data.sampling_rate,
-            low_hz=physio_cfg.low_hz, high_hz=physio_cfg.high_hz,
-            order=physio_cfg.order, min_peaks=physio_cfg.min_peaks,
+            low_hz=physio_cfg.low_hz,
+            high_hz=physio_cfg.high_hz,
+            order=physio_cfg.order,
+            min_peaks=physio_cfg.min_peaks,
         )
 
     if long_cfg.enabled and physio_cfg.enabled:
         logger.info(
-            "Running long-recording overlap-add evaluation "
-            "(%.0fs, %d recordings, hop=%.0f%%)...",
-            long_cfg.duration_sec, long_cfg.num_recordings, long_cfg.hop_ratio * 100,
+            "Running long-recording overlap-add evaluation (%.0fs, %d recordings, hop=%.0f%%)...",
+            long_cfg.duration_sec,
+            long_cfg.num_recordings,
+            long_cfg.hop_ratio * 100,
         )
         best_long_recording_metrics, best_long_per_recording = evaluate_long_recordings(
             model,
@@ -560,7 +585,11 @@ def run_evaluation(
     plot_cap = max(0, min(eval_cfg.num_plot_samples, len(sample_targets)))
     sample_results = {
         str(idx): save_sample_artifacts(
-            idx, target.squeeze(), recon.squeeze(), data.sampling_rate, run_dir,
+            idx,
+            target.squeeze(),
+            recon.squeeze(),
+            data.sampling_rate,
+            run_dir,
             band_original=None if band_sample_targets is None else band_sample_targets[idx],
             band_reconstructed=None if band_reconstructions is None else band_reconstructions[idx],
             physiokit_metrics=None if not best_physio_per_sample else best_physio_per_sample[idx],
@@ -627,12 +656,11 @@ def build_extra_losses(cfg: PpgRvqConfig) -> list[callable]:
 
     sloss = cfg.training.spectral_loss
     if sloss.enabled:
-        extra.append(
-            _build_multi_scale_spectral_loss(weight=sloss.weight, fft_sizes=sloss.fft_sizes)
-        )
+        extra.append(_build_multi_scale_spectral_loss(weight=sloss.weight, fft_sizes=sloss.fft_sizes))
         logger.info(
             "Multi-scale spectral loss enabled, weight=%.2f, fft_sizes=%s",
-            sloss.weight, sloss.fft_sizes,
+            sloss.weight,
+            sloss.fft_sizes,
         )
     return extra
 
@@ -666,7 +694,7 @@ def build_compression_stats(cfg: PpgRvqConfig) -> dict[str, Any]:
     """Compute the compression ratio / bit budget for *cfg*."""
     data = cfg.data
     mcfg = cfg.model
-    downsample_factor = 2 ** mcfg.num_stages
+    downsample_factor = 2**mcfg.num_stages
     stats = compute_compression_stats(
         data.frame_size,
         bit_depth=cfg.evaluation.input_bit_depth,

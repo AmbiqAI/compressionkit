@@ -33,7 +33,7 @@ def main():
     )
 
     # Import after arg parse to speed up --help
-    import yaml  # noqa: PLC0415
+    import yaml
 
     from compressionkit.configs.ppg_rvq import PpgRvqConfig
     from compressionkit.recipes.train_ppg_rvq import train as run_training
@@ -64,10 +64,16 @@ def main():
             [
                 sys.executable,
                 "scripts/eval_cross_domain.py",
-                "--run-dir", str(run_dir),
-                "--sources", "bidmc", "ppg_dalia", "wesad",
-                "--max-windows", "2000",
-                "--num-long-recordings", "10",
+                "--run-dir",
+                str(run_dir),
+                "--sources",
+                "bidmc",
+                "ppg_dalia",
+                "wesad",
+                "--max-windows",
+                "2000",
+                "--num-long-recordings",
+                "10",
             ],
             check=True,
         )

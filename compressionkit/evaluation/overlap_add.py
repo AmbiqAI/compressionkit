@@ -30,6 +30,7 @@ logger = logging.getLogger("ppg-rvq-trainer")
 # Core overlap-add reconstruction
 # ---------------------------------------------------------------------------
 
+
 def reconstruct_overlap_add(
     model: keras.Model,
     signal: np.ndarray,
@@ -51,13 +52,18 @@ def reconstruct_overlap_add(
         return model.predict(batch, batch_size=batch_size, verbose=0)
 
     return _stitch_overlap_add(
-        _predict, signal, frame_size, epsilon=epsilon, hop_ratio=hop_ratio,
+        _predict,
+        signal,
+        frame_size,
+        epsilon=epsilon,
+        hop_ratio=hop_ratio,
     )
 
 
 # ---------------------------------------------------------------------------
 # Long-recording evaluation driver
 # ---------------------------------------------------------------------------
+
 
 def evaluate_long_recordings(
     model: keras.Model,
@@ -109,7 +115,9 @@ def evaluate_long_recordings(
         valid pairs could be evaluated.
     """
     _, val_files, _ = load_ppg_file_splits(
-        datasets_dir, dataset_glob, seed=seed,
+        datasets_dir,
+        dataset_glob,
+        seed=seed,
     )
     rng = np.random.default_rng(seed)
     if len(val_files) > num_recordings:
@@ -151,8 +159,12 @@ def evaluate_long_recordings(
             continue
 
         recon_signal = reconstruct_overlap_add(
-            model, raw_signal, frame_size,
-            epsilon=epsilon, hop_ratio=hop_ratio, batch_size=batch_size,
+            model,
+            raw_signal,
+            frame_size,
+            epsilon=epsilon,
+            hop_ratio=hop_ratio,
+            batch_size=batch_size,
         )
 
         # Signal-level metrics
@@ -163,14 +175,16 @@ def evaluate_long_recordings(
         recon_pk = compute_ppg_physiokit_metrics(recon_signal, **pk_kwargs)
 
         if orig_pk is None or recon_pk is None:
-            per_recording.append({
-                "file": fpath.name,
-                "signal_metrics": sig_metrics,
-                "original_physiokit": orig_pk,
-                "reconstructed_physiokit": recon_pk,
-                "delta": None,
-                "quality_rejected": False,
-            })
+            per_recording.append(
+                {
+                    "file": fpath.name,
+                    "signal_metrics": sig_metrics,
+                    "original_physiokit": orig_pk,
+                    "reconstructed_physiokit": recon_pk,
+                    "delta": None,
+                    "quality_rejected": False,
+                }
+            )
             continue
 
         hr_diff = recon_pk["hr_bpm"] - orig_pk["hr_bpm"]
@@ -178,28 +192,27 @@ def evaluate_long_recordings(
         rmssd_diff = recon_pk["rmssd_ms"] - orig_pk["rmssd_ms"]
 
         # Quality gate: reject recordings where original HRV is implausible
-        quality_ok = (
-            orig_max_sdnn_ms <= 0
-            or orig_pk["sdnn_ms"] <= orig_max_sdnn_ms
-        )
+        quality_ok = orig_max_sdnn_ms <= 0 or orig_pk["sdnn_ms"] <= orig_max_sdnn_ms
         if quality_ok:
             hr_abs_errors.append(abs(hr_diff))
             hr_biases.append(hr_diff)
             sdnn_abs_errors.append(abs(sdnn_diff))
             rmssd_abs_errors.append(abs(rmssd_diff))
 
-        per_recording.append({
-            "file": fpath.name,
-            "signal_metrics": sig_metrics,
-            "original_physiokit": orig_pk,
-            "reconstructed_physiokit": recon_pk,
-            "delta": {
-                "hr_bpm": float(hr_diff),
-                "sdnn_ms": float(sdnn_diff),
-                "rmssd_ms": float(rmssd_diff),
-            },
-            "quality_rejected": not quality_ok,
-        })
+        per_recording.append(
+            {
+                "file": fpath.name,
+                "signal_metrics": sig_metrics,
+                "original_physiokit": orig_pk,
+                "reconstructed_physiokit": recon_pk,
+                "delta": {
+                    "hr_bpm": float(hr_diff),
+                    "sdnn_ms": float(sdnn_diff),
+                    "rmssd_ms": float(rmssd_diff),
+                },
+                "quality_rejected": not quality_ok,
+            }
+        )
 
     valid = len(hr_abs_errors)
     if valid == 0:

@@ -27,9 +27,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_ambiq_s3_prefix  # noqa: E402
+from compressionkit.datasets._download import download_ambiq_s3_prefix
 
 SLUG = "icentia11k"
 
@@ -60,7 +60,11 @@ def verify(canonical_dir: Path, *, limit: int | None, logger) -> None:
             sample = h[f"{pkey}/{seg_keys[0]}/data"]
             logger.info(
                 "  %s patient=%s segments=%d sample=%s dtype=%s",
-                fp.name, pkey, n_seg, tuple(sample.shape), sample.dtype,
+                fp.name,
+                pkey,
+                n_seg,
+                tuple(sample.shape),
+                sample.dtype,
             )
             sl = np.asarray(sample[: min(1024, sample.shape[0])])
             if not np.isfinite(sl).all():

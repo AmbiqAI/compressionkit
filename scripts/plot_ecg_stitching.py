@@ -88,7 +88,7 @@ def _plot_method_figure(
     ax_full.plot(t, recon, color="#d1495b", lw=0.8, label="reconstructed")
     for s in seams:
         ax_full.axvline(s / sample_rate, color="#2e86ab", lw=0.4, ls=":", alpha=0.5)
-    ax_full.set_title(f"{method} — full {len(original)/sample_rate:.1f}s reconstruction")
+    ax_full.set_title(f"{method} — full {len(original) / sample_rate:.1f}s reconstruction")
     ax_full.set_xlabel("time [s]")
     ax_full.set_ylabel("amplitude")
     ax_full.legend(loc="upper right", fontsize=8)
@@ -109,7 +109,7 @@ def _plot_method_figure(
         ax.plot(t[lo:hi], recon[lo:hi], color="#d1495b", lw=1.2)
         ax.axvline(seam / sample_rate, color="#2e86ab", lw=0.8, ls="--", alpha=0.7)
         ax.set_ylim(y_range)
-        ax.set_title(f"seam @ {seam/sample_rate:.2f}s", fontsize=9)
+        ax.set_title(f"seam @ {seam / sample_rate:.2f}s", fontsize=9)
         ax.set_xlabel("time [s]", fontsize=8)
         if col == 0:
             ax.set_ylabel("amplitude", fontsize=8)
@@ -143,9 +143,12 @@ def _plot_comparison_figure(
     t = np.arange(len(original)) / sample_rate
 
     fig, axes = plt.subplots(
-        len(methods), 1,
+        len(methods),
+        1,
         figsize=(8, 1.6 * len(methods) + 0.8),
-        sharex=True, sharey=True, constrained_layout=True,
+        sharex=True,
+        sharey=True,
+        constrained_layout=True,
     )
     if len(methods) == 1:
         axes = [axes]
@@ -158,7 +161,7 @@ def _plot_comparison_figure(
         ax.set_ylabel(method, fontsize=9)
         ax.tick_params(axis="both", labelsize=8)
 
-    axes[0].set_title(f"seam zoom @ {seam/sample_rate:.2f}s — method comparison")
+    axes[0].set_title(f"seam zoom @ {seam / sample_rate:.2f}s — method comparison")
     axes[-1].set_xlabel("time [s]")
     fig.savefig(out_path, dpi=140)
     plt.close(fig)
@@ -170,14 +173,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--duration-sec", type=float, default=10.0)
     parser.add_argument("--hop-ratio", type=float, default=0.5)
     parser.add_argument("--num-zooms", type=int, default=4)
-    parser.add_argument("--record-index", type=int, default=0,
-                        help="Index into the sorted val split (for reproducibility).")
+    parser.add_argument(
+        "--record-index", type=int, default=0, help="Index into the sorted val split (for reproducibility)."
+    )
     parser.add_argument("--lead-index", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--methods", nargs="+", default=DEFAULT_METHODS,
-                        choices=sorted(STITCH_METHODS))
-    parser.add_argument("--output-dir", type=Path, default=None,
-                        help="Default: <run-dir>/stitching_plots/")
+    parser.add_argument("--methods", nargs="+", default=DEFAULT_METHODS, choices=sorted(STITCH_METHODS))
+    parser.add_argument("--output-dir", type=Path, default=None, help="Default: <run-dir>/stitching_plots/")
     args = parser.parse_args(argv)
 
     run_dir: Path = args.run_dir.resolve()
@@ -187,7 +189,9 @@ def main(argv: list[str] | None = None) -> int:
     frame_size = data.frame_size
 
     _, val_files, _ = load_ecg_file_splits(
-        Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed,
+        Path(data.datasets_dir),
+        data.dataset_glob,
+        seed=data.shuffle_seed,
     )
     if not val_files:
         parser.error("No validation files available.")

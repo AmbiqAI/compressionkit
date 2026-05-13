@@ -33,7 +33,7 @@ import hashlib
 import json
 import logging
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -118,13 +118,9 @@ def _serialize_window(signal: np.ndarray) -> bytes:
     """Serialize one 1-D float32 window into a TF Example."""
     flat = np.asarray(signal, dtype=np.float32).ravel()
     feat = {
-        "signal": tf.train.Feature(
-            float_list=tf.train.FloatList(value=flat.tolist())
-        ),
+        "signal": tf.train.Feature(float_list=tf.train.FloatList(value=flat.tolist())),
     }
-    return tf.train.Example(
-        features=tf.train.Features(feature=feat)
-    ).SerializeToString()
+    return tf.train.Example(features=tf.train.Features(feature=feat)).SerializeToString()
 
 
 # ---------------------------------------------------------------------------
@@ -253,10 +249,7 @@ def build_source_cache(cfg: CacheBuildConfig) -> tuple[Path, dict[str, Any]]:
     slug = cfg.slug
     source_info = KNOWN_SOURCES.get(slug)
     if source_info is None:
-        raise ValueError(
-            f"Unknown source slug {slug!r}. "
-            f"Known: {sorted(KNOWN_SOURCES)}"
-        )
+        raise ValueError(f"Unknown source slug {slug!r}. Known: {sorted(KNOWN_SOURCES)}")
 
     cache_dir = Path(cfg.cache_root) / slug
     if not cache_dir.is_absolute():
@@ -350,7 +343,10 @@ def build_source_cache(cfg: CacheBuildConfig) -> tuple[Path, dict[str, Any]]:
 
     logger.info(
         "Built cache for %s: %d train, %d val windows from %d files",
-        slug, train_count, val_count, n_files,
+        slug,
+        train_count,
+        val_count,
+        n_files,
     )
     return cache_dir, metadata
 
@@ -375,9 +371,7 @@ def _build_edf_source(
     glob_pattern = source_info["glob"]
     edf_files = sorted(datasets_root.glob(glob_pattern))
     if not edf_files:
-        raise FileNotFoundError(
-            f"No EDF files for {slug}: {datasets_root / glob_pattern}"
-        )
+        raise FileNotFoundError(f"No EDF files for {slug}: {datasets_root / glob_pattern}")
 
     train_path = cache_dir / "train.tfrecord"
     val_path = cache_dir / "val.tfrecord"
@@ -390,8 +384,11 @@ def _build_edf_source(
         for i, edf_path in enumerate(edf_files):
             patient_id = edf_path.stem
             bucket = _patient_split(
-                patient_id, slug,
-                train_frac=train_frac, val_frac=val_frac, seed=split_seed,
+                patient_id,
+                slug,
+                train_frac=train_frac,
+                val_frac=val_frac,
+                seed=split_seed,
             )
             if bucket == "test":
                 continue
@@ -416,7 +413,11 @@ def _build_edf_source(
             if (i + 1) % 100 == 0:
                 logger.info(
                     "  %s: %d/%d files processed (%d train, %d val)",
-                    slug, i + 1, len(edf_files), train_count, val_count,
+                    slug,
+                    i + 1,
+                    len(edf_files),
+                    train_count,
+                    val_count,
                 )
 
     return train_count, val_count, len(edf_files)
@@ -464,8 +465,11 @@ def _build_h5_source(
                 continue
 
             bucket = _patient_split(
-                pid, slug,
-                train_frac=train_frac, val_frac=val_frac, seed=split_seed,
+                pid,
+                slug,
+                train_frac=train_frac,
+                val_frac=val_frac,
+                seed=split_seed,
             )
             if bucket == "test":
                 continue
@@ -481,7 +485,11 @@ def _build_h5_source(
             if (i + 1) % 50 == 0:
                 logger.info(
                     "  %s: %d/%d files processed (%d train, %d val)",
-                    slug, i + 1, len(h5_files), train_count, val_count,
+                    slug,
+                    i + 1,
+                    len(h5_files),
+                    train_count,
+                    val_count,
                 )
 
     return train_count, val_count, len(h5_files)
@@ -505,8 +513,7 @@ def load_cache_metadata(cache_root: Path, slug: str) -> dict[str, Any]:
     meta_path = cache_root / slug / "metadata.json"
     if not meta_path.exists():
         raise FileNotFoundError(
-            f"No cache found for {slug!r} at {meta_path}. "
-            f"Run: python scripts/build_ppg_cache.py --source {slug}"
+            f"No cache found for {slug!r} at {meta_path}. Run: python scripts/build_ppg_cache.py --source {slug}"
         )
     with meta_path.open() as f:
         return json.load(f)
@@ -560,10 +567,7 @@ def make_cached_ppg_dataset(
 
         # Validate frame_size matches
         if meta["frame_size"] != frame_size:
-            raise ValueError(
-                f"Cache frame_size for {src.slug} is {meta['frame_size']}, "
-                f"expected {frame_size}"
-            )
+            raise ValueError(f"Cache frame_size for {src.slug} is {meta['frame_size']}, expected {frame_size}")
 
         tfrecord_path = cache_root / src.slug / f"{split}.tfrecord"
         if not tfrecord_path.exists():
@@ -601,7 +605,10 @@ def make_cached_ppg_dataset(
         combined = datasets[0]
     elif split == "train":
         combined = tf.data.Dataset.sample_from_datasets(
-            datasets, weights=weights, seed=seed, stop_on_empty_dataset=False,
+            datasets,
+            weights=weights,
+            seed=seed,
+            stop_on_empty_dataset=False,
         )
     else:
         # For validation: concatenate all sources (no sampling)
@@ -629,9 +636,7 @@ def make_cached_ppg_dataset(
         x = tf.reshape(x, [-1, 1, frame_size, 1])  # (B, 1, frame_size, 1)
         return x, x
 
-    combined = combined.map(
-        _normalize_and_reshape, num_parallel_calls=tf.data.AUTOTUNE
-    )
+    combined = combined.map(_normalize_and_reshape, num_parallel_calls=tf.data.AUTOTUNE)
     combined = combined.prefetch(tf.data.AUTOTUNE)
 
     return combined, info
@@ -675,14 +680,9 @@ def load_cached_raw_windows(
     for src in sources:
         meta = load_cache_metadata(cache_root, src.slug)
         if meta["frame_size"] != frame_size:
-            raise ValueError(
-                f"Cache frame_size for {src.slug} is {meta['frame_size']}, "
-                f"expected {frame_size}"
-            )
+            raise ValueError(f"Cache frame_size for {src.slug} is {meta['frame_size']}, expected {frame_size}")
         metas.append(meta)
-        raw_weights.append(
-            src.weight if src.weight is not None else float(meta[count_key])
-        )
+        raw_weights.append(src.weight if src.weight is not None else float(meta[count_key]))
 
     total_w = sum(raw_weights)
     norm_weights = [w / total_w for w in raw_weights]
@@ -697,7 +697,7 @@ def load_cached_raw_windows(
 
         n_available = meta[count_key]
         if max_windows is not None:
-            budget = int(math.ceil(max_windows * w))
+            budget = math.ceil(max_windows * w)
         else:
             budget = n_available
 
@@ -722,7 +722,9 @@ def load_cached_raw_windows(
         all_windows.append(source_arr)
         logger.info(
             "Loaded %d %s windows from %s cache",
-            len(source_arr), split, src.slug,
+            len(source_arr),
+            split,
+            src.slug,
         )
 
     combined = np.concatenate(all_windows, axis=0)

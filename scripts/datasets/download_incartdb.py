@@ -23,9 +23,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_physionet_files, http_download  # noqa: E402
+from compressionkit.datasets._download import download_physionet_files, http_download
 
 SLUG = "incartdb"
 VERSION = "1.0.0"
@@ -110,8 +110,11 @@ def main() -> None:
             r = h["r_peaks"]
             logger.info(
                 "  %s data=%s fs=%s leads=%s r_peaks=%d",
-                sample.name, tuple(data.shape), h.attrs["fs"],
-                h.attrs["lead_names"], r.shape[0],
+                sample.name,
+                tuple(data.shape),
+                h.attrs["fs"],
+                h.attrs["lead_names"],
+                r.shape[0],
             )
 
     maybe_upload_s3(canonical, args.upload_s3, slug=SLUG)

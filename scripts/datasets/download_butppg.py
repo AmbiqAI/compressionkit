@@ -30,9 +30,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_physionet_files, http_download, physionet_url  # noqa: E402
+from compressionkit.datasets._download import download_physionet_files, http_download, physionet_url
 
 SLUG = "butppg"
 VERSION = "2.0.0"
@@ -126,7 +126,7 @@ def _fetch_session(sid: str, raw_dir: Path, *, force: bool, logger) -> bool:
             continue
         try:
             download_physionet_files(SLUG, VERSION, [rel], raw_dir, show_progress=False)
-        except Exception as exc:  # noqa: BLE001 - some files (ACC, qrs) are optional
+        except Exception as exc:
             if any(rel.endswith(opt) for opt in ("_ACC.dat", "_ACC.hea", ".qrs")):
                 logger.debug("optional file missing for %s: %s", sid, rel)
             else:
@@ -135,8 +135,7 @@ def _fetch_session(sid: str, raw_dir: Path, *, force: bool, logger) -> bool:
     return (raw_dir / sid / f"{sid}_PPG.hea").exists() and (raw_dir / sid / f"{sid}_ECG.hea").exists()
 
 
-def _convert_session(raw_dir: Path, sid: str, qhr: tuple[int, float] | None,
-                     out_dir: Path, *, logger) -> Path | None:
+def _convert_session(raw_dir: Path, sid: str, qhr: tuple[int, float] | None, out_dir: Path, *, logger) -> Path | None:
     sess = raw_dir / sid
     ppg_rec = wfdb.rdrecord(str(sess / f"{sid}_PPG"))
     ecg_rec = wfdb.rdrecord(str(sess / f"{sid}_ECG"))
@@ -151,7 +150,7 @@ def _convert_session(raw_dir: Path, sid: str, qhr: tuple[int, float] | None,
         try:
             acc_rec = wfdb.rdrecord(str(acc_path))
             acc = _to_chan_first(np.asarray(acc_rec.p_signal, dtype=np.float32))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("ACC unreadable for %s: %s", sid, exc)
 
     qrs_idx = None
@@ -159,7 +158,7 @@ def _convert_session(raw_dir: Path, sid: str, qhr: tuple[int, float] | None,
         try:
             ann = wfdb.rdann(str(sess / sid), "qrs")
             qrs_idx = np.asarray(ann.sample, dtype=np.int64)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("QRS unreadable for %s: %s", sid, exc)
 
     out = out_dir / f"{sid}.h5"
@@ -183,10 +182,14 @@ def _convert_session(raw_dir: Path, sid: str, qhr: tuple[int, float] | None,
         if qhr is not None:
             h.attrs["quality"] = qhr[0]
             h.attrs["reference_hr_bpm"] = qhr[1]
-    logger.debug("Wrote %s ppg=%s ecg=%s acc=%s qrs=%s",
-                 out.name, ppg.shape, ecg.shape,
-                 acc.shape if acc is not None else None,
-                 qrs_idx.shape if qrs_idx is not None else None)
+    logger.debug(
+        "Wrote %s ppg=%s ecg=%s acc=%s qrs=%s",
+        out.name,
+        ppg.shape,
+        ecg.shape,
+        acc.shape if acc is not None else None,
+        qrs_idx.shape if qrs_idx is not None else None,
+    )
     return out
 
 
@@ -222,7 +225,7 @@ def main() -> None:
                 continue
             try:
                 _convert_session(raw, sid, qhr_map.get(sid), canonical, logger=logger)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.warning("convert failed for %s: %s", sid, exc)
 
     n = len(list(canonical.glob("*.h5")))
@@ -232,9 +235,12 @@ def main() -> None:
         with h5py.File(sample, "r") as h:
             logger.info(
                 "  %s ppg=%s fs=%s ecg=%s fs_ecg=%s acquisition=%s",
-                sample.name, tuple(h["data"].shape), h.attrs["fs"],
+                sample.name,
+                tuple(h["data"].shape),
+                h.attrs["fs"],
                 tuple(h["ecg"].shape) if "ecg" in h else None,
-                h.attrs.get("fs_ecg"), h.attrs["acquisition"],
+                h.attrs.get("fs_ecg"),
+                h.attrs["acquisition"],
             )
 
     maybe_upload_s3(canonical, args.upload_s3, slug=SLUG)

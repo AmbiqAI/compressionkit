@@ -25,12 +25,17 @@ from compressionkit.datasets.ppg import (
     load_ppg_splits,
 )
 from compressionkit.evaluation.metrics import (
-    compute_ppg_physiokit_metrics,
     compute_signal_metrics,
     summarize_physiokit_alignment,
 )
 from compressionkit.evaluation.spectral_metrics import psd_band_error
-from compressionkit.evaluation.stitching import STITCH_METHODS, seam_discontinuity_ratio, stitch
+from compressionkit.evaluation.stitching import seam_discontinuity_ratio, stitch
+from compressionkit.losses import (
+    build_derivative_loss,
+)
+from compressionkit.losses import (
+    build_filtered_mse_loss as _build_filtered_mse_loss,
+)
 from compressionkit.models.ppg_two_stream import (
     build_baseline_model,
     build_pulsatile_model,
@@ -38,15 +43,9 @@ from compressionkit.models.ppg_two_stream import (
 )
 from compressionkit.preprocessing.two_stream import (
     decompose_and_normalize,
-    decompose_baseline_pulsatile,
     downsample_baseline,
-    normalize_robust,
     reconstruct_from_streams,
     upsample_baseline,
-)
-from compressionkit.losses import (
-    build_derivative_loss,
-    build_filtered_mse_loss as _build_filtered_mse_loss,
 )
 from compressionkit.trainers.utils import build_learning_rate
 
@@ -80,7 +79,8 @@ def _build_extra_losses(cfg: PpgTwoStreamConfig) -> list[callable]:
         )
         logger.info(
             "Filtered MSE loss enabled, weight=%.2f, cutoff=%.1f Hz",
-            floss.weight, floss.cutoff_hz,
+            floss.weight,
+            floss.cutoff_hz,
         )
 
     return extra
@@ -122,8 +122,8 @@ def _load_raw_segments(cfg: PpgTwoStreamConfig) -> tuple[np.ndarray, np.ndarray]
     frame_size = data.frame_size
     if train_data.shape[1] > frame_size:
         offset = (train_data.shape[1] - frame_size) // 2
-        train_data = train_data[:, offset:offset + frame_size]
-        val_data = val_data[:, offset:offset + frame_size]
+        train_data = train_data[:, offset : offset + frame_size]
+        val_data = val_data[:, offset : offset + frame_size]
     return train_data, val_data
 
 
@@ -137,10 +137,7 @@ def _load_raw_segments_from_unified_cache(
     from compressionkit.datasets.ppg_cache import SourceWeight, load_cached_raw_windows
 
     data = cfg.data
-    sources = [
-        SourceWeight(slug=s.slug, weight=s.weight)
-        for s in data.unified_sources
-    ]
+    sources = [SourceWeight(slug=s.slug, weight=s.weight) for s in data.unified_sources]
     cache_root = Path(data.unified_cache_root)
 
     train_data = load_cached_raw_windows(
@@ -162,7 +159,9 @@ def _load_raw_segments_from_unified_cache(
 
     logger.info(
         "Unified cache: train=%d windows, val=%d windows from %d sources",
-        len(train_data), len(val_data), len(sources),
+        len(train_data),
+        len(val_data),
+        len(sources),
     )
     return train_data, val_data
 
@@ -196,22 +195,31 @@ def _load_raw_segments_from_cache(cfg: PpgTwoStreamConfig) -> tuple[np.ndarray, 
 
     logger.info(
         "Cache ready: %d train, %d val examples in %s",
-        metadata["train_examples"], metadata["val_examples"], cache_dir,
+        metadata["train_examples"],
+        metadata["val_examples"],
+        cache_dir,
     )
 
     train_path = cache_dir / metadata["train_tfrecord"]
     val_path = cache_dir / metadata["val_tfrecord"]
 
     train_data = _read_tfrecord_segments(
-        train_path, segment_samples, frame_size, data.shuffle_seed,
+        train_path,
+        segment_samples,
+        frame_size,
+        data.shuffle_seed,
     )
     val_data = _read_tfrecord_segments(
-        val_path, segment_samples, frame_size, data.shuffle_seed + 1,
+        val_path,
+        segment_samples,
+        frame_size,
+        data.shuffle_seed + 1,
     )
 
     logger.info(
         "Loaded from cache: train=%s, val=%s",
-        train_data.shape, val_data.shape,
+        train_data.shape,
+        val_data.shape,
     )
     return train_data, val_data
 
@@ -237,7 +245,7 @@ def _read_tfrecord_segments(
         # Random crop each segment
         starts = rng.integers(0, max_start + 1, size=sigs.shape[0])
         for i, start in enumerate(starts):
-            segments.append(sigs[i, start:start + frame_size])
+            segments.append(sigs[i, start : start + frame_size])
 
     return np.array(segments, dtype=np.float32)
 
@@ -467,13 +475,16 @@ def _evaluate_reconstruction(
         )
         # Baseline: downsample → encode/decode → upsample
         baseline_ds = downsample_baseline(
-            result["baseline_norm"], factor=bm.downsample_factor,
+            result["baseline_norm"],
+            factor=bm.downsample_factor,
         )
         baseline_input = baseline_ds[np.newaxis, np.newaxis, :, np.newaxis]
         baseline_recon = baseline_model.predict(baseline_input, verbose=0)
         baseline_recon = baseline_recon.squeeze()
         baseline_up = upsample_baseline(
-            baseline_recon, factor=bm.downsample_factor, target_len=data.frame_size,
+            baseline_recon,
+            factor=bm.downsample_factor,
+            target_len=data.frame_size,
         )
 
         # Pulsatile: encode/decode
@@ -483,7 +494,8 @@ def _evaluate_reconstruction(
 
         # Reconstruct full signal
         recon = reconstruct_from_streams(
-            baseline_up, pulsatile_recon,
+            baseline_up,
+            pulsatile_recon,
             baseline_center=result["baseline_center"],
             baseline_scale=result["baseline_scale"],
             pulsatile_center=result["pulsatile_center"],
@@ -516,7 +528,8 @@ def _evaluate_physiokit(
         return None
 
     summary, per_sample = summarize_physiokit_alignment(
-        originals, reconstructions,
+        originals,
+        reconstructions,
         sample_rate=cfg.data.sampling_rate,
         low_hz=physio_cfg.low_hz,
         high_hz=physio_cfg.high_hz,
@@ -543,7 +556,10 @@ def _evaluate_spectral(
 
     for i in range(originals.shape[0]):
         errs = psd_band_error(
-            originals[i], reconstructions[i], fs=fs, bands=bands,
+            originals[i],
+            reconstructions[i],
+            fs=fs,
+            bands=bands,
         )
         all_band_errors.append(errs)
 
@@ -573,7 +589,9 @@ def _evaluate_stitching(
     bm = cfg.baseline_model
 
     _, val_files, _ = load_ppg_file_splits(
-        Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed,
+        Path(data.datasets_dir),
+        data.dataset_glob,
+        seed=data.shuffle_seed,
     )
     if not val_files:
         logger.warning("No validation files for stitching evaluation.")
@@ -603,7 +621,8 @@ def _evaluate_stitching(
             )
             # Baseline
             baseline_ds = downsample_baseline(
-                result["baseline_norm"], factor=bm.downsample_factor,
+                result["baseline_norm"],
+                factor=bm.downsample_factor,
             )
             bl_in = baseline_ds[np.newaxis, np.newaxis, :, np.newaxis]
             bl_out = baseline_model.predict(bl_in, verbose=0).squeeze()
@@ -615,7 +634,8 @@ def _evaluate_stitching(
 
             # Reconstruct
             recon = reconstruct_from_streams(
-                bl_up, pl_out,
+                bl_up,
+                pl_out,
                 baseline_center=result["baseline_center"],
                 baseline_scale=result["baseline_scale"],
                 pulsatile_center=result["pulsatile_center"],
@@ -631,8 +651,7 @@ def _evaluate_stitching(
         return _two_stream_predict(frames_4d)
 
     per_method: dict[str, dict[str, list[float]]] = {
-        m: {"prd_percent": [], "cosine_similarity": [], "mse": [],
-            "seam_ratio": [], "seam_rms": [], "non_seam_rms": []}
+        m: {"prd_percent": [], "cosine_similarity": [], "mse": [], "seam_ratio": [], "seam_rms": [], "non_seam_rms": []}
         for m in stitch_cfg.methods
     }
 
@@ -664,7 +683,10 @@ def _evaluate_stitching(
 
             effective_hop = 1.0 if method == "hard_concat" else stitch_cfg.hop_ratio
             seam = seam_discontinuity_ratio(
-                recon, frame_size=data.frame_size, hop_ratio=effective_hop, radius=4,
+                recon,
+                frame_size=data.frame_size,
+                hop_ratio=effective_hop,
+                radius=4,
             )
 
             acc = per_method[method]
@@ -724,8 +746,7 @@ def train_two_stream(cfg: PpgTwoStreamConfig) -> dict[str, Any]:
     # Compression stats
     cr_stats = compute_combined_compression_stats(cfg)
     logger.info(
-        "Two-stream compression ratio: %.2f "
-        "(baseline: %.1f bits, pulsatile: %.1f bits, total: %.1f bits)",
+        "Two-stream compression ratio: %.2f (baseline: %.1f bits, pulsatile: %.1f bits, total: %.1f bits)",
         cr_stats["compression_ratio"],
         cr_stats["baseline_compressed_bits"],
         cr_stats["pulsatile_compressed_bits"],
@@ -760,28 +781,43 @@ def train_two_stream(cfg: PpgTwoStreamConfig) -> dict[str, Any]:
     )
     logger.info(
         "Baseline shape: %s, Pulsatile shape: %s",
-        train_baselines.shape, train_pulsatiles.shape,
+        train_baselines.shape,
+        train_pulsatiles.shape,
     )
 
     # Build tf.data
     noise_range = tuple(data.gaussian_noise) if len(data.gaussian_noise) == 2 else None
     train_bl_ds = _make_tf_dataset(
-        train_baselines, batch_size=data.batch_size, shuffle=True,
-        buffer_size=data.buffer_size, seed=data.shuffle_seed,
-        noise_range=noise_range, repeat=True,
+        train_baselines,
+        batch_size=data.batch_size,
+        shuffle=True,
+        buffer_size=data.buffer_size,
+        seed=data.shuffle_seed,
+        noise_range=noise_range,
+        repeat=True,
     )
     val_bl_ds = _make_tf_dataset(
-        val_baselines, batch_size=data.batch_size, shuffle=False,
-        buffer_size=data.buffer_size, seed=data.shuffle_seed,
+        val_baselines,
+        batch_size=data.batch_size,
+        shuffle=False,
+        buffer_size=data.buffer_size,
+        seed=data.shuffle_seed,
     )
     train_pl_ds = _make_tf_dataset(
-        train_pulsatiles, batch_size=data.batch_size, shuffle=True,
-        buffer_size=data.buffer_size, seed=data.shuffle_seed,
-        noise_range=noise_range, repeat=True,
+        train_pulsatiles,
+        batch_size=data.batch_size,
+        shuffle=True,
+        buffer_size=data.buffer_size,
+        seed=data.shuffle_seed,
+        noise_range=noise_range,
+        repeat=True,
     )
     val_pl_ds = _make_tf_dataset(
-        val_pulsatiles, batch_size=data.batch_size, shuffle=False,
-        buffer_size=data.buffer_size, seed=data.shuffle_seed,
+        val_pulsatiles,
+        batch_size=data.batch_size,
+        shuffle=False,
+        buffer_size=data.buffer_size,
+        seed=data.shuffle_seed,
     )
 
     # Build models
@@ -797,14 +833,22 @@ def train_two_stream(cfg: PpgTwoStreamConfig) -> dict[str, Any]:
 
     # Train baseline
     bl_history = _train_stream(
-        baseline_model, train_bl_ds, val_bl_ds,
-        cfg=cfg, stream_name="baseline", run_dir=run_dir,
+        baseline_model,
+        train_bl_ds,
+        val_bl_ds,
+        cfg=cfg,
+        stream_name="baseline",
+        run_dir=run_dir,
     )
 
     # Train pulsatile
     pl_history = _train_stream(
-        pulsatile_model, train_pl_ds, val_pl_ds,
-        cfg=cfg, stream_name="pulsatile", run_dir=run_dir,
+        pulsatile_model,
+        train_pl_ds,
+        val_pl_ds,
+        cfg=cfg,
+        stream_name="pulsatile",
+        run_dir=run_dir,
     )
 
     # -----------------------------------------------------------------------
@@ -814,17 +858,24 @@ def train_two_stream(cfg: PpgTwoStreamConfig) -> dict[str, Any]:
 
     # Primary metrics (full reconstruction)
     recon_results = _evaluate_reconstruction(
-        baseline_model, pulsatile_model, val_segments, cfg=cfg,
+        baseline_model,
+        pulsatile_model,
+        val_segments,
+        cfg=cfg,
     )
     primary = recon_results["primary_metrics"]
     logger.info(
         "Primary: MSE=%.6f PRD=%.2f%% cos=%.4f",
-        primary["mse"], primary["prd_percent"], primary["cosine_similarity"],
+        primary["mse"],
+        primary["prd_percent"],
+        primary["cosine_similarity"],
     )
 
     # HR/HRV metrics
     physio_results = _evaluate_physiokit(
-        recon_results["originals"], recon_results["reconstructions"], cfg=cfg,
+        recon_results["originals"],
+        recon_results["reconstructions"],
+        cfg=cfg,
     )
     if physio_results and physio_results["summary"]:
         ps = physio_results["summary"]
@@ -837,7 +888,9 @@ def train_two_stream(cfg: PpgTwoStreamConfig) -> dict[str, Any]:
 
     # Spectral metrics
     spectral_results = _evaluate_spectral(
-        recon_results["originals"], recon_results["reconstructions"], cfg=cfg,
+        recon_results["originals"],
+        recon_results["reconstructions"],
+        cfg=cfg,
     )
     if spectral_results:
         logger.info(

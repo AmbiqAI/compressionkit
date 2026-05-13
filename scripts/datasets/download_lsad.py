@@ -22,9 +22,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_ambiq_s3_zip  # noqa: E402
+from compressionkit.datasets._download import download_ambiq_s3_zip
 
 SLUG = "lsad"
 
@@ -37,12 +37,15 @@ def verify(canonical_dir: Path, *, limit: int | None, logger) -> None:
     for fp in h5_files[: limit or 3]:
         with h5py.File(fp, "r") as h:
             data = h["data"]
-            slabels = h["slabels"] if "slabels" in h else None
+            slabels = h.get("slabels", None)
             shape = tuple(data.shape)
             sl_shape = tuple(slabels.shape) if slabels is not None else None
             logger.info(
                 "  %s data=%s dtype=%s slabels=%s",
-                fp.name, shape, data.dtype, sl_shape,
+                fp.name,
+                shape,
+                data.dtype,
+                sl_shape,
             )
             arr = np.asarray(data[:])
             if not np.isfinite(arr).all():

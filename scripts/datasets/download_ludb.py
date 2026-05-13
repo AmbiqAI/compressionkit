@@ -26,9 +26,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_ambiq_s3_zip  # noqa: E402
+from compressionkit.datasets._download import download_ambiq_s3_zip
 
 SLUG = "ludb"
 
@@ -42,12 +42,15 @@ def verify(canonical_dir: Path, *, limit: int | None, logger) -> None:
     for fp in h5_files[: limit or 3]:
         with h5py.File(fp, "r") as h:
             data = h["data"]
-            seg = h["segmentations"] if "segmentations" in h else None
+            seg = h.get("segmentations", None)
             shape = tuple(data.shape)
             seg_shape = tuple(seg.shape) if seg is not None else None
             logger.info(
                 "  %s data=%s dtype=%s seg=%s",
-                fp.name, shape, data.dtype, seg_shape,
+                fp.name,
+                shape,
+                data.dtype,
+                seg_shape,
             )
             arr = np.asarray(data[:])
             if not np.isfinite(arr).all():

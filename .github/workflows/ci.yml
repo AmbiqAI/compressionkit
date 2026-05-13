@@ -37,6 +37,7 @@ jobs:
 
       - name: Shell script syntax
         run: |
-          for f in scripts/*.sh scripts/**/*.sh; do
-            [ -f "$f" ] && bash -n "$f"
+          shopt -s globstar nullglob
+          for f in scripts/**/*.sh; do
+            bash -n "$f"
           done

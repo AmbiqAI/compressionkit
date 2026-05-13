@@ -163,10 +163,13 @@ def export_for_deployment(
     # 3. Codebook tables
     logger.info("Exporting codebook tables...")
     artifacts.codebook_npz = export_codebooks_npz(
-        rvq_weights, output_dir / "codebook.npz",
+        rvq_weights,
+        output_dir / "codebook.npz",
     )
     artifacts.codebook_header = export_codebooks_header(
-        rvq_weights, output_dir / "codebook.h", prefix=codebook_prefix,
+        rvq_weights,
+        output_dir / "codebook.h",
+        prefix=codebook_prefix,
     )
 
     # 4. Sample data for validation / testing
@@ -198,7 +201,9 @@ def export_for_deployment(
         },
         "decoder": {
             "keras": decoder_keras_path.name,
-            "float32_tflite": artifacts.decoder_float32_tflite.name if artifacts.decoder_float32_tflite != Path() else None,
+            "float32_tflite": artifacts.decoder_float32_tflite.name
+            if artifacts.decoder_float32_tflite != Path()
+            else None,
             "int8_tflite": artifacts.decoder_int8_tflite.name if artifacts.decoder_int8_tflite != Path() else None,
             "int8_header": artifacts.decoder_int8_header.name if artifacts.decoder_int8_header != Path() else None,
             "input_shape": list(decoder.input_shape),

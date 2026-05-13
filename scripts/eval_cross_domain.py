@@ -8,25 +8,22 @@ Quantifies the generalization gap by evaluating a model trained on one dataset
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
-import sys
 from pathlib import Path
 
 import h5py
 import numpy as np
 import tensorflow as tf
 
-try:
+with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
-except RuntimeError:
-    pass
 
 from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
     summarize_physiokit_alignment,
 )
 from compressionkit.models.rvq_autoencoder import build_rvq_autoencoder
-
 
 # ---------------------------------------------------------------------------
 # Data loading from h5 datasets
@@ -97,9 +94,7 @@ def _extract_windows(
     if n_windows == 0:
         return np.empty((0, window_size), dtype=np.float32)
 
-    windows = np.stack(
-        [signal[i * hop : i * hop + window_size] for i in range(n_windows)]
-    ).astype(np.float32)
+    windows = np.stack([signal[i * hop : i * hop + window_size] for i in range(n_windows)]).astype(np.float32)
 
     # Quality filter: reject flat/saturated/extreme windows
     stds = windows.std(axis=1)
@@ -139,9 +134,7 @@ def collect_source_windows(
         signal = _load_signal(path, source_cfg, target_fs)
         if signal is None or len(signal) < window_size:
             continue
-        windows = _extract_windows(
-            signal, window_size, max_windows=max_windows_per_file, rng=rng
-        )
+        windows = _extract_windows(signal, window_size, max_windows=max_windows_per_file, rng=rng)
         if len(windows) > 0:
             all_windows.append(windows)
 
@@ -236,9 +229,7 @@ def evaluate_on_source(
 
     # Predict
     with tf.device("/CPU:0"):
-        recon_normed = np.asarray(
-            model.predict(inputs, batch_size=batch_size, verbose=0)
-        )
+        recon_normed = np.asarray(model.predict(inputs, batch_size=batch_size, verbose=0))
 
     # Reshape: (B, 1, T, 1) -> (B, T)
     recon_normed = recon_normed.reshape(windows.shape)
@@ -272,7 +263,7 @@ def evaluate_on_source(
     )
 
     return {
-        "num_windows": int(len(windows)),
+        "num_windows": len(windows),
         "normalized_metrics": normed_metrics,
         "raw_metrics": raw_metrics,
         "physiokit": physiokit,
@@ -329,10 +320,20 @@ def evaluate_long_recording(
 
     sig_metrics = compute_signal_metrics(signal, reconstructed)
     orig_pk = compute_ppg_physiokit_metrics(
-        signal, sample_rate=sample_rate, low_hz=0.5, high_hz=8.0, order=3, min_peaks=10,
+        signal,
+        sample_rate=sample_rate,
+        low_hz=0.5,
+        high_hz=8.0,
+        order=3,
+        min_peaks=10,
     )
     recon_pk = compute_ppg_physiokit_metrics(
-        reconstructed, sample_rate=sample_rate, low_hz=0.5, high_hz=8.0, order=3, min_peaks=10,
+        reconstructed,
+        sample_rate=sample_rate,
+        low_hz=0.5,
+        high_hz=8.0,
+        order=3,
+        min_peaks=10,
     )
 
     result = {"signal_metrics": sig_metrics}
@@ -388,9 +389,9 @@ def main():
             print(f"  SKIP: unknown source '{source}'")
             continue
 
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Source: {source}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Short-window evaluation
         print(f"  Collecting windows (frame_size={frame_size})...")
@@ -403,9 +404,7 @@ def main():
         )
         print(f"  Collected {len(windows)} windows")
 
-        short_metrics = evaluate_on_source(
-            model, windows, epsilon=epsilon, sample_rate=sample_rate
-        )
+        short_metrics = evaluate_on_source(model, windows, epsilon=epsilon, sample_rate=sample_rate)
 
         # Long-recording evaluation
         source_cfg = H5_SOURCES[source]
@@ -428,8 +427,11 @@ def main():
             if segment.std() < 1e-4:
                 continue
             lr = evaluate_long_recording(
-                model, segment,
-                frame_size=frame_size, epsilon=epsilon, sample_rate=sample_rate,
+                model,
+                segment,
+                frame_size=frame_size,
+                epsilon=epsilon,
+                sample_rate=sample_rate,
             )
             lr["file"] = path.name
             long_results.append(lr)

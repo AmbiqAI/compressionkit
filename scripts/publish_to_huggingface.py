@@ -25,7 +25,6 @@ Requires ``HF_TOKEN`` environment variable or ``huggingface-cli login``.
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import shutil
 import sys
@@ -116,9 +115,7 @@ def publish(
         try:
             from huggingface_hub import HfApi as _HfApi  # noqa: F401 — import check only
         except ImportError as exc:
-            raise ImportError(
-                "huggingface_hub not installed. Install with: uv sync --extra hf"
-            ) from exc
+            raise ImportError("huggingface_hub not installed. Install with: uv sync --extra hf") from exc
 
     # Create staging directory
     staging_dir = Path(tempfile.mkdtemp(prefix="hf_release_"))
@@ -182,31 +179,39 @@ def publish(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Publish compressionkit deployment artifacts to HuggingFace Hub."
-    )
+    parser = argparse.ArgumentParser(description="Publish compressionkit deployment artifacts to HuggingFace Hub.")
     parser.add_argument(
-        "--deploy-dir", type=Path, required=True,
+        "--deploy-dir",
+        type=Path,
+        required=True,
         help="Path to deploy directory (must contain deploy_manifest.json).",
     )
     parser.add_argument(
-        "--repo-id", type=str, required=True,
+        "--repo-id",
+        type=str,
+        required=True,
         help="HuggingFace repo ID (e.g. AmbiqAI/compressionkit-ppg-4x).",
     )
     parser.add_argument(
-        "--scorecard", type=Path, default=None,
+        "--scorecard",
+        type=Path,
+        default=None,
         help="Path to quality_scorecard.json.",
     )
     parser.add_argument(
-        "--license", type=str, default="apache-2.0",
+        "--license",
+        type=str,
+        default="apache-2.0",
         help="SPDX license ID for model card (default: apache-2.0).",
     )
     parser.add_argument(
-        "--private", action="store_true",
+        "--private",
+        action="store_true",
         help="Create a private repository.",
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Stage files and generate model card without uploading.",
     )
     args = parser.parse_args()

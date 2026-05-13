@@ -29,10 +29,7 @@ INFO = DatasetInfo(
     name="mesa",
     sampling_rate=256,
     num_leads=1,
-    description=(
-        "Overnight PPG recordings (256 Hz) from the MESA polysomnography "
-        "study.  ~1,900 subjects."
-    ),
+    description=("Overnight PPG recordings (256 Hz) from the MESA polysomnography study.  ~1,900 subjects."),
     license="NSRR Data Use Agreement",
     requires_agreement=True,
 )
@@ -148,10 +145,7 @@ class MesaDataset:
         with pyedflib.EdfReader(str(edf_path)) as reader:
             labels = reader.getSignalLabels()
             if self.ppg_label not in labels:
-                raise ValueError(
-                    f"Channel '{self.ppg_label}' not found in {edf_path}. "
-                    f"Available: {labels}"
-                )
+                raise ValueError(f"Channel '{self.ppg_label}' not found in {edf_path}. Available: {labels}")
             idx = labels.index(self.ppg_label)
             source_rate = int(reader.samplefrequency(idx))
             total = reader.getNSamples()[idx]
@@ -175,8 +169,7 @@ class MesaDataset:
         if num_samples is not None:
             if signal.shape[0] < num_samples:
                 raise ValueError(
-                    f"Signal from {edf_path} shorter ({signal.shape[0]}) "
-                    f"than requested {num_samples} samples."
+                    f"Signal from {edf_path} shorter ({signal.shape[0]}) than requested {num_samples} samples."
                 )
             signal = signal[:num_samples]
 

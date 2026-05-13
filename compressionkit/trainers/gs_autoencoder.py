@@ -10,16 +10,17 @@ class GSAutoencoder(keras.Model):
     Lets you pass `extra_losses=[...]` and `extra_metrics=[...]` at compile time,
     and it bubbles up GS metrics ('gs_bits_per_index', 'gs_perplexity', 'gs_usage', 'gs_temperature').
     """
+
     def __init__(self, encoder: keras.Model, gs: GumbelSoftmaxBottleneck, decoder: keras.Model, **kwargs):
         super().__init__(**kwargs)
         self.encoder = encoder
-        self.gs      = gs
+        self.gs = gs
         self.decoder = decoder
 
         self._recon_loss = None
         self._extra_loss_fns = []
         self._extra_metric_objs = []
-        self._extra_metric_fns  = []
+        self._extra_metric_fns = []
 
     def call(self, x, training=False, return_indices: bool = False, return_probs: bool = False):
         z = self.encoder(x, training=training)
@@ -54,12 +55,12 @@ class GSAutoencoder(keras.Model):
         **kwargs,
     ):
         super().compile(optimizer=optimizer, metrics=metrics or [], **kwargs)
-        self._recon_loss     = loss
+        self._recon_loss = loss
         self._extra_loss_fns = list(extra_losses or [])
 
         self._extra_metric_objs.clear()
         self._extra_metric_fns.clear()
-        for m in (extra_metrics or []):
+        for m in extra_metrics or []:
             if isinstance(m, keras.metrics.Metric):
                 self._extra_metric_objs.append(m)
             else:
@@ -117,11 +118,7 @@ class GSAutoencoder(keras.Model):
         encoder_cfg = cfg.pop("encoder")
         gs_cfg = cfg.pop("gs")
         decoder_cfg = cfg.pop("decoder")
-        encoder = keras.saving.deserialize_keras_object(
-            encoder_cfg, custom_objects=custom_objects
-        )
+        encoder = keras.saving.deserialize_keras_object(encoder_cfg, custom_objects=custom_objects)
         gs = keras.saving.deserialize_keras_object(gs_cfg, custom_objects=custom_objects)
-        decoder = keras.saving.deserialize_keras_object(
-            decoder_cfg, custom_objects=custom_objects
-        )
+        decoder = keras.saving.deserialize_keras_object(decoder_cfg, custom_objects=custom_objects)
         return cls(encoder=encoder, gs=gs, decoder=decoder, **cfg)

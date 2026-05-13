@@ -33,15 +33,40 @@ _S3_KEY = "ptbxl/ptbxl.zip"
 
 # Patient IDs known to be corrupt/missing in the public release.
 _BAD_IDS: set[int] = {
-    137, 139, 140, 141, 142, 143, 145,
-    456, 458, 459, 461, 462,
-    2506, 2511,
-    3795, 3798, 3800, 3832,
+    137,
+    139,
+    140,
+    141,
+    142,
+    143,
+    145,
+    456,
+    458,
+    459,
+    461,
+    462,
+    2506,
+    2511,
+    3795,
+    3798,
+    3800,
+    3832,
     5817,
-    7777, 7779, 7782,
-    9821, 9825, 9888,
-    11810, 11814, 11817, 11838,
-    13791, 13793, 13796, 13797, 13799,
+    7777,
+    7779,
+    7782,
+    9821,
+    9825,
+    9888,
+    11810,
+    11814,
+    11817,
+    11838,
+    13791,
+    13793,
+    13796,
+    13797,
+    13799,
     15742,
     18150,
 }
@@ -50,9 +75,7 @@ INFO = DatasetInfo(
     name="ptbxl",
     sampling_rate=500,
     num_leads=12,
-    description=(
-        "21,799 clinical 12-lead ECGs (10 s, 500 Hz) from 18,885 subjects."
-    ),
+    description=("21,799 clinical 12-lead ECGs (10 s, 500 Hz) from 18,885 subjects."),
     license="CC BY 4.0",
     requires_agreement=False,
 )
@@ -171,8 +194,7 @@ class PtbxlDataset:
         # Quick existence check: skip if we already have H5 files
         if not force and any(self.path.glob("*.h5")):
             logger.info(
-                "PTB-XL H5 files already present in %s — skipping download. "
-                "Pass force=True to re-download.",
+                "PTB-XL H5 files already present in %s — skipping download. Pass force=True to re-download.",
                 self.path,
             )
             return

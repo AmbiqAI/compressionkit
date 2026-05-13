@@ -16,8 +16,8 @@ import pandas as pd
 
 from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
-    summarize_physiokit_alignment,
     summarize_ecg_alignment,
+    summarize_physiokit_alignment,
     summarize_ppg_peak_alignment,
 )
 from compressionkit.evaluation.noise import (
@@ -88,10 +88,12 @@ def _load_samples(run_dir: Path) -> list[tuple[np.ndarray, np.ndarray]]:
         df = pd.read_csv(csv_path)
         if "original" not in df.columns or "reconstructed" not in df.columns:
             continue
-        pairs.append((
-            df["original"].to_numpy(dtype=np.float32),
-            df["reconstructed"].to_numpy(dtype=np.float32),
-        ))
+        pairs.append(
+            (
+                df["original"].to_numpy(dtype=np.float32),
+                df["reconstructed"].to_numpy(dtype=np.float32),
+            )
+        )
     return pairs
 
 
@@ -181,23 +183,15 @@ def build_quality_scorecard(
     if bands is None:
         bands = list(ECG_DEFAULT_BANDS) if modality == "ecg" else list(PPG_DEFAULT_BANDS)
     if freq_weights is None:
-        freq_weights = (
-            list(ECG_DEFAULT_FREQ_WEIGHTS) if modality == "ecg"
-            else list(PPG_DEFAULT_FREQ_WEIGHTS)
-        )
+        freq_weights = list(ECG_DEFAULT_FREQ_WEIGHTS) if modality == "ecg" else list(PPG_DEFAULT_FREQ_WEIGHTS)
     if coherence_band is None:
-        coherence_band = (
-            ECG_DEFAULT_COHERENCE_BAND if modality == "ecg"
-            else PPG_DEFAULT_COHERENCE_BAND
-        )
+        coherence_band = ECG_DEFAULT_COHERENCE_BAND if modality == "ecg" else PPG_DEFAULT_COHERENCE_BAND
 
     loaded_pairs = _load_samples(run_dir)
     pairs = [
         (orig, recon)
         for orig, recon in loaded_pairs
-        if np.isfinite(orig).all()
-        and np.isfinite(recon).all()
-        and float(np.std(orig)) >= min_signal_std
+        if np.isfinite(orig).all() and np.isfinite(recon).all() and float(np.std(orig)) >= min_signal_std
     ]
     summary = _read_summary(run_dir)
     stitching = _read_stitching(run_dir)
@@ -229,7 +223,7 @@ def build_quality_scorecard(
             snr_db = nf.get("qrs_snr_db")
             tmpl_rms = nf.get("qrs_template_rms")
             if snr_db is not None and not np.isnan(snr_db) and tmpl_rms:
-                np_est = float((tmpl_rms ** 2) * (10 ** (-snr_db / 10.0)))
+                np_est = float((tmpl_rms**2) * (10 ** (-snr_db / 10.0)))
             else:
                 np_est = nf.get("bp_noise_power", 0.0)
         else:
@@ -257,7 +251,10 @@ def build_quality_scorecard(
         wf = weighted_freq_prd(orig, recon, fs=sample_rate, weights=freq_weights)
         wfprd_vals.append(float(wf["weighted_freq_prd_percent"]))
         coh = spectral_coherence(
-            orig, recon, fs=sample_rate, band=coherence_band,
+            orig,
+            recon,
+            fs=sample_rate,
+            band=coherence_band,
         )
         # spectral_coherence returns a dict with one entry; pull the value
         coh_vals.append(float(next(iter(coh.values()))))
@@ -271,16 +268,19 @@ def build_quality_scorecard(
         # vs raw original (current/canonical reference; subject to detector
         # noise sensitivity on noisy ground truth)
         ecg_summary_raw, per_sample_raw = summarize_ecg_alignment(
-            originals, recons, sample_rate=sample_rate,
+            originals,
+            recons,
+            sample_rate=sample_rate,
         )
         # vs filtered original (closer to "true" peaks; if the codec is
         # denoising correctly, vs_filtered errors should be <= vs_raw)
-        filtered_originals = np.stack([
-            _filter_signal_safe(o, fs=sample_rate, lowcut=0.5, highcut=40.0)
-            for o in originals
-        ])
+        filtered_originals = np.stack(
+            [_filter_signal_safe(o, fs=sample_rate, lowcut=0.5, highcut=40.0) for o in originals]
+        )
         ecg_summary_filt, _ = summarize_ecg_alignment(
-            filtered_originals, recons, sample_rate=sample_rate,
+            filtered_originals,
+            recons,
+            sample_rate=sample_rate,
         )
 
         physiology = {
@@ -295,9 +295,7 @@ def build_quality_scorecard(
             and len(noise_rms_vals) == len(per_sample_raw)
             and sum(1 for x in per_sample_raw if x is not None) >= 6
         ):
-            valid_idx = [
-                i for i, x in enumerate(per_sample_raw) if x is not None
-            ]
+            valid_idx = [i for i, x in enumerate(per_sample_raw) if x is not None]
             valid_noise = np.array([noise_rms_vals[i] for i in valid_idx])
             t1, t2 = np.percentile(valid_noise, [33.33, 66.67])
 
@@ -309,8 +307,7 @@ def build_quality_scorecard(
                 return "noisy"
 
             buckets: dict[str, dict[str, list[float]]] = {
-                k: {"hr_abs_err": [], "sdnn_abs_err": [], "rmssd_abs_err": []}
-                for k in ("clean", "median", "noisy")
+                k: {"hr_abs_err": [], "sdnn_abs_err": [], "rmssd_abs_err": []} for k in ("clean", "median", "noisy")
             }
             for i in valid_idx:
                 ps = per_sample_raw[i]
@@ -323,9 +320,7 @@ def build_quality_scorecard(
                 if "sdnn_ms" in d:
                     buckets[bucket]["sdnn_abs_err"].append(abs(float(d["sdnn_ms"])))
                 if "rmssd_ms" in d:
-                    buckets[bucket]["rmssd_abs_err"].append(
-                        abs(float(d["rmssd_ms"]))
-                    )
+                    buckets[bucket]["rmssd_abs_err"].append(abs(float(d["rmssd_ms"])))
 
             physiology["by_noise_tertile"] = {
                 "thresholds_bp_noise_rms": {
@@ -411,9 +406,7 @@ def build_quality_scorecard(
                         pps = peak_per_sample[i]
                         if pps is not None:
                             if pps.get("peak_timing_mae_ms") is not None:
-                                buckets[bucket]["peak_timing_err"].append(
-                                    float(pps["peak_timing_mae_ms"])
-                                )
+                                buckets[bucket]["peak_timing_err"].append(float(pps["peak_timing_mae_ms"]))
                             buckets[bucket]["peak_f1"].append(100.0 * float(pps["f1"]))
 
                 physiology["by_noise_tertile"] = {
@@ -438,13 +431,15 @@ def build_quality_scorecard(
     bitrate: dict[str, Any] = {}
     if entropy:
         em = entropy.get("metrics", {})
-        bitrate.update({
-            "best_prior_tag": entropy.get("tag"),
-            "val_bits_per_token": em.get("val_bits_per_token"),
-            "val_bits_per_frame": em.get("val_bits_per_frame"),
-            "cr_codec_uniform": em.get("cr_codec_uniform"),
-            "cr_codec_learned": em.get("cr_codec_learned"),
-        })
+        bitrate.update(
+            {
+                "best_prior_tag": entropy.get("tag"),
+                "val_bits_per_token": em.get("val_bits_per_token"),
+                "val_bits_per_frame": em.get("val_bits_per_frame"),
+                "cr_codec_uniform": em.get("cr_codec_uniform"),
+                "cr_codec_learned": em.get("cr_codec_learned"),
+            }
+        )
     cmp = {}
     for source in (
         summary.get("compression"),
@@ -480,10 +475,15 @@ def build_quality_scorecard(
             if not isinstance(stats, dict):
                 continue
             stability[method_name] = {
-                k: stats.get(k) for k in (
-                    "prd_percent_mean", "cosine_similarity_mean",
-                    "mse_mean", "seam_ratio_mean", "seam_rms_mean",
-                ) if k in stats
+                k: stats.get(k)
+                for k in (
+                    "prd_percent_mean",
+                    "cosine_similarity_mean",
+                    "mse_mean",
+                    "seam_ratio_mean",
+                    "seam_rms_mean",
+                )
+                if k in stats
             }
 
     # --- Noise-tertile stratification (time-domain + spectral) -----------
@@ -501,12 +501,10 @@ def build_quality_scorecard(
             return "noisy"
 
         td_buckets: dict[str, dict[str, list[float]]] = {
-            k: {"prd": [], "prdn": [], "rmse": [], "cosine": []}
-            for k in ("clean", "median", "noisy")
+            k: {"prd": [], "prdn": [], "rmse": [], "cosine": []} for k in ("clean", "median", "noisy")
         }
         sp_buckets: dict[str, dict[str, list[float]]] = {
-            k: {"band_total": [], "wfprd": [], "coherence": []}
-            for k in ("clean", "median", "noisy")
+            k: {"band_total": [], "wfprd": [], "coherence": []} for k in ("clean", "median", "noisy")
         }
         for i in range(n_valid_noise):
             bucket = _noise_bucket(noise_rms_vals[i])
@@ -559,17 +557,13 @@ def build_quality_scorecard(
         "bitrate": bitrate,
         "time_domain": {
             "prd_percent": _aggregate(prd_vals),
-            "prdn_noise_percent": _aggregate(
-                [v for v in prdn_vals if not np.isnan(v)]
-            ),
+            "prdn_noise_percent": _aggregate([v for v in prdn_vals if not np.isnan(v)]),
             "rmse": _aggregate(rmse_vals),
             "cosine_similarity": _aggregate(cos_vals),
         },
         "spectral": {
             "band_total_rel_error": _aggregate(band_total_errs),
-            "per_band_rel_error": {
-                k: _aggregate(v) for k, v in band_err_per_band.items()
-            },
+            "per_band_rel_error": {k: _aggregate(v) for k, v in band_err_per_band.items()},
             "weighted_freq_prd_percent": _aggregate(wfprd_vals),
             "coherence": _aggregate(coh_vals),
         },
@@ -594,7 +588,10 @@ def write_quality_scorecard(
 ) -> Path:
     """Build and persist a scorecard. Returns the output path."""
     card = build_quality_scorecard(
-        run_dir, modality=modality, sample_rate=sample_rate, **kwargs,
+        run_dir,
+        modality=modality,
+        sample_rate=sample_rate,
+        **kwargs,
     )
     out = output_path or (Path(run_dir) / "quality_scorecard.json")
     out.write_text(json.dumps(card, indent=2))

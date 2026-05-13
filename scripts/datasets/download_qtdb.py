@@ -30,9 +30,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_ambiq_s3_zip  # noqa: E402
+from compressionkit.datasets._download import download_ambiq_s3_zip
 
 SLUG = "qtdb"
 
@@ -68,7 +68,8 @@ def main() -> None:
             "Found %d existing h5 files under %s — skipping re-download. "
             "Pass --force to re-pull the raw bundle (it contains WFDB files, "
             "not h5; you'll need a converter).",
-            len(existing), canonical,
+            len(existing),
+            canonical,
         )
     elif not args.skip_download:
         # Pulls raw WFDB files into <raw> rather than the canonical dir.
@@ -80,8 +81,8 @@ def main() -> None:
             force=args.force,
         )
         logger.warning(
-            "Raw WFDB files extracted to %s — you'll need a wfdb→h5 converter "
-            "(see download_mitdb.py for the pattern).", raw,
+            "Raw WFDB files extracted to %s — you'll need a wfdb→h5 converter (see download_mitdb.py for the pattern).",
+            raw,
         )
 
     verify(canonical, limit=args.limit, logger=logger)

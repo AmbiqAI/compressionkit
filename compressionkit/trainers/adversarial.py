@@ -83,7 +83,9 @@ class AdversarialVQAutoencoder(keras.Model):
         # signal until the mask flips to 1.0.
         initial_mask = 1.0 if disc_start_epoch == 0 else 0.0
         self._disc_mask = keras.Variable(
-            initial_mask, trainable=False, dtype="float32",
+            initial_mask,
+            trainable=False,
+            dtype="float32",
             name="disc_mask",
         )
 
@@ -173,15 +175,18 @@ class AdversarialVQAutoencoder(keras.Model):
         with tf.GradientTape() as disc_tape:
             disc_real_out = self.discriminator(y, training=True)
             disc_fake_out = self.discriminator(
-                y_fake_for_disc, training=True,
+                y_fake_for_disc,
+                training=True,
             )
             disc_loss = self._hinge_disc_loss(disc_real_out, disc_fake_out)
 
         disc_grads = disc_tape.gradient(
-            disc_loss, self.discriminator.trainable_variables,
+            disc_loss,
+            self.discriminator.trainable_variables,
         )
         self.disc_optimizer.apply(
-            disc_grads, self.discriminator.trainable_variables,
+            disc_grads,
+            self.discriminator.trainable_variables,
         )
 
         self._disc_loss_tracker.update_state(disc_loss)
@@ -198,7 +203,9 @@ class AdversarialVQAutoencoder(keras.Model):
         with tf.GradientTape() as gen_tape:
             y_fake_g = self.autoencoder(x, training=True)
             recon_loss = self.autoencoder.compute_loss(
-                x=x, y=y, y_pred=y_fake_g,
+                x=x,
+                y=y,
+                y_pred=y_fake_g,
             )
 
             disc_fake_g = self.discriminator(y_fake_g, training=False)
@@ -208,17 +215,15 @@ class AdversarialVQAutoencoder(keras.Model):
 
             # _disc_mask is 0.0 during warmup, 1.0 after disc_start_epoch
             mask = ops.convert_to_tensor(self._disc_mask)
-            gen_total = (
-                recon_loss
-                + mask * self.adv_weight * adv_g_loss
-                + mask * self.feat_weight * feat_loss
-            )
+            gen_total = recon_loss + mask * self.adv_weight * adv_g_loss + mask * self.feat_weight * feat_loss
 
         gen_grads = gen_tape.gradient(
-            gen_total, self.autoencoder.trainable_variables,
+            gen_total,
+            self.autoencoder.trainable_variables,
         )
         self.gen_optimizer.apply(
-            gen_grads, self.autoencoder.trainable_variables,
+            gen_grads,
+            self.autoencoder.trainable_variables,
         )
 
         # Update trackers (report raw adv/feat, not masked)

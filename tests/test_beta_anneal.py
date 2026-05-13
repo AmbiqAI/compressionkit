@@ -27,7 +27,7 @@ def rvq_layer() -> EmaResidualVectorQuantizer:
 def test_beta_anneal_swaps_float_to_variable(rvq_layer):
     """First attach should convert ``beta`` from float to keras.Variable."""
     assert isinstance(rvq_layer.beta, float)
-    cb = BetaAnneal(rvq_layer, start=1.0, end=0.1, epochs=10)
+    _cb = BetaAnneal(rvq_layer, start=1.0, end=0.1, epochs=10)
     assert isinstance(rvq_layer.beta, keras.Variable)
     assert float(rvq_layer.beta.numpy()) == pytest.approx(0.25)
     # Second instantiation must not double-wrap.

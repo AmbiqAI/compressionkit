@@ -196,9 +196,12 @@ def reconstruct_overlap_add(
 ) -> np.ndarray:
     """Hann-window overlap-add — the canonical stitching method."""
     return _windowed_overlap_add(
-        predict_fn, signal, frame_size,
+        predict_fn,
+        signal,
+        frame_size,
         window=_hann_window(frame_size),
-        hop_ratio=hop_ratio, epsilon=epsilon,
+        hop_ratio=hop_ratio,
+        epsilon=epsilon,
     )
 
 
@@ -212,9 +215,12 @@ def reconstruct_linear_crossfade(
 ) -> np.ndarray:
     """Triangular-window overlap-add (linear blend at seams)."""
     return _windowed_overlap_add(
-        predict_fn, signal, frame_size,
+        predict_fn,
+        signal,
+        frame_size,
         window=_triangular_window(frame_size),
-        hop_ratio=hop_ratio, epsilon=epsilon,
+        hop_ratio=hop_ratio,
+        epsilon=epsilon,
     )
 
 
@@ -229,9 +235,12 @@ def reconstruct_tukey_overlap_add(
 ) -> np.ndarray:
     """Tukey-window overlap-add with configurable taper fraction *alpha*."""
     return _windowed_overlap_add(
-        predict_fn, signal, frame_size,
+        predict_fn,
+        signal,
+        frame_size,
         window=_tukey_window(frame_size, alpha),
-        hop_ratio=hop_ratio, epsilon=epsilon,
+        hop_ratio=hop_ratio,
+        epsilon=epsilon,
     )
 
 
@@ -310,8 +319,7 @@ def seam_discontinuity_ratio(
     sig = np.asarray(signal, dtype=np.float32).reshape(-1)
     n = sig.size
     if n < 2 * frame_size:
-        return {"seam_rms": float("nan"), "non_seam_rms": float("nan"),
-                "ratio": float("nan"), "num_seams": 0}
+        return {"seam_rms": float("nan"), "non_seam_rms": float("nan"), "ratio": float("nan"), "num_seams": 0}
 
     diff = np.abs(np.diff(sig))
     hop = max(1, int(frame_size * hop_ratio))
@@ -323,8 +331,12 @@ def seam_discontinuity_ratio(
         seam_mask[lo:hi] = True
 
     if not seam_mask.any() or seam_mask.all():
-        return {"seam_rms": float("nan"), "non_seam_rms": float("nan"),
-                "ratio": float("nan"), "num_seams": len(seam_positions)}
+        return {
+            "seam_rms": float("nan"),
+            "non_seam_rms": float("nan"),
+            "ratio": float("nan"),
+            "num_seams": len(seam_positions),
+        }
 
     seam_rms = float(np.sqrt(np.mean(diff[seam_mask] ** 2)))
     non_seam_rms = float(np.sqrt(np.mean(diff[~seam_mask] ** 2)))

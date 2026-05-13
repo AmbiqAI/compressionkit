@@ -58,14 +58,16 @@ def main() -> None:
     print(f"  num_samples           : {card['num_samples']}")
     if card.get("num_samples_rejected"):
         print(f"  num_samples_rejected  : {card['num_samples_rejected']}")
-    print(f"  bitrate               :")
+    print("  bitrate               :")
     for k in ("val_bits_per_token", "cr_codec_learned", "codec_compression_ratio"):
         if k in bp and bp[k] is not None:
             print(f"    {k:24s} = {bp[k]}")
 
     # Primary metrics: PRD + MSE/RMSE
-    print(f"  PRIMARY (mean ± std)  :")
-    print(f"    PRD %                = {td['prd_percent']['mean']:.2f} ± {td['prd_percent']['std']:.2f}  (p90 {td['prd_percent']['p90']:.2f})")
+    print("  PRIMARY (mean ± std)  :")
+    print(
+        f"    PRD %                = {td['prd_percent']['mean']:.2f} ± {td['prd_percent']['std']:.2f}  (p90 {td['prd_percent']['p90']:.2f})"
+    )
     print(f"    RMSE                 = {td['rmse']['mean']:.4f} ± {td['rmse']['std']:.4f}")
     print(f"    cosine_similarity    = {td['cosine_similarity']['mean']:.4f} ± {td['cosine_similarity']['std']:.4f}")
 
@@ -74,7 +76,7 @@ def main() -> None:
         vsr = phys.get("vs_raw_original", phys)  # backwards-compat
         vsf = phys.get("vs_filtered_original", {})
         if vsr:
-            print(f"  PHYSIOLOGY vs RAW orig:")
+            print("  PHYSIOLOGY vs RAW orig:")
             for k, label in (
                 ("hr_mae_bpm", "hr_mae_bpm"),
                 ("hr_std_ae_bpm", "hr_std_ae_bpm"),
@@ -95,43 +97,59 @@ def main() -> None:
                     print(f"    {label:32s} = {vsr[k]:.4f}")
             peak = vsr.get("peak_alignment") if isinstance(vsr, dict) else None
             if peak:
-                print(f"  PPG PEAK ALIGNMENT:")
+                print("  PPG PEAK ALIGNMENT:")
                 for k in (
-                    "peak_precision_pct", "peak_recall_pct", "peak_f1_pct",
-                    "peak_timing_mae_ms", "peak_timing_p90_ms", "ibi_mae_ms",
-                    "total_missed_peaks", "total_extra_peaks",
+                    "peak_precision_pct",
+                    "peak_recall_pct",
+                    "peak_f1_pct",
+                    "peak_timing_mae_ms",
+                    "peak_timing_p90_ms",
+                    "ibi_mae_ms",
+                    "total_missed_peaks",
+                    "total_extra_peaks",
                 ):
                     if k in peak and peak[k] is not None:
                         print(f"    {k:32s} = {peak[k]:.4f}")
         if vsf:
-            print(f"  PHYSIOLOGY vs FILTERED orig (denoising-fair reference):")
+            print("  PHYSIOLOGY vs FILTERED orig (denoising-fair reference):")
             for k in (
-                "hr_mae_bpm", "hr_p90_ae_bpm", "peak_timing_mae_ms",
-                "peak_timing_within_10ms_pct", "sdnn_mae_ms", "rmssd_mae_ms",
+                "hr_mae_bpm",
+                "hr_p90_ae_bpm",
+                "peak_timing_mae_ms",
+                "peak_timing_within_10ms_pct",
+                "sdnn_mae_ms",
+                "rmssd_mae_ms",
             ):
                 if k in vsf and vsf[k] is not None:
                     print(f"    {k:32s} = {vsf[k]:.4f}")
         tert = phys.get("by_noise_tertile") if isinstance(phys, dict) else None
         if tert:
-            print(f"  PHYSIOLOGY by noise tertile (HR MAE):")
+            print("  PHYSIOLOGY by noise tertile (HR MAE):")
             for name in ("clean", "median", "noisy"):
                 b = tert["buckets"].get(name, {})
                 hr = b.get("hr_mae_bpm", {})
                 if hr.get("n"):
-                    print(f"    {name:8s} (n={hr['n']:3d}) hr_mae = {hr['mean']:.3f} ± {hr['std']:.3f}  p90 {hr['p90']:.3f}")
+                    print(
+                        f"    {name:8s} (n={hr['n']:3d}) hr_mae = {hr['mean']:.3f} ± {hr['std']:.3f}  p90 {hr['p90']:.3f}"
+                    )
 
     # Frequency-domain reconstruction quality
-    print(f"  SPECTRAL (mean ± std) :")
-    print(f"    band_total_rel_error = {sp['band_total_rel_error']['mean']:.4f} ± {sp['band_total_rel_error']['std']:.4f}")
-    print(f"    weighted_freq_prd %  = {sp['weighted_freq_prd_percent']['mean']:.2f} ± {sp['weighted_freq_prd_percent']['std']:.2f}")
+    print("  SPECTRAL (mean ± std) :")
+    print(
+        f"    band_total_rel_error = {sp['band_total_rel_error']['mean']:.4f} ± {sp['band_total_rel_error']['std']:.4f}"
+    )
+    print(
+        f"    weighted_freq_prd %  = {sp['weighted_freq_prd_percent']['mean']:.2f} ± {sp['weighted_freq_prd_percent']['std']:.2f}"
+    )
     print(f"    coherence            = {sp['coherence']['mean']:.4f} ± {sp['coherence']['std']:.4f}")
 
     # Supplementary: PRDN-noise (interpret with care; see scripts/sanity_clean_ecg.py)
-    if td['prdn_noise_percent'].get('n'):
-        print(f"  SUPPLEMENTARY         :")
-        print(f"    PRDN-noise %         = {td['prdn_noise_percent']['mean']:.2f} ± {td['prdn_noise_percent']['std']:.2f}")
-        print(f"      (noise estimator: {card['noise_estimator']}; "
-              f"compare against PRD on clean synthetic for context)")
+    if td["prdn_noise_percent"].get("n"):
+        print("  SUPPLEMENTARY         :")
+        print(
+            f"    PRDN-noise %         = {td['prdn_noise_percent']['mean']:.2f} ± {td['prdn_noise_percent']['std']:.2f}"
+        )
+        print(f"      (noise estimator: {card['noise_estimator']}; compare against PRD on clean synthetic for context)")
 
 
 if __name__ == "__main__":

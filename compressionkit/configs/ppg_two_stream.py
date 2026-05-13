@@ -13,8 +13,6 @@ from pydantic import BaseModel, Field
 
 from compressionkit.configs.ppg_rvq import (
     DerivativeLossConfig,
-    EvaluationConfig,
-    FilterConfig,
     LrScheduleConfig,
     OutputConfig,
     SpectralLossConfig,
@@ -145,9 +143,7 @@ class StitchingEvalConfig(BaseModel):
     """Stitching evaluation configuration."""
 
     enabled: bool = True
-    methods: list[str] = Field(
-        default_factory=lambda: ["hard_concat", "overlap_add", "linear_crossfade"]
-    )
+    methods: list[str] = Field(default_factory=lambda: ["hard_concat", "overlap_add", "linear_crossfade"])
     hop_ratio: float = 0.5
     duration_sec: float = 60.0
     num_recordings: int = 50
@@ -160,11 +156,11 @@ class SpectralEvalConfig(BaseModel):
     enabled: bool = True
     bands: list[tuple[float, float]] = Field(
         default_factory=lambda: [
-            (0.0, 0.5),    # sub-pulse (baseline/respiration)
-            (0.5, 2.0),    # cardiac fundamental (30-120 BPM)
-            (2.0, 4.0),    # first harmonic
-            (4.0, 8.0),    # higher harmonics
-            (8.0, 32.0),   # out-of-band (noise floor)
+            (0.0, 0.5),  # sub-pulse (baseline/respiration)
+            (0.5, 2.0),  # cardiac fundamental (30-120 BPM)
+            (2.0, 4.0),  # first harmonic
+            (4.0, 8.0),  # higher harmonics
+            (8.0, 32.0),  # out-of-band (noise floor)
         ]
     )
 

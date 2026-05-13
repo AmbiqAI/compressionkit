@@ -23,24 +23,25 @@ def make_parser(*, slug: str, description: str) -> argparse.ArgumentParser:
         -v / -q        log verbosity.
     """
     p = argparse.ArgumentParser(description=description)
-    p.add_argument("--root", type=Path, default=DEFAULT_DATA_ROOT,
-                   help="Destination root for canonical h5 files (default: datasets/).")
-    p.add_argument("--raw-dir", type=Path, default=None,
-                   help=f"Raw download dir (default: <root>/{slug}_raw).")
-    p.add_argument("--limit", type=int, default=None,
-                   help="Smoke test: only ingest the first N records.")
-    p.add_argument("--force", action="store_true",
-                   help="Re-download even if archives or h5 files already exist.")
-    p.add_argument("--skip-convert", action="store_true",
-                   help="Download raw archives only; skip converting to h5.")
-    p.add_argument("--skip-download", action="store_true",
-                   help="Use existing files in --raw-dir; skip downloading.")
-    p.add_argument("--upload-s3", default=None, metavar="BUCKET/KEY",
-                   help="After conversion, zip <root>/<slug>/ and upload to s3://BUCKET/KEY.")
-    p.add_argument("-v", "--verbose", action="store_true",
-                   help="Enable DEBUG logging.")
-    p.add_argument("-q", "--quiet", action="store_true",
-                   help="Only print warnings and errors.")
+    p.add_argument(
+        "--root",
+        type=Path,
+        default=DEFAULT_DATA_ROOT,
+        help="Destination root for canonical h5 files (default: datasets/).",
+    )
+    p.add_argument("--raw-dir", type=Path, default=None, help=f"Raw download dir (default: <root>/{slug}_raw).")
+    p.add_argument("--limit", type=int, default=None, help="Smoke test: only ingest the first N records.")
+    p.add_argument("--force", action="store_true", help="Re-download even if archives or h5 files already exist.")
+    p.add_argument("--skip-convert", action="store_true", help="Download raw archives only; skip converting to h5.")
+    p.add_argument("--skip-download", action="store_true", help="Use existing files in --raw-dir; skip downloading.")
+    p.add_argument(
+        "--upload-s3",
+        default=None,
+        metavar="BUCKET/KEY",
+        help="After conversion, zip <root>/<slug>/ and upload to s3://BUCKET/KEY.",
+    )
+    p.add_argument("-v", "--verbose", action="store_true", help="Enable DEBUG logging.")
+    p.add_argument("-q", "--quiet", action="store_true", help="Only print warnings and errors.")
     return p
 
 

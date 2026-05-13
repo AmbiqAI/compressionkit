@@ -104,7 +104,9 @@ def evaluate_results_dir(results_dir: Path) -> dict:
         summary["peak_timing_mae_ms"] = float(np.mean(peak_timing_errors))
         summary["peak_timing_median_ms"] = float(np.median(peak_timing_errors))
         summary["peak_timing_max_ms"] = float(np.max(peak_timing_errors))
-        summary["peak_timing_within_10ms_pct"] = sum(1 for t in peak_timing_errors if t <= 10) / len(peak_timing_errors) * 100
+        summary["peak_timing_within_10ms_pct"] = (
+            sum(1 for t in peak_timing_errors if t <= 10) / len(peak_timing_errors) * 100
+        )
 
     if valid_hrv > 0:
         summary["sdnn_mae_ms"] = float(np.mean(sdnn_errors))
@@ -122,30 +124,38 @@ def main():
     for path_str in sys.argv[1:]:
         results_dir = Path(path_str)
         name = results_dir.name
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Evaluating: {name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         summary = evaluate_results_dir(results_dir)
         results[name] = summary
 
         if not summary:
             continue
 
-        print(f"  Samples: {summary['total_samples']} total, {summary['valid_hr_pairs']} valid HR, {summary['valid_hrv_pairs']} valid HRV")
+        print(
+            f"  Samples: {summary['total_samples']} total, {summary['valid_hr_pairs']} valid HR, {summary['valid_hrv_pairs']} valid HRV"
+        )
         if "hr_mae_bpm" in summary:
-            print(f"  HR:  MAE={summary['hr_mae_bpm']:.2f} BPM, bias={summary['hr_bias_bpm']:.2f}, max={summary['hr_max_err_bpm']:.2f}, median={summary['hr_median_err_bpm']:.2f}")
+            print(
+                f"  HR:  MAE={summary['hr_mae_bpm']:.2f} BPM, bias={summary['hr_bias_bpm']:.2f}, max={summary['hr_max_err_bpm']:.2f}, median={summary['hr_median_err_bpm']:.2f}"
+            )
         if "peak_count_exact_match_pct" in summary:
-            print(f"  Peaks: {summary['peak_count_exact_match_pct']:.0f}% exact match, {summary['total_missed_peaks']} missed, {summary['total_extra_peaks']} extra")
+            print(
+                f"  Peaks: {summary['peak_count_exact_match_pct']:.0f}% exact match, {summary['total_missed_peaks']} missed, {summary['total_extra_peaks']} extra"
+            )
         if "peak_timing_mae_ms" in summary:
-            print(f"  Peak timing: MAE={summary['peak_timing_mae_ms']:.2f}ms, median={summary['peak_timing_median_ms']:.2f}ms, max={summary['peak_timing_max_ms']:.2f}ms, ≤10ms={summary['peak_timing_within_10ms_pct']:.0f}%")
+            print(
+                f"  Peak timing: MAE={summary['peak_timing_mae_ms']:.2f}ms, median={summary['peak_timing_median_ms']:.2f}ms, max={summary['peak_timing_max_ms']:.2f}ms, ≤10ms={summary['peak_timing_within_10ms_pct']:.0f}%"
+            )
         if "sdnn_mae_ms" in summary:
             print(f"  HRV: SDNN MAE={summary['sdnn_mae_ms']:.2f}ms, RMSSD MAE={summary['rmssd_mae_ms']:.2f}ms")
 
     # Comparison table
     if len(results) > 1:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("COMPARISON TABLE")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         header = f"{'Model':<45} {'HR MAE':>8} {'Pk Match':>9} {'Pk Time':>8} {'≤10ms':>6}"
         print(header)
         print("-" * len(header))

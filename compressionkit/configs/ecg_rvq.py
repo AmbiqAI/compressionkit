@@ -247,10 +247,7 @@ class ModelConfig(BaseModel):
     )
     hier_detail_scale: float = Field(
         default=0.25,
-        description=(
-            "Scale for residual/detail contributions when using hierarchical "
-            "decoder types."
-        ),
+        description=("Scale for residual/detail contributions when using hierarchical decoder types."),
     )
     revive_dead_codes: bool = Field(
         default=False,
@@ -259,15 +256,13 @@ class ModelConfig(BaseModel):
     revive_threshold: float = Field(
         default=0.03,
         description=(
-            "Codes whose normalized usage falls below revive_threshold/K are "
-            "resampled from the current batch."
+            "Codes whose normalized usage falls below revive_threshold/K are resampled from the current batch."
         ),
     )
     kmeans_init: bool = Field(
         default=False,
         description=(
-            "Mini-batch k-means warm-start of the EMA RVQ codebooks before "
-            "training. Run once eagerly via the trainer."
+            "Mini-batch k-means warm-start of the EMA RVQ codebooks before training. Run once eagerly via the trainer."
         ),
     )
     structured_dropout: bool = Field(
@@ -289,8 +284,7 @@ class ModelConfig(BaseModel):
     decoder_activation: str = Field(
         default="relu",
         description=(
-            "Activation function for decoder blocks: 'relu', 'snake', or any "
-            "Keras-registered activation name."
+            "Activation function for decoder blocks: 'relu', 'snake', or any Keras-registered activation name."
         ),
     )
     encoder_blocks_per_stage: int = Field(

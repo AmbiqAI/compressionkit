@@ -131,9 +131,7 @@ class TestEntropyPrior:
         prior._context_length = 10
 
         # Mock predict_logits to return zeros (uniform after softmax)
-        prior.predict_logits = lambda tokens: np.zeros(
-            (tokens.shape[0], tokens.shape[1], vocab), dtype=np.float32
-        )
+        prior.predict_logits = lambda tokens: np.zeros((tokens.shape[0], tokens.shape[1], vocab), dtype=np.float32)
 
         indices = np.zeros((1, 5, 2), dtype=np.int32)
         log_probs = prior.predict_log_probs(indices)
@@ -150,9 +148,7 @@ class TestEntropyPrior:
         prior._vocab_size = vocab
         prior._context_length = 20
 
-        prior.predict_logits = lambda tokens: np.zeros(
-            (tokens.shape[0], tokens.shape[1], vocab), dtype=np.float32
-        )
+        prior.predict_logits = lambda tokens: np.zeros((tokens.shape[0], tokens.shape[1], vocab), dtype=np.float32)
 
         indices = np.zeros((1, 5, 2), dtype=np.int32)
         bpt = prior.bits_per_token(indices)
@@ -175,11 +171,11 @@ class TestTwoStageCodec:
         codec.num_levels = num_levels
         codec.embedding_dim = 8
         codec.encode = MagicMock(
-            side_effect=lambda sig: np.random.default_rng(0).integers(0, vocab, size=(1, 1, 8, num_levels)).astype(np.int32)
+            side_effect=lambda sig: (
+                np.random.default_rng(0).integers(0, vocab, size=(1, 1, 8, num_levels)).astype(np.int32)
+            )
         )
-        codec.decode = MagicMock(
-            side_effect=lambda idx: np.zeros((1, 1, 32, 1), dtype=np.float32)
-        )
+        codec.decode = MagicMock(side_effect=lambda idx: np.zeros((1, 1, 32, 1), dtype=np.float32))
 
         # Mock prior using a uniform-ish model
         prior = MagicMock()
@@ -190,9 +186,7 @@ class TestTwoStageCodec:
             if indices.ndim == 4
             else indices.reshape(indices.shape[0], -1).astype(np.int32)
         )
-        prior.predict_logits = lambda tokens: np.zeros(
-            (tokens.shape[0], tokens.shape[1], vocab), dtype=np.float32
-        )
+        prior.predict_logits = lambda tokens: np.zeros((tokens.shape[0], tokens.shape[1], vocab), dtype=np.float32)
         prior.bits_per_token = lambda indices: float(np.log2(vocab))
 
         return TwoStageCodec(codec, prior)

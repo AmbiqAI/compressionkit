@@ -16,9 +16,22 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = REPO_ROOT / "goldens" / "manifest.json"
 
 
+def _goldens_available() -> bool:
+    """Check if golden results directories are present on disk."""
+    if not MANIFEST_PATH.exists():
+        return False
+    with open(MANIFEST_PATH) as f:
+        data = json.load(f)
+    return any((REPO_ROOT / g["results_dir"]).is_dir() for g in data["goldens"])
+
+
+# Skip entire module when golden results are not available (e.g. CI).
+# The results/ directory is git-ignored and only present in dev containers.
+pytestmark = pytest.mark.skipif(not _goldens_available(), reason="Golden results not available")
+
+
 @pytest.fixture(scope="module")
 def manifest() -> list[dict]:
-    assert MANIFEST_PATH.exists(), f"Golden manifest not found: {MANIFEST_PATH}"
     with open(MANIFEST_PATH) as f:
         data = json.load(f)
     return data["goldens"]
@@ -115,9 +128,7 @@ class TestGoldenConfigsParseable:
                 continue
             path = REPO_ROOT / golden["config_yaml"]
             cfg = EcgRvqConfig.from_yaml(str(path))
-            assert cfg.run_name == golden["name"], (
-                f"run_name mismatch: {cfg.run_name} != {golden['name']}"
-            )
+            assert cfg.run_name == golden["name"], f"run_name mismatch: {cfg.run_name} != {golden['name']}"
 
     def test_ppg_configs_parse(self, manifest: list[dict]) -> None:
         from compressionkit.configs.ppg_rvq import PpgRvqConfig
@@ -127,6 +138,4 @@ class TestGoldenConfigsParseable:
                 continue
             path = REPO_ROOT / golden["config_yaml"]
             cfg = PpgRvqConfig.from_yaml(str(path))
-            assert cfg.run_name == golden["name"], (
-                f"run_name mismatch: {cfg.run_name} != {golden['name']}"
-            )
+            assert cfg.run_name == golden["name"], f"run_name mismatch: {cfg.run_name} != {golden['name']}"

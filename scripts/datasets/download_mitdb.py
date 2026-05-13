@@ -30,9 +30,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging  # noqa: E402
+from _common import make_parser, maybe_upload_s3, resolve_dirs, setup_logging
 
-from compressionkit.datasets._download import download_physionet_files  # noqa: E402
+from compressionkit.datasets._download import download_physionet_files
 
 SLUG = "mitdb"
 VERSION = "1.0.0"
@@ -41,11 +41,54 @@ ACQUISITION = "holter"
 # Canonical record list for MITDB. Fixed by the publication so we can hard-code
 # it; this avoids an extra round-trip to PhysioNet just to enumerate records.
 RECORDS: tuple[str, ...] = (
-    "100", "101", "102", "103", "104", "105", "106", "107", "108", "109",
-    "111", "112", "113", "114", "115", "116", "117", "118", "119", "121",
-    "122", "123", "124", "200", "201", "202", "203", "205", "207", "208",
-    "209", "210", "212", "213", "214", "215", "217", "219", "220", "221",
-    "222", "223", "228", "230", "231", "232", "233", "234",
+    "100",
+    "101",
+    "102",
+    "103",
+    "104",
+    "105",
+    "106",
+    "107",
+    "108",
+    "109",
+    "111",
+    "112",
+    "113",
+    "114",
+    "115",
+    "116",
+    "117",
+    "118",
+    "119",
+    "121",
+    "122",
+    "123",
+    "124",
+    "200",
+    "201",
+    "202",
+    "203",
+    "205",
+    "207",
+    "208",
+    "209",
+    "210",
+    "212",
+    "213",
+    "214",
+    "215",
+    "217",
+    "219",
+    "220",
+    "221",
+    "222",
+    "223",
+    "228",
+    "230",
+    "231",
+    "232",
+    "233",
+    "234",
 )
 
 EXTS = (".dat", ".hea", ".atr")
@@ -128,8 +171,12 @@ def main() -> None:
             r = h["r_peaks"]
             logger.info(
                 "  %s data=%s fs=%s leads=%s r_peaks=%d acquisition=%s",
-                sample.name, tuple(data.shape), h.attrs["fs"],
-                h.attrs["lead_names"], r.shape[0], h.attrs["acquisition"],
+                sample.name,
+                tuple(data.shape),
+                h.attrs["fs"],
+                h.attrs["lead_names"],
+                r.shape[0],
+                h.attrs["acquisition"],
             )
 
     maybe_upload_s3(canonical, args.upload_s3, slug=SLUG)

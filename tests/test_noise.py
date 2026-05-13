@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from compressionkit.evaluation.noise import (
     estimate_bandpass_residual_noise,
@@ -29,6 +28,7 @@ def _add_hf_noise(signal: np.ndarray, fs: int, noise_freq: float, amplitude: flo
 
 
 # ---------- estimate_hf_noise_power -----------------------------------------
+
 
 class TestHfNoisePower:
     def test_clean_signal_has_low_hf_power(self) -> None:
@@ -60,6 +60,7 @@ class TestHfNoisePower:
 
 # ---------- estimate_bandpass_residual_noise ---------------------------------
 
+
 class TestBandpassResidualNoise:
     def test_inband_sine_has_low_residual(self) -> None:
         """A 2 Hz sine inside 0.5–8 Hz should have near-zero residual."""
@@ -71,9 +72,7 @@ class TestBandpassResidualNoise:
     def test_outofband_energy_captured(self) -> None:
         """Adding a DC offset + HF tone should increase residual."""
         sig = _make_clean_sine(FS_PPG, duration_s=8.0, freq_hz=2.0)
-        noisy = sig + 1.0 + 0.3 * np.sin(
-            2 * np.pi * 20.0 * np.arange(sig.size) / FS_PPG
-        ).astype(np.float32)
+        noisy = sig + 1.0 + 0.3 * np.sin(2 * np.pi * 20.0 * np.arange(sig.size) / FS_PPG).astype(np.float32)
         out = estimate_bandpass_residual_noise(noisy, FS_PPG, lowcut=0.5, highcut=8.0)
         assert out["bp_noise_rms"] > 0.1
 
@@ -84,12 +83,19 @@ class TestBandpassResidualNoise:
     def test_output_keys(self) -> None:
         sig = _make_clean_sine(FS_PPG, duration_s=4.0, freq_hz=2.0)
         out = estimate_bandpass_residual_noise(sig, FS_PPG, lowcut=0.5, highcut=8.0)
-        expected_keys = {"bp_noise_rms", "bp_noise_power", "bp_signal_rms",
-                         "bp_signal_power", "bp_lowcut", "bp_highcut"}
+        expected_keys = {
+            "bp_noise_rms",
+            "bp_noise_power",
+            "bp_signal_rms",
+            "bp_signal_power",
+            "bp_lowcut",
+            "bp_highcut",
+        }
         assert set(out.keys()) == expected_keys
 
 
 # ---------- Composite estimators --------------------------------------------
+
 
 class TestEcgNoiseFloor:
     def test_returns_all_three_estimators(self) -> None:
@@ -121,6 +127,7 @@ class TestPpgNoiseFloor:
 
 
 # ---------- PRDN-noise (from metrics.compute_signal_metrics) ----------------
+
 
 class TestPrdnNoise:
     """Verify that PRDN-noise correctly accounts for noise floor."""

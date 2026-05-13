@@ -30,10 +30,7 @@ def ppg_run_dir(tmp_path: Path) -> Path:
 
         csv_path = tmp_path / f"sample_{i:03d}.csv"
         csv_path.write_text(
-            "original,reconstructed\n"
-            + "\n".join(
-                f"{o:.6f},{r:.6f}" for o, r in zip(original, reconstructed)
-            )
+            "original,reconstructed\n" + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(original, reconstructed))
         )
 
     # Minimal summary.json
@@ -61,10 +58,7 @@ def ecg_run_dir(tmp_path: Path) -> Path:
 
         csv_path = tmp_path / f"sample_{i:03d}.csv"
         csv_path.write_text(
-            "original,reconstructed\n"
-            + "\n".join(
-                f"{o:.6f},{r:.6f}" for o, r in zip(original, reconstructed)
-            )
+            "original,reconstructed\n" + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(original, reconstructed))
         )
 
     (tmp_path / "summary.json").write_text(json.dumps({}))
@@ -147,21 +141,18 @@ class TestBuildQualityScorecard:
         csv_valid = tmp_path / "sample_000.csv"
         orig = np.sin(np.linspace(0, 4 * np.pi, n)).astype(np.float32)
         recon = orig + 0.01 * np.random.default_rng(0).standard_normal(n).astype(np.float32)
-        csv_valid.write_text(
-            "original,reconstructed\n"
-            + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(orig, recon))
-        )
+        csv_valid.write_text("original,reconstructed\n" + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(orig, recon)))
         # One flat sample
         csv_flat = tmp_path / "sample_001.csv"
         flat = np.full(n, 0.0001, dtype=np.float32)
-        csv_flat.write_text(
-            "original,reconstructed\n"
-            + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(flat, flat))
-        )
+        csv_flat.write_text("original,reconstructed\n" + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(flat, flat)))
         (tmp_path / "summary.json").write_text("{}")
 
         card = build_quality_scorecard(
-            tmp_path, modality="ppg", sample_rate=64, min_signal_std=0.01,
+            tmp_path,
+            modality="ppg",
+            sample_rate=64,
+            min_signal_std=0.01,
         )
         assert card["num_samples_loaded"] == 2
         assert card["num_samples"] == 1
@@ -175,7 +166,9 @@ class TestBuildQualityScorecard:
         """Different noise estimators should produce valid scorecards."""
         for estimator in ("bp", "hf"):
             card = build_quality_scorecard(
-                ppg_run_dir, modality="ppg", sample_rate=64,
+                ppg_run_dir,
+                modality="ppg",
+                sample_rate=64,
                 noise_estimator=estimator,
             )
             assert card["noise_estimator"] == estimator
@@ -211,10 +204,7 @@ class TestBuildQualityScorecard:
             orig = np.sin(np.linspace(0, 4 * np.pi, n)).astype(np.float32)
             recon = orig + 0.01 * np.random.default_rng(i).standard_normal(n).astype(np.float32)
             csv_path = tmp_path / f"sample_{i:03d}.csv"
-            csv_path.write_text(
-                "original,reconstructed\n"
-                + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(orig, recon))
-            )
+            csv_path.write_text("original,reconstructed\n" + "\n".join(f"{o:.6f},{r:.6f}" for o, r in zip(orig, recon)))
         (tmp_path / "summary.json").write_text("{}")
         card = build_quality_scorecard(tmp_path, modality="ppg", sample_rate=64)
         assert card["by_noise_tertile"] == {}

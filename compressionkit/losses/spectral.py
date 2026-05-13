@@ -53,13 +53,9 @@ def build_multi_scale_spectral_loss(
 
                 diff_sq = ops.sum(ops.square(st - sp), axis=(1, 2))
                 ref_sq = ops.sum(ops.square(st), axis=(1, 2))
-                sc = ops.mean(
-                    ops.sqrt(diff_sq + 1e-8) / (ops.sqrt(ref_sq + 1e-8) + 1e-6)
-                )
+                sc = ops.mean(ops.sqrt(diff_sq + 1e-8) / (ops.sqrt(ref_sq + 1e-8) + 1e-6))
 
-                log_mag = ops.mean(
-                    ops.abs(ops.log(st + 1e-8) - ops.log(sp + 1e-8))
-                )
+                log_mag = ops.mean(ops.abs(ops.log(st + 1e-8) - ops.log(sp + 1e-8)))
 
                 total = total + sc + log_mag
 

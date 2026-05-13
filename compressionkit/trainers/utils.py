@@ -16,6 +16,7 @@ import keras
 # Protocol for config objects accepted by shared builders
 # ---------------------------------------------------------------------------
 
+
 class _TrainingSection(Protocol):
     learning_rate: float
     lr_schedule: Any
@@ -44,6 +45,7 @@ class _TrainableConfig(Protocol):
 # Derivative (smoothness) loss
 # ---------------------------------------------------------------------------
 
+
 def build_derivative_loss(weight: float) -> callable:
     """Build a first-difference penalty scaled by *weight*.
 
@@ -66,6 +68,7 @@ def build_derivative_loss(weight: float) -> callable:
 # ---------------------------------------------------------------------------
 # Multi-scale spectral loss
 # ---------------------------------------------------------------------------
+
 
 def build_multi_scale_spectral_loss(
     weight: float,
@@ -125,6 +128,7 @@ def build_multi_scale_spectral_loss(
 # Learning rate builder
 # ---------------------------------------------------------------------------
 
+
 def build_learning_rate(
     cfg: _TrainableConfig,
     *,
@@ -170,6 +174,7 @@ def build_learning_rate(
 # Callback builder
 # ---------------------------------------------------------------------------
 
+
 def build_callbacks(
     cfg: _TrainableConfig,
     *,
@@ -181,7 +186,9 @@ def build_callbacks(
     from compressionkit.logging.wandb_utils import build_wandb_callbacks
 
     tcfg = cfg.training
-    selection_monitor = tcfg.selection_metric if tcfg.selection_metric.startswith("val_") else f"val_{tcfg.selection_metric}"
+    selection_monitor = (
+        tcfg.selection_metric if tcfg.selection_metric.startswith("val_") else f"val_{tcfg.selection_metric}"
+    )
     best_ckpt_path = run_dir / "best_model.weights.h5"
 
     callbacks: list[keras.callbacks.Callback] = [
@@ -220,19 +227,21 @@ def build_callbacks(
         tb_dir.mkdir(parents=True, exist_ok=True)
         callbacks.append(
             keras.callbacks.TensorBoard(
-                log_dir=tb_dir, write_graph=False, write_images=False, update_freq="epoch",
+                log_dir=tb_dir,
+                write_graph=False,
+                write_images=False,
+                update_freq="epoch",
             )
         )
 
-    callbacks.extend(
-        build_wandb_callbacks(run=wandb_run, log_model=cfg.output.wandb.log_model)
-    )
+    callbacks.extend(build_wandb_callbacks(run=wandb_run, log_model=cfg.output.wandb.log_model))
     return callbacks
 
 
 # ---------------------------------------------------------------------------
 # Logger setup
 # ---------------------------------------------------------------------------
+
 
 def setup_logger(
     logger: logging.Logger,

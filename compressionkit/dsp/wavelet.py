@@ -12,9 +12,11 @@ try:  # Optional dependency for robust wavelet transforms.
 except Exception:  # pragma: no cover - fallback when PyWavelets is unavailable.
     pywt = None
 
+
 @dataclass(frozen=True)
 class WaveletCoeffs:
     """Container for multilevel 1D wavelet coefficients."""
+
     approx: np.ndarray
     details: list[np.ndarray]
 
@@ -22,6 +24,7 @@ class WaveletCoeffs:
 @dataclass(frozen=True)
 class WaveletFilters:
     """Analysis/synthesis filters for a wavelet."""
+
     dec_lo: np.ndarray
     dec_hi: np.ndarray
     rec_lo: np.ndarray
@@ -143,7 +146,7 @@ def compute_thresholds(
     for idx, band in enumerate(details):
         band = np.asarray(band)
         if method == "energy":
-            thr = np.sqrt(np.mean(band ** 2)) * factor
+            thr = np.sqrt(np.mean(band**2)) * factor
         elif method == "percentile":
             thr = np.percentile(np.abs(band), 100 * (1 - factor))
         else:
@@ -176,7 +179,7 @@ def compute_step_sizes(details: Sequence[np.ndarray], scale: float = 0.5) -> lis
     steps = []
     for band in details:
         band = np.asarray(band, dtype=np.float32)
-        rms = np.sqrt(np.mean(band ** 2)) + 1e-12
+        rms = np.sqrt(np.mean(band**2)) + 1e-12
         steps.append(float(rms * scale))
     return steps
 
@@ -217,13 +220,14 @@ def compute_prd(original: np.ndarray, reconstructed: np.ndarray) -> float:
     original = np.asarray(original, dtype=np.float32)
     reconstructed = np.asarray(reconstructed, dtype=np.float32)
     numerator = np.sum((original - reconstructed) ** 2)
-    denominator = np.sum(original ** 2) + 1e-12
+    denominator = np.sum(original**2) + 1e-12
     return float(100.0 * np.sqrt(numerator / denominator))
 
 
 @dataclass(frozen=True)
 class WaveletCompressed:
     """Packed representation for wavelet+thresholding compression."""
+
     approx: np.ndarray
     details: list[np.ndarray]
     thresholds: list[float]

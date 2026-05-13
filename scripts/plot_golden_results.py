@@ -41,16 +41,26 @@ class Theme:
 
 LIGHT = Theme(
     name="light",
-    bg="#FFFFFF", fg="#1E1E1E", fg_secondary="#555555", grid="#CCCCCC",
-    ppg="#0D7377", ppg_light="#4DB6AC",
-    ecg="#B45309", ecg_light="#D4A76A",
+    bg="#FFFFFF",
+    fg="#1E1E1E",
+    fg_secondary="#555555",
+    grid="#CCCCCC",
+    ppg="#0D7377",
+    ppg_light="#4DB6AC",
+    ecg="#B45309",
+    ecg_light="#D4A76A",
 )
 
 DARK = Theme(
     name="dark",
-    bg="#1E1E1E", fg="#E0E0E0", fg_secondary="#9E9E9E", grid="#444444",
-    ppg="#26A69A", ppg_light="#80CBC4",
-    ecg="#F9C80E", ecg_light="#FDE68A",
+    bg="#1E1E1E",
+    fg="#E0E0E0",
+    fg_secondary="#9E9E9E",
+    grid="#444444",
+    ppg="#26A69A",
+    ppg_light="#80CBC4",
+    ecg="#F9C80E",
+    ecg_light="#FDE68A",
 )
 
 THEMES = [LIGHT, DARK]
@@ -73,38 +83,40 @@ def _color_light(theme: Theme, signal: str) -> str:
 
 
 def _apply_theme(theme: Theme) -> None:
-    plt.rcParams.update({
-        "figure.dpi": 150,
-        "figure.facecolor": theme.bg,
-        "axes.facecolor": theme.bg,
-        "axes.edgecolor": theme.grid,
-        "axes.labelcolor": theme.fg,
-        "axes.titlecolor": theme.fg,
-        "axes.grid": True,
-        "axes.grid.which": "major",
-        "grid.color": theme.grid,
-        "grid.alpha": 0.45,
-        "grid.linewidth": 0.5,
-        "text.color": theme.fg,
-        "xtick.color": theme.fg_secondary,
-        "ytick.color": theme.fg_secondary,
-        "legend.facecolor": theme.bg,
-        "legend.edgecolor": theme.grid,
-        "legend.labelcolor": theme.fg,
-        "font.family": "sans-serif",
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.titleweight": "600",
-        "axes.labelsize": 11.5,
-        "legend.fontsize": 10,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "lines.linewidth": 2.2,
-        "lines.markersize": 7,
-        "savefig.facecolor": theme.bg,
-        "savefig.edgecolor": "none",
-        "savefig.transparent": False,
-    })
+    plt.rcParams.update(
+        {
+            "figure.dpi": 150,
+            "figure.facecolor": theme.bg,
+            "axes.facecolor": theme.bg,
+            "axes.edgecolor": theme.grid,
+            "axes.labelcolor": theme.fg,
+            "axes.titlecolor": theme.fg,
+            "axes.grid": True,
+            "axes.grid.which": "major",
+            "grid.color": theme.grid,
+            "grid.alpha": 0.45,
+            "grid.linewidth": 0.5,
+            "text.color": theme.fg,
+            "xtick.color": theme.fg_secondary,
+            "ytick.color": theme.fg_secondary,
+            "legend.facecolor": theme.bg,
+            "legend.edgecolor": theme.grid,
+            "legend.labelcolor": theme.fg,
+            "font.family": "sans-serif",
+            "font.size": 11,
+            "axes.titlesize": 13,
+            "axes.titleweight": "600",
+            "axes.labelsize": 11.5,
+            "legend.fontsize": 10,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+            "lines.linewidth": 2.2,
+            "lines.markersize": 7,
+            "savefig.facecolor": theme.bg,
+            "savefig.edgecolor": "none",
+            "savefig.transparent": False,
+        }
+    )
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -118,16 +130,15 @@ def _cr_ticks(ax: plt.Axes, sdf: pd.DataFrame) -> None:
     crs = sorted(sdf["compression_ratio"].unique())
     ax.set_xscale("log", base=2)
     ax.set_xticks(crs)
-    ax.xaxis.set_major_formatter(
-        ticker.FuncFormatter(lambda v, _: f"{v:.0f}×" if v == int(v) else f"{v:.1f}×")
-    )
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:.0f}×" if v == int(v) else f"{v:.1f}×"))
     ax.xaxis.set_minor_formatter(ticker.NullFormatter())
     ax.set_xlabel("Compression Ratio")
 
 
 def _annotate(ax: plt.Axes, x: float, y: float, text: str, color: str) -> None:
-    ax.annotate(text, (x, y), textcoords="offset points", xytext=(0, 9),
-                fontsize=8, ha="center", color=color, fontweight="500")
+    ax.annotate(
+        text, (x, y), textcoords="offset points", xytext=(0, 9), fontsize=8, ha="center", color=color, fontweight="500"
+    )
 
 
 def _save(fig: plt.Figure, output_dir: Path, name: str, theme: Theme) -> Path:
@@ -155,13 +166,11 @@ def _line_plot(
     fig, ax = plt.subplots(figsize=(7, 3.8))
     c = _color(theme, signal)
 
-    ax.plot(sdf["compression_ratio"], sdf[y_col], color=c,
-            marker=MARKERS[signal], zorder=3)
+    ax.plot(sdf["compression_ratio"], sdf[y_col], color=c, marker=MARKERS[signal], zorder=3)
     if fill:
         ax.fill_between(sdf["compression_ratio"], 0, sdf[y_col], color=c, alpha=0.08)
     for _, row in sdf.iterrows():
-        _annotate(ax, row["compression_ratio"], row[y_col],
-                  f"{row[y_col]:{fmt}}", c)
+        _annotate(ax, row["compression_ratio"], row[y_col], f"{row[y_col]:{fmt}}", c)
 
     _cr_ticks(ax, sdf)
     ax.set_ylabel(y_label)
@@ -198,13 +207,21 @@ def plot_effective_rate(df: pd.DataFrame, output_dir: Path, theme: Theme) -> lis
         x = np.arange(len(sdf))
         bars = ax.bar(x, sdf["effective_sample_rate"], color=c, alpha=0.85, zorder=3)
         for bar, rate in zip(bars, sdf["effective_sample_rate"]):
-            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
-                    f"{rate:.0f} Hz", ha="center", va="bottom", fontsize=8,
-                    fontweight="600", color=c)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 1,
+                f"{rate:.0f} Hz",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                fontweight="600",
+                color=c,
+            )
 
         ax.axhline(native_rate, color=cl, linestyle="--", alpha=0.5, linewidth=1)
-        ax.text(len(sdf) - 0.6, native_rate + 2, f"Native {native_rate} Hz",
-                fontsize=8, color=cl, alpha=0.7, ha="right")
+        ax.text(
+            len(sdf) - 0.6, native_rate + 2, f"Native {native_rate} Hz", fontsize=8, color=cl, alpha=0.7, ha="right"
+        )
 
         ax.set_xticks(x)
         ax.set_xticklabels([CR_LABELS[CR_ORDER.index(cr)] for cr in sdf["cr_label"]])
@@ -252,8 +269,16 @@ def plot_bits_budget(df: pd.DataFrame, output_dir: Path, theme: Theme) -> list[P
         ax.bar(x, comp, color=c, alpha=0.85, label="Compressed", zorder=3)
         for j, (r, cv) in enumerate(zip(raw, comp)):
             savings = (1 - cv / r) * 100
-            ax.text(x[j], cv + 80, f"{savings:.0f}%\nsaved", ha="center",
-                    va="bottom", fontsize=7.5, fontweight="500", color=c)
+            ax.text(
+                x[j],
+                cv + 80,
+                f"{savings:.0f}%\nsaved",
+                ha="center",
+                va="bottom",
+                fontsize=7.5,
+                fontweight="500",
+                color=c,
+            )
 
         ax.set_xticks(x)
         ax.set_xticklabels([CR_LABELS[CR_ORDER.index(cr)] for cr in sdf["cr_label"]])
@@ -274,20 +299,18 @@ def plot_loss_and_rvq(df: pd.DataFrame, output_dir: Path, theme: Theme) -> list[
         c = _color(theme, signal)
 
         # Validation loss
-        fig = _line_plot(sdf, signal, "val_loss", "Validation Loss",
-                         "Total Loss vs Compression", theme, ".4f")
+        fig = _line_plot(sdf, signal, "val_loss", "Validation Loss", "Total Loss vs Compression", theme, ".4f")
         paths.append(_save(fig, output_dir, f"{signal.lower()}_val_loss", theme))
 
         # RVQ usage
         fig, ax = plt.subplots(figsize=(7, 3.8))
         usage = sdf["val_rvq_usage"] * 100
-        ax.plot(sdf["compression_ratio"], usage, color=c,
-                marker=MARKERS[signal], zorder=3)
+        ax.plot(sdf["compression_ratio"], usage, color=c, marker=MARKERS[signal], zorder=3)
         for _, row in sdf.iterrows():
             if pd.notna(row["val_rvq_usage"]):
-                _annotate(ax, row["compression_ratio"],
-                          row["val_rvq_usage"] * 100,
-                          f"{row['val_rvq_usage'] * 100:.0f}%", c)
+                _annotate(
+                    ax, row["compression_ratio"], row["val_rvq_usage"] * 100, f"{row['val_rvq_usage'] * 100:.0f}%", c
+                )
         _cr_ticks(ax, sdf)
         ax.set_ylabel("Codebook Usage (%)")
         ax.set_title(f"{signal} — RVQ Codebook Utilization")

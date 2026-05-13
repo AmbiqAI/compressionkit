@@ -34,30 +34,30 @@ from pathlib import Path
 # Pin TF backend before any keras import so the comparison runs consistently.
 os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 
-import keras  # noqa: E402
-import numpy as np  # noqa: E402
-import tensorflow as tf  # noqa: E402
-import yaml  # noqa: E402
+import keras
+import numpy as np
+import tensorflow as tf
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from compressionkit.configs.ecg_rvq import EcgRvqConfig  # noqa: E402
-from compressionkit.layers import (  # noqa: E402
+from compressionkit.configs.ecg_rvq import EcgRvqConfig
+from compressionkit.layers import (
     EmaResidualVectorQuantizer,
     FiniteScalarQuantizer,
     ResidualVectorQuantizer,
 )
-from compressionkit.models.ssm_autoencoder import (  # noqa: E402
+from compressionkit.models.ssm_autoencoder import (
     build_ssm_autoencoder,
     compute_compression_ratio,
 )
-from compressionkit.preprocessing.ecg import (  # noqa: E402
+from compressionkit.preprocessing.ecg import (
     build_augmenter,
     build_preprocessor,
 )
-from compressionkit.trainers.ecg_rvq import build_datasets  # noqa: E402
+from compressionkit.trainers.ecg_rvq import build_datasets
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("train_ssm_ecg")
@@ -95,8 +95,9 @@ def _make_loss(derivative_weight: float):
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--rvq-config", type=str, required=True,
-                   help="Path to a golden RVQ YAML to reuse data + train hparams.")
+    p.add_argument(
+        "--rvq-config", type=str, required=True, help="Path to a golden RVQ YAML to reuse data + train hparams."
+    )
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--steps-per-epoch", type=int, default=None)
     p.add_argument("--validation-steps", type=int, default=16)
@@ -106,24 +107,29 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--state-size", type=int, default=32)
     p.add_argument("--num-ssm-blocks", type=int, default=2)
     p.add_argument("--learning-rate", type=float, default=1e-3)
-    p.add_argument("--derivative-weight", type=float, default=0.1,
-                   help="Weight on first-difference loss. Set 0 to disable.")
-    p.add_argument("--cosine-restarts", action="store_true",
-                   help="Use cosine-restart LR schedule (matches golden RVQ).")
-    p.add_argument("--quantizer", choices=["none", "fsq", "rvq"], default="none",
-                   help="Bottleneck quantizer applied to the SSM latent.")
-    p.add_argument("--fsq-levels", type=str, default="8,5,5,5",
-                   help="Comma-separated per-dim levels for FSQ (D=len(levels)).")
+    p.add_argument(
+        "--derivative-weight", type=float, default=0.1, help="Weight on first-difference loss. Set 0 to disable."
+    )
+    p.add_argument(
+        "--cosine-restarts", action="store_true", help="Use cosine-restart LR schedule (matches golden RVQ)."
+    )
+    p.add_argument(
+        "--quantizer",
+        choices=["none", "fsq", "rvq"],
+        default="none",
+        help="Bottleneck quantizer applied to the SSM latent.",
+    )
+    p.add_argument(
+        "--fsq-levels", type=str, default="8,5,5,5", help="Comma-separated per-dim levels for FSQ (D=len(levels))."
+    )
     p.add_argument("--rvq-num-levels", type=int, default=1)
     p.add_argument("--rvq-codebook-size", type=int, default=256)
     p.add_argument("--rvq-beta", type=float, default=0.25)
-    p.add_argument("--rvq-ema", action="store_true",
-                   help="Use EmaResidualVectorQuantizer (matches golden RVQ).")
+    p.add_argument("--rvq-ema", action="store_true", help="Use EmaResidualVectorQuantizer (matches golden RVQ).")
     p.add_argument("--rvq-ema-decay", type=float, default=0.99)
     p.add_argument("--output-suffix", type=str, default="v0")
     p.add_argument("--results-root", type=str, default="results")
-    p.add_argument("--smoke-test", action="store_true",
-                   help="Run 1 epoch with 5 steps to verify the pipeline.")
+    p.add_argument("--smoke-test", action="store_true", help="Run 1 epoch with 5 steps to verify the pipeline.")
     return p.parse_args()
 
 
@@ -136,12 +142,15 @@ def main() -> None:
 
     # Build the same preprocessor/augmenter the RVQ run uses.
     preprocessor = build_preprocessor(
-        frame_size=cfg.data.frame_size, epsilon=cfg.data.epsilon,
+        frame_size=cfg.data.frame_size,
+        epsilon=cfg.data.epsilon,
     )
     augmenter = build_augmenter(noise_factor=tuple(cfg.data.gaussian_noise))
 
     train_ds, val_ds, validation_steps, info = build_datasets(
-        cfg, preprocessor, augmenter,
+        cfg,
+        preprocessor,
+        augmenter,
     )
     train_ds = _squeeze_h(train_ds)
     val_ds = _squeeze_h(val_ds)
@@ -160,8 +169,7 @@ def main() -> None:
         effective_latent_dim = len(levels)
         bits_per_token = sum(np.log2(L) for L in levels)
         quantizer = FiniteScalarQuantizer(levels=levels, name="fsq")
-        logger.info("FSQ levels=%s  bits/token=%.2f  codebook=%d",
-                    levels, bits_per_token, int(np.prod(levels)))
+        logger.info("FSQ levels=%s  bits/token=%.2f  codebook=%d", levels, bits_per_token, int(np.prod(levels)))
     elif args.quantizer == "rvq":
         bits_per_token = args.rvq_num_levels * np.log2(args.rvq_codebook_size)
         if args.rvq_ema:
@@ -184,8 +192,10 @@ def main() -> None:
         logger.info(
             "RVQ%s levels=%d  K=%d  D=%d  bits/token=%.2f",
             "(EMA)" if args.rvq_ema else "",
-            args.rvq_num_levels, args.rvq_codebook_size,
-            args.latent_dim, bits_per_token,
+            args.rvq_num_levels,
+            args.rvq_codebook_size,
+            args.latent_dim,
+            bits_per_token,
         )
 
     enc, dec, model = build_ssm_autoencoder(
@@ -216,14 +226,17 @@ def main() -> None:
     # True compression when a quantizer is present: bit-exact bits/token.
     cr_quant: float | None = None
     if bits_per_token is not None:
-        latent_time = cfg.data.frame_size // (2 ** num_stages)
+        latent_time = cfg.data.frame_size // (2**num_stages)
         in_bits = cfg.data.frame_size * cfg.evaluation.input_bit_depth
         out_bits = latent_time * bits_per_token
         cr_quant = in_bits / out_bits
     logger.info(
         "Model params: enc=%d, dec=%d, total=%d  |  CR float32=%.2fx, INT8=%.2fx, QUANT=%s",
-        enc.count_params(), dec.count_params(), model.count_params(),
-        cr_float32, cr_int8,
+        enc.count_params(),
+        dec.count_params(),
+        model.count_params(),
+        cr_float32,
+        cr_int8,
         f"{cr_quant:.2f}x" if cr_quant else "n/a",
     )
 
@@ -231,8 +244,13 @@ def main() -> None:
         optimizer=keras.optimizers.Adam(
             keras.optimizers.schedules.CosineDecayRestarts(
                 args.learning_rate,
-                first_decay_steps=200, t_mul=2.0, m_mul=1.0, alpha=0.01,
-            ) if args.cosine_restarts else args.learning_rate
+                first_decay_steps=200,
+                t_mul=2.0,
+                m_mul=1.0,
+                alpha=0.01,
+            )
+            if args.cosine_restarts
+            else args.learning_rate
         ),
         loss=_make_loss(args.derivative_weight),
         metrics=[
@@ -259,7 +277,9 @@ def main() -> None:
         callbacks=[
             keras.callbacks.CSVLogger(out_dir / "history.csv"),
             keras.callbacks.EarlyStopping(
-                monitor="val_mse", mode="min", patience=15,
+                monitor="val_mse",
+                mode="min",
+                patience=15,
                 restore_best_weights=True,
             ),
         ],
@@ -284,17 +304,14 @@ def main() -> None:
             "quantizer": cr_quant,
             "bits_per_token": bits_per_token,
         },
-        "final": {
-            k: float(v[-1]) for k, v in history.history.items()
-        },
+        "final": {k: float(v[-1]) for k, v in history.history.items()},
         "best_val_mse": float(min(history.history.get("val_mse", [float("inf")]))),
         "dataset_info": info,
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
     model.save(out_dir / "model.keras")
     logger.info("Saved results to %s", out_dir)
-    logger.info("Best val_mse=%.6f  (golden RVQ 32x baseline ≈ 0.0188)",
-                summary["best_val_mse"])
+    logger.info("Best val_mse=%.6f  (golden RVQ 32x baseline ≈ 0.0188)", summary["best_val_mse"])
 
 
 if __name__ == "__main__":

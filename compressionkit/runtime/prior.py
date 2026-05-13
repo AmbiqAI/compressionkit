@@ -63,7 +63,9 @@ class EntropyPrior:
 
         logger.info(
             "EntropyPrior loaded: %s (ctx=%d, vocab=%d)",
-            self._path.name, self._context_length, self._vocab_size,
+            self._path.name,
+            self._context_length,
+            self._vocab_size,
         )
 
     @property
@@ -104,10 +106,7 @@ class EntropyPrior:
         """
         batch, seq_len = tokens.shape
         if seq_len > self._context_length:
-            raise ValueError(
-                f"Token sequence length {seq_len} exceeds "
-                f"context_length {self._context_length}"
-            )
+            raise ValueError(f"Token sequence length {seq_len} exceeds context_length {self._context_length}")
 
         # Pad to context_length if needed
         if seq_len < self._context_length:

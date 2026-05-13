@@ -40,6 +40,7 @@ from compressionkit.preprocessing.ecg import generate_synthetic_ecg_batch
 
 def _load_model(run_dir: Path):
     import keras
+
     from compressionkit.trainers.ecg_rvq import build_model
 
     keras.backend.clear_session()
@@ -118,9 +119,7 @@ def evaluate_run(
         out["buckets"][f"noise_mult_{nm:g}"] = {
             "noise_multiplier": float(nm),
             "prd_percent": _agg(prd_vals),
-            "prdn_noise_percent": _agg(
-                [v for v in prdn_vals if not np.isnan(v)]
-            ),
+            "prdn_noise_percent": _agg([v for v in prdn_vals if not np.isnan(v)]),
             "bp_noise_rms": _agg(bp_rms_vals),
             "bp_noise_power": _agg(np_est_vals),
         }
@@ -129,14 +128,11 @@ def evaluate_run(
 
 def _print_summary(report: dict, runs_order: list[Path]) -> None:
     print()
-    print(
-        f"{'run':<48} {'noise':>8} {'noise_rms':>10} "
-        f"{'PRD%':>8} {'PRDN%':>8} {'gap':>8}"
-    )
+    print(f"{'run':<48} {'noise':>8} {'noise_rms':>10} {'PRD%':>8} {'PRDN%':>8} {'gap':>8}")
     print("-" * 100)
     for run_dir in runs_order:
         run_report = report["runs"][str(run_dir)]
-        for key, b in run_report["buckets"].items():
+        for _key, b in run_report["buckets"].items():
             prd = b["prd_percent"]["mean"]
             prdn = b["prdn_noise_percent"]["mean"]
             print(

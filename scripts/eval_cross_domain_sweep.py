@@ -22,21 +22,18 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
-import sys
 from pathlib import Path
 
 import h5py
 import numpy as np
 import tensorflow as tf
 
-try:
+with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
-except RuntimeError:
-    pass
 
 from compressionkit.evaluation.metrics import compute_signal_metrics
-
 
 # ---------------------------------------------------------------------------
 # Fixed eval sources — same windows for every model
@@ -75,6 +72,7 @@ def _resample(signal: np.ndarray, fs_in: int, fs_out: int) -> np.ndarray:
     if fs_in == fs_out:
         return signal.astype(np.float32, copy=False)
     from scipy.signal import resample_poly
+
     gcd = np.gcd(int(fs_in), int(fs_out))
     return resample_poly(signal, fs_out // gcd, fs_in // gcd).astype(np.float32, copy=False)
 
@@ -121,9 +119,7 @@ def collect_h5_windows(
         if n_windows == 0:
             continue
 
-        windows = np.stack(
-            [signal[i * hop: i * hop + window_size] for i in range(n_windows)]
-        ).astype(np.float32)
+        windows = np.stack([signal[i * hop : i * hop + window_size] for i in range(n_windows)]).astype(np.float32)
 
         # Quality filter
         stds = windows.std(axis=1)
@@ -220,8 +216,8 @@ def load_single_stream_model(run_dir: Path) -> tf.keras.Model:
 
 def load_two_stream_models(run_dir: Path) -> tuple:
     """Load two-stream baseline + pulsatile models."""
-    from compressionkit.models.ppg_two_stream import build_baseline_model, build_pulsatile_model
     from compressionkit.configs.ppg_two_stream import PpgTwoStreamConfig
+    from compressionkit.models.ppg_two_stream import build_baseline_model, build_pulsatile_model
 
     config_path = run_dir / "config.json"
     with open(config_path) as f:
@@ -310,7 +306,8 @@ def predict_two_stream(
                 epsilon=decompose_cfg.epsilon,
             )
             baseline_ds = downsample_baseline(
-                result["baseline_norm"], factor=bm.downsample_factor,
+                result["baseline_norm"],
+                factor=bm.downsample_factor,
             )
             baselines_ds.append(baseline_ds)
             pulsatiles.append(result["pulsatile_norm"])
@@ -332,10 +329,13 @@ def predict_two_stream(
         for i in range(end - start):
             params = decomp_params[i]
             bl_up = upsample_baseline(
-                bl_recon[i], factor=bm.downsample_factor, target_len=data.frame_size,
+                bl_recon[i],
+                factor=bm.downsample_factor,
+                target_len=data.frame_size,
             )
             recon = reconstruct_from_streams(
-                bl_up, pl_recon[i],
+                bl_up,
+                pl_recon[i],
                 baseline_center=params["baseline_center"],
                 baseline_scale=params["baseline_scale"],
                 pulsatile_center=params["pulsatile_center"],
@@ -362,7 +362,7 @@ def evaluate_model_on_windows(
     recons = predict_fn(windows)
     metrics = compute_signal_metrics(windows, recons)
     return {
-        "num_windows": int(len(windows)),
+        "num_windows": len(windows),
         "prd_percent": round(metrics["prd_percent"], 4),
         "cosine_similarity": round(metrics["cosine_similarity"], 6),
         "mse": round(metrics["mse"], 8),
@@ -413,17 +413,22 @@ def evaluate_run(
     for source_name in ["bidmc", "ppg_dalia", "wesad"]:
         print(f"    {source_name}...", end=" ", flush=True)
         windows = collect_h5_windows(
-            source_name, target_fs=64, window_size=frame_size,
-            max_total=max_windows, seed=seed,
+            source_name,
+            target_fs=64,
+            window_size=frame_size,
+            max_total=max_windows,
+            seed=seed,
         )
         metrics = evaluate_model_on_windows(predict_fn, windows)
         results["sources"][source_name] = metrics
         print(f"PRD={metrics['prd_percent']:.2f}%, cos={metrics['cosine_similarity']:.4f}")
 
     # Evaluate on MESA
-    print(f"    mesa...", end=" ", flush=True)
+    print("    mesa...", end=" ", flush=True)
     mesa_windows = collect_mesa_windows(
-        frame_size=frame_size, max_total=max_windows, seed=seed,
+        frame_size=frame_size,
+        max_total=max_windows,
+        seed=seed,
     )
     mesa_metrics = evaluate_model_on_windows(predict_fn, mesa_windows)
     results["sources"]["mesa"] = mesa_metrics
@@ -457,9 +462,9 @@ def run_sweep():
         if not Path(run_dir).exists():
             print(f"  SKIP (not found): {run_dir}")
             continue
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  {run_dir}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         result = evaluate_run(Path(run_dir), model_type)
 
         # Get CR from config
@@ -489,9 +494,9 @@ def run_sweep():
         all_results.append(result)
 
     # Print summary table
-    print(f"\n\n{'='*80}")
+    print(f"\n\n{'=' * 80}")
     print("CROSS-DOMAIN SWEEP SUMMARY")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"{'Model':<42} {'CR':>5} {'BIDMC':>7} {'DaLiA':>7} {'WESAD':>7} {'MESA':>7} {'Avg':>7}")
     print("-" * 80)
 
