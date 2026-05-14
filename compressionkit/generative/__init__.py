@@ -21,10 +21,20 @@ prior itself is deployable. The decoder is already edge-ready.
 from compressionkit.generative.sampling import decode_tokens_to_signal, sample_signals
 from compressionkit.generative.token_extraction import extract_rvq_tokens
 from compressionkit.generative.transformer_prior import build_prior
+from compressionkit.generative.xlead_prior import (
+    build_xlead_concat_prior,
+    build_xlead_interleave_prior,
+    deinterleave_leads,
+    interleave_leads,
+)
 
 __all__ = [
     "build_prior",
+    "build_xlead_concat_prior",
+    "build_xlead_interleave_prior",
     "decode_tokens_to_signal",
+    "deinterleave_leads",
     "extract_rvq_tokens",
+    "interleave_leads",
     "sample_signals",
 ]
