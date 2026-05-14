@@ -1,7 +1,7 @@
 {
   "description": "Golden reference baselines for compressionkit v1 overhaul. These metrics were recorded before any v1 refactoring to ensure reproducibility.",
-  "frozen_date": "2026-05-11",
-  "git_ref": "pre-v1-baseline",
+  "frozen_date": "2026-05-14",
+  "git_ref": "v2-recipe-cosine-decay-300ep",
   "goldens": [
     {
       "name": "ecg_rvq_256hz_02x_golden",
@@ -12,9 +12,9 @@
       "results_dir": "results/ecg_rvq_256hz_02x_golden",
       "weights": "results/ecg_rvq_256hz_02x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0006228614,
-        "val_prd": 2.5889730453,
-        "val_cos": 0.9996812344
+        "val_mse": 0.000603,
+        "val_prd": 2.547,
+        "val_cos": 0.999733
       },
       "architecture": {
         "frame_size": 512,
@@ -36,9 +36,9 @@
       "results_dir": "results/ecg_rvq_256hz_04x_golden",
       "weights": "results/ecg_rvq_256hz_04x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0012592151,
-        "val_prd": 3.681296587,
-        "val_cos": 0.9993263483
+        "val_mse": 0.001239,
+        "val_prd": 3.658,
+        "val_cos": 0.9993
       },
       "architecture": {
         "frame_size": 512,
@@ -60,9 +60,9 @@
       "results_dir": "results/ecg_rvq_256hz_08x_golden",
       "weights": "results/ecg_rvq_256hz_08x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0041228412,
-        "val_prd": 6.6595849991,
-        "val_cos": 0.9977779984
+        "val_mse": 0.004108,
+        "val_prd": 6.649,
+        "val_cos": 0.997797
       },
       "architecture": {
         "frame_size": 512,
@@ -84,9 +84,9 @@
       "results_dir": "results/ecg_rvq_256hz_16x_golden",
       "weights": "results/ecg_rvq_256hz_16x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0112783331,
-        "val_prd": 11.0171556473,
-        "val_cos": 0.9938282967
+        "val_mse": 0.010158,
+        "val_prd": 10.454,
+        "val_cos": 0.994461
       },
       "architecture": {
         "frame_size": 512,
@@ -108,15 +108,39 @@
       "results_dir": "results/ecg_rvq_256hz_32x_golden",
       "weights": "results/ecg_rvq_256hz_32x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0224045962,
-        "val_prd": 15.5266017914,
-        "val_cos": 0.9878373146
+        "val_mse": 0.021971,
+        "val_prd": 15.368,
+        "val_cos": 0.988073
       },
       "architecture": {
         "frame_size": 512,
         "sample_rate": 256,
         "leads": 1,
         "encoder_stages": 4,
+        "num_levels": 1,
+        "base_filters": 48,
+        "embedding_dim": 16,
+        "latent_width": 256
+      }
+    },
+    {
+      "name": "ecg_rvq_256hz_64x_golden",
+      "signal": "ECG",
+      "task": "1ch_rvq",
+      "compression_ratio": 64.0,
+      "config_yaml": "configs/ecg_rvq_256hz_64x_golden.yaml",
+      "results_dir": "results/ecg_rvq_256hz_64x_golden",
+      "weights": "results/ecg_rvq_256hz_64x_golden/best_model.weights.h5",
+      "metrics": {
+        "val_mse": 0.044999,
+        "val_prd": 22.007,
+        "val_cos": 0.975402
+      },
+      "architecture": {
+        "frame_size": 512,
+        "sample_rate": 256,
+        "leads": 1,
+        "encoder_stages": 5,
         "num_levels": 1,
         "base_filters": 48,
         "embedding_dim": 16,
