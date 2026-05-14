@@ -130,17 +130,23 @@ def export_for_deployment(
     if export_decoder_float32:
         logger.info("Exporting float32 decoder TFLite...")
         rep_latents = encoder.predict(rep_dataset[:32], verbose=0)
-        dec_f32_tflite, _ = export_decoder_tflite(
-            decoder,
-            rep_latents=rep_latents,
-            output_dir=output_dir,
-            tflite_name="decoder_float32.tflite",
-            header_name="_decoder_float32.h",
-            c_array_name="decoder_float32",
-            quantization="NONE",
-            io_type="float32",
-        )
-        artifacts.decoder_float32_tflite = dec_f32_tflite
+        try:
+            dec_f32_tflite, _ = export_decoder_tflite(
+                decoder,
+                rep_latents=rep_latents,
+                output_dir=output_dir,
+                tflite_name="decoder_float32.tflite",
+                header_name="_decoder_float32.h",
+                c_array_name="decoder_float32",
+                quantization="FP32",
+                io_type="float32",
+            )
+            artifacts.decoder_float32_tflite = dec_f32_tflite
+        except Exception:
+            logger.warning(
+                "Float32 decoder TFLite export failed (non-critical); "
+                "decoder.keras is still available for server-side use."
+            )
 
     # 2c. INT8 decoder TFLite (on-device reconstruction)
     if export_decoder_int8:

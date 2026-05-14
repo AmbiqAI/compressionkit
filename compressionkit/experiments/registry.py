@@ -78,6 +78,24 @@ class GoldenExperiment(BaseModel):
         return self
 
 
+# v1 golden expected metrics — frozen from the first release-grade runs.
+_PPG_EXPECTED_METRICS: dict[int, dict[str, float]] = {
+    2: {"prd_median": 2.2707, "prd_p90": 10.7564, "spectral_err_median": 0.026309, "cr_codec": 2.0},
+    4: {"prd_median": 2.7741, "prd_p90": 14.4301, "spectral_err_median": 0.035686, "cr_codec": 4.0},
+    8: {"prd_median": 4.1954, "prd_p90": 22.446, "spectral_err_median": 0.033576, "cr_codec": 8.0},
+    16: {"prd_median": 5.4119, "prd_p90": 25.0669, "spectral_err_median": 0.048616, "cr_codec": 16.0},
+    32: {"prd_median": 6.9379, "prd_p90": 38.9309, "spectral_err_median": 0.047229, "cr_codec": 32.0},
+}
+_ECG_EXPECTED_METRICS: dict[int, dict[str, float]] = {
+    2: {"prd_median": 2.3178, "prd_p90": 3.4712, "spectral_err_median": 0.035264, "cr_codec": 2.0},
+    4: {"prd_median": 3.2977, "prd_p90": 5.271, "spectral_err_median": 0.046192, "cr_codec": 4.0},
+    8: {"prd_median": 5.7411, "prd_p90": 10.0261, "spectral_err_median": 0.072537, "cr_codec": 8.0},
+    16: {"prd_median": 9.1709, "prd_p90": 17.6363, "spectral_err_median": 0.124397, "cr_codec": 16.0},
+    32: {"prd_median": 13.3351, "prd_p90": 22.949, "spectral_err_median": 0.19842, "cr_codec": 32.0},
+    64: {"prd_median": 19.9447, "prd_p90": 31.8647, "spectral_err_median": 0.267612, "cr_codec": 64.0},
+}
+
+
 def _ppg_codec(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ppg-rvq-{cr}x",
@@ -90,6 +108,7 @@ def _ppg_codec(cr: int) -> GoldenExperiment:
         compression_ratio=cr,
         hf_repo_id=f"AmbiqAI/compressionkit-ppg-{cr}x",
         dataset_id="mesa",
+        expected_metrics=_PPG_EXPECTED_METRICS.get(cr),
     )
 
 
@@ -105,6 +124,7 @@ def _ecg_codec(cr: int) -> GoldenExperiment:
         compression_ratio=cr,
         hf_repo_id=f"AmbiqAI/compressionkit-ecg-{cr}x",
         dataset_id="ptb-xl",
+        expected_metrics=_ECG_EXPECTED_METRICS.get(cr),
     )
 
 

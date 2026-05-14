@@ -46,7 +46,8 @@
     "remoteEnv": {
         "LD_LIBRARY_PATH": "${containerEnv:LD_LIBRARY_PATH}:/usr/local/cuda/lib64",
         "PATH": "${containerEnv:PATH}:/usr/local/cuda/bin",
-        "TF_FORCE_GPU_ALLOW_GROWTH": "true"
+        "TF_FORCE_GPU_ALLOW_GROWTH": "true",
+        "HF_TOKEN": "${localEnv:HF_TOKEN}"
     },
 
     "customizations": {
