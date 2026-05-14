@@ -18,7 +18,7 @@ def _fmt(val: float, decimals: int = 4) -> str:
 def generate_model_card(
     deploy_dir: str | Path,
     scorecard_path: str | Path | None = None,
-    license_id: str = "apache-2.0",
+    license_id: str = "other",
 ) -> str:
     """Generate a HuggingFace-style README.md model card.
 
@@ -90,6 +90,9 @@ def generate_model_card(
     # YAML frontmatter
     lines.append("---")
     lines.append(f"license: {license_id}")
+    if license_id == "other":
+        lines.append("license_name: ambiq-model-weights-license")
+        lines.append("license_link: https://github.com/AmbiqAI/compressionkit/blob/main/LICENSE-MODEL-WEIGHTS.md")
     lines.append("library_name: compressionkit")
     lines.append("pipeline_tag: other")
     lines.append("tags:")
@@ -184,7 +187,14 @@ def generate_model_card(
             "Training data: PTB-XL (CC BY 4.0). Sample data may include excerpts under the original license terms."
         )
     lines.append("")
-    lines.append(f"Model weights are released under the **{license_id.upper()}** license.")
+    if license_id == "other":
+        lines.append(
+            "Model weights are released under the **Ambiq Model Weights License** — "
+            "deployment is restricted to Ambiq silicon devices. "
+            "See `LICENSE-MODEL-WEIGHTS.md` for full terms."
+        )
+    else:
+        lines.append(f"Model weights are released under the **{license_id.upper()}** license.")
     lines.append("")
 
     # Citation

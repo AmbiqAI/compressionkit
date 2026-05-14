@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-ambiqai.github.io-blue)](https://ambiqai.github.io/compressionkit/)
 [![HuggingFace](https://img.shields.io/badge/HF-Ambiq%2Fcompressionkit--*-yellow)](https://huggingface.co/Ambiq)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-Ambiq%20Silicon%20Only-green)](LICENSE-MODEL-WEIGHTS.md)
 
 compressionKIT trains and deploys neural codecs that compress continuous PPG/ECG streams down to
 2×–64× at fixed quality tiers, then exports INT8 TFLite + C headers for Ambiq-class MCUs. Every

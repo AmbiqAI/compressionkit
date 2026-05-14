@@ -79,6 +79,14 @@ def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | Non
         staged.append("quality_scorecard.json")
         logger.info("Staged: scorecard → quality_scorecard.json")
 
+    # Include the custom model weights license if it exists
+    license_file = Path(__file__).resolve().parent.parent / "LICENSE-MODEL-WEIGHTS.md"
+    if license_file.exists():
+        dst = staging_dir / "LICENSE-MODEL-WEIGHTS.md"
+        shutil.copy2(license_file, dst)
+        staged.append("LICENSE-MODEL-WEIGHTS.md")
+        logger.info("Staged: LICENSE-MODEL-WEIGHTS.md")
+
     return staged
 
 
@@ -86,7 +94,7 @@ def publish(
     deploy_dir: str | Path,
     repo_id: str,
     scorecard_path: str | Path | None = None,
-    license_id: str = "apache-2.0",
+    license_id: str = "other",
     private: bool = False,
     dry_run: bool = False,
 ) -> Path | None:
@@ -205,8 +213,8 @@ def main() -> None:
     parser.add_argument(
         "--license",
         type=str,
-        default="apache-2.0",
-        help="SPDX license ID for model card (default: apache-2.0).",
+        default="other",
+        help="SPDX license ID for model card (default: other — Ambiq silicon only).",
     )
     parser.add_argument(
         "--private",

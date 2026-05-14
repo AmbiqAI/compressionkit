@@ -90,7 +90,7 @@ class TestModelCardGeneration:
             "modality": "ppg",
             "sample_rate": 64,
             "compression_ratio": 4,
-            "license": "Apache-2.0",
+            "license": "other",
             "scorecard_summary": {"prd_mean": 3.5},
         }
         model_card = {

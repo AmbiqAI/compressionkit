@@ -104,7 +104,7 @@ def main() -> None:
         "modality": args.modality,
         "sample_rate": args.sample_rate,
         "compression_ratio": args.compression_ratio,
-        "license": "Apache-2.0",
+        "license": "other",
     }
     if args.scorecard and args.scorecard.exists():
         with open(args.scorecard) as f:
