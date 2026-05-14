@@ -139,7 +139,7 @@ def generate_model_card(
     lines.append("```python")
     lines.append("from compressionkit.runtime import RVQCodec")
     lines.append("")
-    lines.append(f'codec = RVQCodec.from_pretrained("AmbiqAI/{hf_name}")')
+    lines.append(f'codec = RVQCodec.from_pretrained("Ambiq/{hf_name}")')
     lines.append("")
     lines.append("# Encode: float32 signal → RVQ indices")
     lines.append("indices = codec.encode(signal)")

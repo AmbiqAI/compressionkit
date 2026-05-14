@@ -3,7 +3,7 @@
 **Edge-grade neural compression for physiological signals (PPG, ECG).**
 
 [![Docs](https://img.shields.io/badge/docs-ambiqai.github.io-blue)](https://ambiqai.github.io/compressionkit/)
-[![HuggingFace](https://img.shields.io/badge/HF-AmbiqAI%2Fcompressionkit--*-yellow)](https://huggingface.co/AmbiqAI)
+[![HuggingFace](https://img.shields.io/badge/HF-Ambiq%2Fcompressionkit--*-yellow)](https://huggingface.co/Ambiq)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
 compressionKIT trains and deploys neural codecs that compress continuous PPG/ECG streams down to
@@ -30,7 +30,7 @@ from huggingface_hub import snapshot_download
 from compressionkit.runtime import RVQCodec
 import numpy as np
 
-deploy_dir = snapshot_download("AmbiqAI/compressionkit-ppg-4x")
+deploy_dir = snapshot_download("Ambiq/compressionkit-ppg-4x")
 codec = RVQCodec(deploy_dir)
 
 signal = np.load(f"{deploy_dir}/sample_stimulus.npz")["stimulus"][:1]
@@ -69,22 +69,22 @@ Outputs land under `results/<run_name>/`, with the publishable deploy package in
 
 | Experiment | CR | PRD (%) | Cosine | HR MAE (bpm) | HuggingFace |
 |------------|----|---------|--------|--------------|-------------|
-| [`ppg-rvq-2x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-2x/)  | 2×  | 2.99 | 0.9921 | 0.10 | [`AmbiqAI/compressionkit-ppg-2x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-2x) |
-| [`ppg-rvq-4x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-4x/)  | 4×  | 3.96 | 0.9887 | 0.09 | [`AmbiqAI/compressionkit-ppg-4x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-4x) |
-| [`ppg-rvq-8x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-8x/)  | 8×  | 6.95 | 0.9688 | 0.19 | [`AmbiqAI/compressionkit-ppg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-8x) |
-| [`ppg-rvq-16x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-16x/) | 16× | 8.60 | 0.9688 | 0.20 | [`AmbiqAI/compressionkit-ppg-16x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-16x) |
-| [`ppg-rvq-32x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-32x/) | 32× | 11.26 | 0.9606 | 0.30 | [`AmbiqAI/compressionkit-ppg-32x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-32x) |
+| [`ppg-rvq-2x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-2x/)  | 2×  | 2.99 | 0.9921 | 0.10 | [`Ambiq/compressionkit-ppg-2x`](https://huggingface.co/Ambiq/compressionkit-ppg-2x) |
+| [`ppg-rvq-4x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-4x/)  | 4×  | 3.96 | 0.9887 | 0.09 | [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x) |
+| [`ppg-rvq-8x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-8x/)  | 8×  | 6.95 | 0.9688 | 0.19 | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
+| [`ppg-rvq-16x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-16x/) | 16× | 8.60 | 0.9688 | 0.20 | [`Ambiq/compressionkit-ppg-16x`](https://huggingface.co/Ambiq/compressionkit-ppg-16x) |
+| [`ppg-rvq-32x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-32x/) | 32× | 11.26 | 0.9606 | 0.30 | [`Ambiq/compressionkit-ppg-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-32x) |
 
 ### ECG · PTB-XL · 256 Hz (Lead II)
 
 | Experiment | CR | PRD (%) | Cosine | HuggingFace |
 |------------|----|---------|--------|-------------|
-| [`ecg-rvq-2x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-2x/)  | 2×  | 2.59  | 0.9997 | [`AmbiqAI/compressionkit-ecg-2x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-2x) |
-| [`ecg-rvq-4x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-4x/)  | 4×  | 3.68  | 0.9993 | [`AmbiqAI/compressionkit-ecg-4x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-4x) |
-| [`ecg-rvq-8x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-8x/)  | 8×  | 6.66  | 0.9978 | [`AmbiqAI/compressionkit-ecg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-8x) |
-| [`ecg-rvq-16x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-16x/) | 16× | 11.02 | 0.9938 | [`AmbiqAI/compressionkit-ecg-16x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-16x) |
-| [`ecg-rvq-32x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-32x/) | 32× | 15.53 | 0.9878 | [`AmbiqAI/compressionkit-ecg-32x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-32x) |
-| [`ecg-rvq-64x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-64x/) | 64× | —     | —      | [`AmbiqAI/compressionkit-ecg-64x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-64x) |
+| [`ecg-rvq-2x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-2x/)  | 2×  | 2.59  | 0.9997 | [`Ambiq/compressionkit-ecg-2x`](https://huggingface.co/Ambiq/compressionkit-ecg-2x) |
+| [`ecg-rvq-4x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-4x/)  | 4×  | 3.68  | 0.9993 | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
+| [`ecg-rvq-8x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-8x/)  | 8×  | 6.66  | 0.9978 | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
+| [`ecg-rvq-16x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-16x/) | 16× | 11.02 | 0.9938 | [`Ambiq/compressionkit-ecg-16x`](https://huggingface.co/Ambiq/compressionkit-ecg-16x) |
+| [`ecg-rvq-32x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-32x/) | 32× | 15.53 | 0.9878 | [`Ambiq/compressionkit-ecg-32x`](https://huggingface.co/Ambiq/compressionkit-ecg-32x) |
+| [`ecg-rvq-64x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-64x/) | 64× | —     | —      | [`Ambiq/compressionkit-ecg-64x`](https://huggingface.co/Ambiq/compressionkit-ecg-64x) |
 
 ### Two-stage (codec + entropy prior)
 

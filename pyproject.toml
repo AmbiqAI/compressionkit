@@ -1,6 +1,6 @@
 [project]
 name = "compression-kit"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI-powered compression toolkit for physiological signals targeting edge and wearable devices."
 authors = [
     {name = "Ambiq AI", email = "support.aitg@ambiq.com"},

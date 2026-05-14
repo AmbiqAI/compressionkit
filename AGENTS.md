@@ -52,7 +52,7 @@ These are the project guidelines for agentic AI models working in this repositor
 - Deploy artifacts are exported via `compressionkit.export.deploy.export_for_deployment()`.
 
 ### HuggingFace Releases
-- Model repos follow the naming convention `AmbiqAI/compressionkit-{modality}-{cr}x`.
+- Model repos follow the naming convention `Ambiq/compressionkit-{modality}-{cr}x`.
 - Use `HF_TOKEN` env var for authentication — **never commit tokens**.
 - Publish via `scripts/publish_to_huggingface.py` (when available).
 - Release checklist: export deploy artifacts → generate scorecard → build model card → publish to HF.

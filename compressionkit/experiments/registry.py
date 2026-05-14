@@ -12,7 +12,7 @@ reproduce it from a clean checkout:
 * ``recipe`` — registered training recipe name (see :mod:`compressionkit.recipes`).
 * ``config_path`` — YAML config path, relative to the repository root.
 * ``run_name`` — ``{modality}_rvq_{sample_rate}hz_{cr:02d}x_golden`` (matches AGENTS.md naming).
-* ``hf_repo_id`` — ``AmbiqAI/compressionkit-{modality}-{cr}x``.
+* ``hf_repo_id`` — ``Ambiq/compressionkit-{modality}-{cr}x``.
 * ``dataset_id`` — short, stable identifier consumed by the dataset
   acquisition contract (#26).
 * ``expected_metrics`` — optional, frozen scorecard summary populated
@@ -51,7 +51,7 @@ class GoldenExperiment(BaseModel):
     run_name: str = Field(..., description="Run directory name under results/.")
     sample_rate: int = Field(..., gt=0, description="Frame sample rate in Hz.")
     compression_ratio: int = Field(..., gt=1, description="Target compression ratio (×).")
-    hf_repo_id: str = Field(..., description="AmbiqAI/compressionkit-{modality}-{cr}x")
+    hf_repo_id: str = Field(..., description="Ambiq/compressionkit-{modality}-{cr}x")
     dataset_id: str = Field(..., description="Stable dataset identifier (see #26).")
     expected_metrics: dict[str, float] | None = Field(
         default=None,
@@ -66,7 +66,7 @@ class GoldenExperiment(BaseModel):
                 f"run_name {self.run_name!r} does not match the AGENTS.md convention "
                 f"{expected_run!r} for experiment {self.experiment_id!r}"
             )
-        expected_repo = f"AmbiqAI/compressionkit-{self.modality}-{self.compression_ratio}x"
+        expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.compression_ratio}x"
         if self.family == "codec" and self.hf_repo_id != expected_repo:
             raise ValueError(
                 f"hf_repo_id {self.hf_repo_id!r} does not match {expected_repo!r} for experiment {self.experiment_id!r}"
@@ -106,7 +106,7 @@ def _ppg_codec(cr: int) -> GoldenExperiment:
         run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
         sample_rate=64,
         compression_ratio=cr,
-        hf_repo_id=f"AmbiqAI/compressionkit-ppg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x",
         dataset_id="mesa",
         expected_metrics=_PPG_EXPECTED_METRICS.get(cr),
     )
@@ -122,7 +122,7 @@ def _ecg_codec(cr: int) -> GoldenExperiment:
         run_name=f"ecg_rvq_256hz_{cr:02d}x_golden",
         sample_rate=256,
         compression_ratio=cr,
-        hf_repo_id=f"AmbiqAI/compressionkit-ecg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x",
         dataset_id="ptb-xl",
         expected_metrics=_ECG_EXPECTED_METRICS.get(cr),
     )
@@ -140,7 +140,7 @@ def _ppg_two_stage(cr: int) -> GoldenExperiment:
         run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
         sample_rate=64,
         compression_ratio=cr,
-        hf_repo_id=f"AmbiqAI/compressionkit-ppg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x",
         dataset_id="mesa",
     )
 
@@ -157,7 +157,7 @@ def _ecg_two_stage(cr: int) -> GoldenExperiment:
         run_name=f"ecg_rvq_256hz_{cr:02d}x_golden",
         sample_rate=256,
         compression_ratio=cr,
-        hf_repo_id=f"AmbiqAI/compressionkit-ecg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x",
         dataset_id="ptb-xl",
     )
 

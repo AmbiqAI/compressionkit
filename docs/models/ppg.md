@@ -160,7 +160,7 @@ For the full runtime guide, see [Deployment Guide](../deployment.md).
 
 - Frame shape: `(1, 1, 320, 1)` float32
 - Sample rate: `64 Hz`
-- Default HuggingFace repo pattern: `AmbiqAI/compressionkit-ppg-{cr}x`
+- Default HuggingFace repo pattern: `Ambiq/compressionkit-ppg-{cr}x`
 
 ### Quickstart
 
@@ -172,7 +172,7 @@ from compressionkit.runtime import RVQCodec
 t = np.arange(320, dtype=np.float32) / 64.0
 signal = (0.6 * np.sin(2.0 * np.pi * 1.2 * t) + 0.1 * np.sin(2.0 * np.pi * 2.4 * t)).reshape(1, 1, 320, 1)
 
-codec = RVQCodec.from_pretrained("AmbiqAI/compressionkit-ppg-4x")
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x")
 indices = codec.encode(signal.astype(np.float32))
 reconstruction = codec.decode(indices)
 ```

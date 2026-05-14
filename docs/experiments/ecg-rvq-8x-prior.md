@@ -13,7 +13,7 @@ icon: lucide/activity
 - **Recipe**: `train-rvq-prior`
 - **Config**: [`configs/ecg_rvq_256hz_08x_golden_prior.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden_prior.yaml)
 - **Run name**: `ecg_rvq_256hz_08x_golden`
-- **HuggingFace**: [`AmbiqAI/compressionkit-ecg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-8x)
+- **HuggingFace**: [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x)
 
 ## Dataset & License
 
@@ -40,7 +40,7 @@ Results land under `results/ecg_rvq_256hz_08x_golden/`; deploy artifacts under `
 
 This entry is the entropy-prior stage paired with [`ecg-rvq-8x`](ecg-rvq-8x.md).
 Codec and prior artifacts publish to the same HuggingFace repo
-([`AmbiqAI/compressionkit-ecg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-8x)).
+([`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x)).
 
 ## Evaluation Metrics
 

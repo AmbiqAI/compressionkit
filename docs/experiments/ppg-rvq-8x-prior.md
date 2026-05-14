@@ -13,7 +13,7 @@ icon: lucide/heart-pulse
 - **Recipe**: `train-rvq-prior`
 - **Config**: [`configs/ppg_rvq_64hz_08x_golden_prior.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden_prior.yaml)
 - **Run name**: `ppg_rvq_64hz_08x_golden`
-- **HuggingFace**: [`AmbiqAI/compressionkit-ppg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-8x)
+- **HuggingFace**: [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x)
 
 ## Dataset & License
 
@@ -40,7 +40,7 @@ Results land under `results/ppg_rvq_64hz_08x_golden/`; deploy artifacts under `r
 
 This entry is the entropy-prior stage paired with [`ppg-rvq-8x`](ppg-rvq-8x.md).
 Codec and prior artifacts publish to the same HuggingFace repo
-([`AmbiqAI/compressionkit-ppg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-8x)).
+([`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x)).
 
 ## Evaluation Metrics
 

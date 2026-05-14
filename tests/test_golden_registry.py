@@ -14,7 +14,7 @@ from compressionkit.experiments import (
 )
 from compressionkit.recipes import get_recipe
 
-_HF_REPO_RE = re.compile(r"^AmbiqAI/compressionkit-(ppg|ecg)-(\d+)x$")
+_HF_REPO_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-(\d+)x$")
 _RUN_NAME_RE = re.compile(r"^(ppg|ecg)_rvq_\d+hz_\d{2}x_golden$")
 
 
@@ -77,7 +77,7 @@ def test_two_stage_requires_parent() -> None:
             run_name=GOLDEN_REGISTRY[0].run_name,
             sample_rate=64,
             compression_ratio=4,
-            hf_repo_id="AmbiqAI/compressionkit-ppg-4x",
+            hf_repo_id="Ambiq/compressionkit-ppg-4x",
             dataset_id="mesa",
         )
 
@@ -94,6 +94,6 @@ def test_codec_rejects_parent() -> None:
             run_name="ppg_rvq_64hz_04x_golden",
             sample_rate=64,
             compression_ratio=4,
-            hf_repo_id="AmbiqAI/compressionkit-ppg-4x",
+            hf_repo_id="Ambiq/compressionkit-ppg-4x",
             dataset_id="mesa",
         )

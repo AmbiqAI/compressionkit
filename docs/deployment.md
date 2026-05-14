@@ -82,7 +82,7 @@ This is useful when the encoder runs on-device and the decoder runs elsewhere.
 
 ## HuggingFace Quickstart
 
-Published model repos follow the convention `AmbiqAI/compressionkit-{modality}-{cr}x`, for example `AmbiqAI/compressionkit-ppg-4x` or `AmbiqAI/compressionkit-ecg-8x`.
+Published model repos follow the convention `Ambiq/compressionkit-{modality}-{cr}x`, for example `Ambiq/compressionkit-ppg-4x` or `Ambiq/compressionkit-ecg-8x`.
 
 Install the optional Hub dependency:
 
@@ -93,7 +93,7 @@ uv sync --extra hf
 Then load a codec directly from the Hub:
 
 !!! note
-    The `AmbiqAI/compressionkit-{modality}-{cr}x` repos are published as part of the v1 golden release (tracked in #25 / #28). Once a golden run is published, the snippet below works against it; until then the call returns a 404 and you can substitute a local `RVQCodec("results/<run_name>/deploy")` path.
+    The `Ambiq/compressionkit-{modality}-{cr}x` repos are published as part of the v1 golden release (tracked in #25 / #28). Once a golden run is published, the snippet below works against it; until then the call returns a 404 and you can substitute a local `RVQCodec("results/<run_name>/deploy")` path.
 
 ```python
 import numpy as np
@@ -111,7 +111,7 @@ def synthetic_ecg_frame(frame_size: int = 512, sample_rate: int = 256) -> np.nda
     return waveform.reshape(1, 1, frame_size, 1).astype(np.float32)
 
 
-codec = RVQCodec.from_pretrained("AmbiqAI/compressionkit-ecg-4x")
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x")
 signal = synthetic_ecg_frame()
 
 indices = codec.encode(signal)

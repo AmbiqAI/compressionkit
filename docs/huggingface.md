@@ -4,7 +4,7 @@ icon: lucide/cloud-download
 
 # Load & test a HuggingFace model in 5 minutes
 
-Every golden experiment publishes its deploy package to `AmbiqAI/compressionkit-{modality}-{cr}x`.
+Every golden experiment publishes its deploy package to `Ambiq/compressionkit-{modality}-{cr}x`.
 This page shows the minimum code to download one, run the encoder + decoder on a sample frame, and
 (for two-stage entries) compress with the bundled entropy prior.
 
@@ -27,7 +27,7 @@ from huggingface_hub import snapshot_download
 from compressionkit.runtime import RVQCodec
 import numpy as np
 
-deploy_dir = snapshot_download("AmbiqAI/compressionkit-ppg-4x")
+deploy_dir = snapshot_download("Ambiq/compressionkit-ppg-4x")
 codec = RVQCodec(deploy_dir)
 
 # Sanity check on the bundled license-safe sample.
@@ -38,7 +38,7 @@ print("shape:", recon.shape)
 ```
 
 !!! tip
-    `RVQCodec.from_pretrained("AmbiqAI/compressionkit-ppg-4x")` is a one-line shortcut that
+    `RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x")` is a one-line shortcut that
     wraps the `snapshot_download` call above.
 
 ## 3. Two-stage codec (codec + entropy prior)
@@ -54,7 +54,7 @@ from compressionkit.runtime.prior import EntropyPrior
 from compressionkit.runtime.two_stage import TwoStageCodec
 import numpy as np
 
-deploy_dir = snapshot_download("AmbiqAI/compressionkit-ecg-4x")  # ships the prior too
+deploy_dir = snapshot_download("Ambiq/compressionkit-ecg-4x")  # ships the prior too
 codec = RVQCodec(deploy_dir)
 prior = EntropyPrior(f"{deploy_dir}/prior_int8.tflite")
 two_stage = TwoStageCodec(codec, prior)

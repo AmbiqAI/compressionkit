@@ -20,21 +20,21 @@ Two families exist:
 
 | Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace |
 |------------|----------|--------|----|--------|---------|-------------|
-| [`ppg-rvq-2x`](ppg-rvq-2x.md) | PPG | codec | 2× | — | `mesa` | [`AmbiqAI/compressionkit-ppg-2x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-2x) |
-| [`ppg-rvq-4x`](ppg-rvq-4x.md) | PPG | codec | 4× | — | `mesa` | [`AmbiqAI/compressionkit-ppg-4x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-4x) |
-| [`ppg-rvq-8x`](ppg-rvq-8x.md) | PPG | codec | 8× | — | `mesa` | [`AmbiqAI/compressionkit-ppg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-8x) |
-| [`ppg-rvq-16x`](ppg-rvq-16x.md) | PPG | codec | 16× | — | `mesa` | [`AmbiqAI/compressionkit-ppg-16x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-16x) |
-| [`ppg-rvq-32x`](ppg-rvq-32x.md) | PPG | codec | 32× | — | `mesa` | [`AmbiqAI/compressionkit-ppg-32x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-32x) |
-| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `mesa` | [`AmbiqAI/compressionkit-ppg-4x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-4x) |
-| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `mesa` | [`AmbiqAI/compressionkit-ppg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ppg-8x) |
-| [`ecg-rvq-2x`](ecg-rvq-2x.md) | ECG | codec | 2× | — | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-2x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-2x) |
-| [`ecg-rvq-4x`](ecg-rvq-4x.md) | ECG | codec | 4× | — | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-4x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-4x) |
-| [`ecg-rvq-8x`](ecg-rvq-8x.md) | ECG | codec | 8× | — | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-8x) |
-| [`ecg-rvq-16x`](ecg-rvq-16x.md) | ECG | codec | 16× | — | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-16x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-16x) |
-| [`ecg-rvq-32x`](ecg-rvq-32x.md) | ECG | codec | 32× | — | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-32x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-32x) |
-| [`ecg-rvq-64x`](ecg-rvq-64x.md) | ECG | codec | 64× | — | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-64x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-64x) |
-| [`ecg-rvq-4x-prior`](ecg-rvq-4x-prior.md) | ECG | two_stage | 4× | ecg-rvq-4x | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-4x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-4x) |
-| [`ecg-rvq-8x-prior`](ecg-rvq-8x-prior.md) | ECG | two_stage | 8× | ecg-rvq-8x | `ptb-xl` | [`AmbiqAI/compressionkit-ecg-8x`](https://huggingface.co/AmbiqAI/compressionkit-ecg-8x) |
+| [`ppg-rvq-2x`](ppg-rvq-2x.md) | PPG | codec | 2× | — | `mesa` | [`Ambiq/compressionkit-ppg-2x`](https://huggingface.co/Ambiq/compressionkit-ppg-2x) |
+| [`ppg-rvq-4x`](ppg-rvq-4x.md) | PPG | codec | 4× | — | `mesa` | [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x) |
+| [`ppg-rvq-8x`](ppg-rvq-8x.md) | PPG | codec | 8× | — | `mesa` | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
+| [`ppg-rvq-16x`](ppg-rvq-16x.md) | PPG | codec | 16× | — | `mesa` | [`Ambiq/compressionkit-ppg-16x`](https://huggingface.co/Ambiq/compressionkit-ppg-16x) |
+| [`ppg-rvq-32x`](ppg-rvq-32x.md) | PPG | codec | 32× | — | `mesa` | [`Ambiq/compressionkit-ppg-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-32x) |
+| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `mesa` | [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x) |
+| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `mesa` | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
+| [`ecg-rvq-2x`](ecg-rvq-2x.md) | ECG | codec | 2× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-2x`](https://huggingface.co/Ambiq/compressionkit-ecg-2x) |
+| [`ecg-rvq-4x`](ecg-rvq-4x.md) | ECG | codec | 4× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
+| [`ecg-rvq-8x`](ecg-rvq-8x.md) | ECG | codec | 8× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
+| [`ecg-rvq-16x`](ecg-rvq-16x.md) | ECG | codec | 16× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-16x`](https://huggingface.co/Ambiq/compressionkit-ecg-16x) |
+| [`ecg-rvq-32x`](ecg-rvq-32x.md) | ECG | codec | 32× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-32x`](https://huggingface.co/Ambiq/compressionkit-ecg-32x) |
+| [`ecg-rvq-64x`](ecg-rvq-64x.md) | ECG | codec | 64× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-64x`](https://huggingface.co/Ambiq/compressionkit-ecg-64x) |
+| [`ecg-rvq-4x-prior`](ecg-rvq-4x-prior.md) | ECG | two_stage | 4× | ecg-rvq-4x | `ptb-xl` | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
+| [`ecg-rvq-8x-prior`](ecg-rvq-8x-prior.md) | ECG | two_stage | 8× | ecg-rvq-8x | `ptb-xl` | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
 
 ## Reproduce one experiment
 
