@@ -875,7 +875,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-token-cache", action="store_true", help="Disable read/write of cached token streams.")
     parser.add_argument(
         "--prior-type",
-        choices=["unigram", "cnn", "dscnn", "hybrid", "gru", "wavenet", "cnngru", "transformer"],
+        choices=[
+            "unigram",
+            "cnn",
+            "dscnn",
+            "hybrid",
+            "gru",
+            "wavenet",
+            "cnngru",
+            "transformer",
+            "xlead_concat",
+            "xlead_interleave",
+        ],
         default="transformer",
     )
     parser.add_argument("--context-frames", type=int, default=4)
@@ -925,6 +936,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cnngru-kernel", type=int, default=5)
     parser.add_argument("--cnngru-gru-hidden", type=int, default=48)
     parser.add_argument("--cnngru-gru-layers", type=int, default=1)
+    # Cross-lead (xlead) hyperparams
+    parser.add_argument("--xlead-embed-dim", type=int, default=48)
+    parser.add_argument("--xlead-num-layers", type=int, default=4)
+    parser.add_argument("--xlead-kernel", type=int, default=5)
+    parser.add_argument("--xlead-num-leads", type=int, default=12)
     # Training
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--epochs", type=int, default=12)
@@ -1182,6 +1198,46 @@ def main(argv: list[str] | None = None) -> int:
                 "kernel": args.cnngru_kernel,
                 "gru_hidden": args.cnngru_gru_hidden,
                 "gru_layers": args.cnngru_gru_layers,
+            }
+        elif args.prior_type == "xlead_concat":
+            from compressionkit.generative.xlead_prior import build_xlead_concat_prior
+
+            prior = build_xlead_concat_prior(
+                vocab_size=vocab_size,
+                context_length=context_length,
+                num_leads=args.xlead_num_leads,
+                embed_dim=args.xlead_embed_dim,
+                num_layers=args.xlead_num_layers,
+                kernel_size=args.xlead_kernel,
+                dropout=args.dropout,
+            )
+            prior_meta = {
+                "type": "xlead_concat",
+                "embed_dim": args.xlead_embed_dim,
+                "num_layers": args.xlead_num_layers,
+                "kernel": args.xlead_kernel,
+                "num_leads": args.xlead_num_leads,
+                "receptive_field": 1 + (args.xlead_kernel - 1) * (2**args.xlead_num_layers - 1),
+            }
+        elif args.prior_type == "xlead_interleave":
+            from compressionkit.generative.xlead_prior import build_xlead_interleave_prior
+
+            prior = build_xlead_interleave_prior(
+                vocab_size=vocab_size,
+                context_length=context_length,
+                num_leads=args.xlead_num_leads,
+                embed_dim=args.xlead_embed_dim,
+                num_layers=args.xlead_num_layers,
+                kernel_size=args.xlead_kernel,
+                dropout=args.dropout,
+            )
+            prior_meta = {
+                "type": "xlead_interleave",
+                "embed_dim": args.xlead_embed_dim,
+                "num_layers": args.xlead_num_layers,
+                "kernel": args.xlead_kernel,
+                "num_leads": args.xlead_num_leads,
+                "receptive_field": 1 + (args.xlead_kernel - 1) * (2**args.xlead_num_layers - 1),
             }
         else:
             prior = build_prior(
