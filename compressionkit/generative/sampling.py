@@ -90,6 +90,7 @@ def decode_tokens_to_signal(
     tokens_per_frame: int,
     embedding_dim: int,
     num_leads: int = 1,
+    per_lead: bool = False,
 ) -> np.ndarray:
     """Decode a token sequence into a (normalised) waveform.
 
@@ -101,17 +102,62 @@ def decode_tokens_to_signal(
 
     Args:
         model: Trained :class:`VQAutoencoder`.
-        tokens: ``(num_samples, total_tokens)`` int token ids. ``total_tokens``
-            must be a multiple of ``tokens_per_frame``.
+        tokens: Token array. If ``per_lead=False``:
+            ``(num_samples, total_tokens)`` int. If ``per_lead=True``:
+            ``(num_leads, num_samples, total_tokens)`` int — each lead is
+            decoded independently and the results stacked.
         frame_size: Decoder output frame size (samples).
         tokens_per_frame: Latent positions per frame.
         embedding_dim: RVQ embedding dimensionality.
-        num_leads: Decoder output channels.
+        num_leads: Decoder output channels (used only when per_lead=False).
+        per_lead: When True, decode each lead slice independently using
+            a single-lead decoder and return shape
+            ``(num_leads, num_samples, signal_length)``.
 
     Returns:
-        Signal array of shape ``(num_samples, num_frames * frame_size)``.
+        When ``per_lead=False``: ``(num_samples, num_frames * frame_size)``.
+        When ``per_lead=True``: ``(num_leads, num_samples, num_frames * frame_size)``.
     """
     tokens = np.asarray(tokens, dtype=np.int32)
+
+    if per_lead:
+        if tokens.ndim != 3:
+            raise ValueError(f"per_lead=True requires tokens of shape (num_leads, num_samples, L); got {tokens.shape}")
+        results = []
+        for lead_tokens in tokens:
+            results.append(
+                _decode_single_lead(
+                    model,
+                    lead_tokens,
+                    frame_size=frame_size,
+                    tokens_per_frame=tokens_per_frame,
+                    embedding_dim=embedding_dim,
+                )
+            )
+        return np.stack(results, axis=0)
+
+    if tokens.shape[-1] % tokens_per_frame != 0:
+        raise ValueError(f"tokens length {tokens.shape[-1]} is not a multiple of tokens_per_frame={tokens_per_frame}")
+    return _decode_single_lead(
+        model,
+        tokens,
+        frame_size=frame_size,
+        tokens_per_frame=tokens_per_frame,
+        embedding_dim=embedding_dim,
+        num_leads=num_leads,
+    )
+
+
+def _decode_single_lead(
+    model: keras.Model,
+    tokens: np.ndarray,
+    *,
+    frame_size: int,
+    tokens_per_frame: int,
+    embedding_dim: int,
+    num_leads: int = 1,
+) -> np.ndarray:
+    """Core single-lead decode path."""
     if tokens.shape[-1] % tokens_per_frame != 0:
         raise ValueError(f"tokens length {tokens.shape[-1]} is not a multiple of tokens_per_frame={tokens_per_frame}")
     num_samples = tokens.shape[0]
