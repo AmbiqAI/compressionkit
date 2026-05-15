@@ -156,10 +156,10 @@
       "results_dir": "results/ppg_rvq_64hz_02x_golden",
       "weights": "results/ppg_rvq_64hz_02x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0006656044,
-        "val_prd": 2.9877939224,
-        "val_cos": 0.9921485782,
-        "hr_mae_bpm": 0.1002973736
+        "val_mse": 0.0005910620675422251,
+        "val_prd": 3.021183729171753,
+        "val_cos": 0.8966196179389954,
+        "hr_mae_bpm": 0.07861964049855577
       },
       "architecture": {
         "frame_size": 320,
@@ -181,10 +181,10 @@
       "results_dir": "results/ppg_rvq_64hz_04x_golden",
       "weights": "results/ppg_rvq_64hz_04x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0011671392,
-        "val_prd": 3.9611513615,
-        "val_cos": 0.9886866212,
-        "hr_mae_bpm": 0.0872655526
+        "val_mse": 0.0008788108825683594,
+        "val_prd": 3.6848206520080566,
+        "val_cos": 0.8947002291679382,
+        "hr_mae_bpm": 0.07316857377712123
       },
       "architecture": {
         "frame_size": 320,
@@ -206,10 +206,10 @@
       "results_dir": "results/ppg_rvq_64hz_08x_golden",
       "weights": "results/ppg_rvq_64hz_08x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0036008649,
-        "val_prd": 6.9547734261,
-        "val_cos": 0.9687838554,
-        "hr_mae_bpm": 0.1856166904
+        "val_mse": 0.0019718168769031763,
+        "val_prd": 5.5199480056762695,
+        "val_cos": 0.8815072774887085,
+        "hr_mae_bpm": 0.1672463269927159
       },
       "architecture": {
         "frame_size": 320,
@@ -231,10 +231,10 @@
       "results_dir": "results/ppg_rvq_64hz_16x_golden",
       "weights": "results/ppg_rvq_64hz_16x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.0054917866,
-        "val_prd": 8.5967693329,
-        "val_cos": 0.9687812924,
-        "hr_mae_bpm": 0.2032581577
+        "val_mse": 0.004664924927055836,
+        "val_prd": 8.481636047363281,
+        "val_cos": 0.8719986081123352,
+        "hr_mae_bpm": 0.14817021374549427
       },
       "architecture": {
         "frame_size": 320,
@@ -256,10 +256,10 @@
       "results_dir": "results/ppg_rvq_64hz_32x_golden",
       "weights": "results/ppg_rvq_64hz_32x_golden/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.009431595,
-        "val_prd": 11.2560224533,
-        "val_cos": 0.9605693221,
-        "hr_mae_bpm": 0.3012055123
+        "val_mse": 0.00914987176656723,
+        "val_prd": 11.890503883361816,
+        "val_cos": 0.8643379211425781,
+        "hr_mae_bpm": 0.20194314280264924
       },
       "architecture": {
         "frame_size": 320,
