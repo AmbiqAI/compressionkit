@@ -46,6 +46,9 @@ __all__ = [
 ]
 
 # Path to the vendored C99 SPIHT sources.
+# NOTE: This requires running from a source checkout; csrc/ is not included
+# in installed wheels. A FileNotFoundError at export time indicates a
+# non-editable install — run from the repository root instead.
 _C_SOURCE_DIR = Path(__file__).resolve().parents[2] / "csrc" / "spiht"
 _C_SOURCE_FILES = ("spiht.c", "spiht.h")
 
@@ -250,7 +253,12 @@ def export_spiht_deploy(
     reconstructions = np.zeros_like(stimulus)
     for i, frame in enumerate(stimulus):
         enc: EncodedFrame = codec.compress(frame)
-        payload_bytes = bytes(enc.payload) if isinstance(enc.payload, (bytes, bytearray)) else bytes(enc.payload)
+        if isinstance(enc.payload, (bytes, bytearray)):
+            payload_bytes = bytes(enc.payload)
+        elif isinstance(enc.payload, np.ndarray):
+            payload_bytes = enc.payload.astype(np.uint8).tobytes()
+        else:
+            payload_bytes = bytes(enc.payload)
         payloads.append(np.frombuffer(payload_bytes, dtype=np.uint8))
         nbits_arr[i] = int(enc.nbits)
         reconstructions[i] = codec.decompress(enc)

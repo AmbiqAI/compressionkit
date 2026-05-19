@@ -19,7 +19,7 @@ import json
 import logging
 from pathlib import Path
 
-from compressionkit.runtime.base import Codec
+from compressionkit.runtime.base import Codec  # used as return type annotation
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
         Local filesystem path to the deploy directory.
     """
     p = Path(str(repo_or_dir))
-    if p.exists() and p.is_dir():
+    if p.is_dir() and ((p / "deploy_manifest.json").exists() or (p / "config.json").exists()):
         return p
 
     # Treat as HF repo id
@@ -45,8 +45,7 @@ def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
         from huggingface_hub import snapshot_download
     except ImportError as exc:  # pragma: no cover - import-time guard
         raise ImportError(
-            "huggingface_hub is required to load codecs by repo id. "
-            "Install with: uv sync --extra hf"
+            "huggingface_hub is required to load codecs by repo id. Install with: uv sync --extra hf"
         ) from exc
 
     local_dir = snapshot_download(repo_id=str(repo_or_dir), repo_type="model")
@@ -61,9 +60,7 @@ def _read_manifest(deploy_dir: Path) -> dict:
         if alt.exists():
             manifest_path = alt
         else:
-            raise FileNotFoundError(
-                f"No deploy_manifest.json (or config.json) under {deploy_dir}"
-            )
+            raise FileNotFoundError(f"No deploy_manifest.json (or config.json) under {deploy_dir}")
     with manifest_path.open() as f:
         return json.load(f)
 
@@ -93,7 +90,4 @@ def load_codec(repo_or_dir: str | Path) -> Codec:
 
         return SpihtCodec.from_deploy_dir(deploy_dir)
 
-    raise ValueError(
-        f"Unknown codec family {family!r} in {deploy_dir}. "
-        "Known families: 'rvq', 'spiht'."
-    )
+    raise ValueError(f"Unknown codec family {family!r} in {deploy_dir}. Known families: 'rvq', 'spiht'.")

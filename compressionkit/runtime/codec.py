@@ -407,14 +407,15 @@ class RVQCodec:
         """
         from compressionkit.runtime.base import EncodedFrame
 
-        import numpy as _np
-
-        arr = _np.asarray(frame, dtype=_np.float32)
-        # Accept bare (T,) frames and reshape to the encoder's expected layout.
+        arr = np.asarray(frame, dtype=np.float32)
         if arr.ndim == 1:
             arr = arr.reshape(1, 1, -1, 1)
+        elif arr.ndim != 4:
+            raise ValueError(f"RVQCodec.compress expects a (T,) or (N,1,T,1) frame, got shape {arr.shape}")
         indices = self.encode(arr)
-        nbits = int(indices.size) * int(_np.ceil(_np.log2(max(self._num_embeddings, 2))))
+        # Theoretical upper-bound: every index uniformly drawn from the full
+        # codebook. True entropy is lower; use this for worst-case CR reporting.
+        nbits = int(indices.size) * int(np.ceil(np.log2(max(self._num_embeddings, 2))))
         return EncodedFrame(
             payload=indices,
             nbits=nbits,
@@ -423,7 +424,5 @@ class RVQCodec:
 
     def decompress(self, encoded):
         """Decode an :class:`EncodedFrame` produced by :meth:`compress`."""
-        import numpy as _np
-
-        recon = self.decode(_np.asarray(encoded.payload))
-        return _np.asarray(recon, dtype=_np.float32).reshape(-1)
+        recon = self.decode(np.asarray(encoded.payload))
+        return np.asarray(recon, dtype=np.float32).reshape(-1)

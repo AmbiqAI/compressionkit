@@ -51,7 +51,15 @@ class EncodedFrame:
 
 @runtime_checkable
 class Codec(Protocol):
-    """Uniform runtime interface for compressionKIT codecs."""
+    """Uniform runtime interface for compressionKIT codecs.
+
+    Note:
+        ``isinstance(obj, Codec)`` only checks for declared attributes
+        (``name``, ``modality``, etc.), **not** the presence of
+        ``compress``/``decompress``. This is a CPython limitation of
+        ``runtime_checkable`` protocols. Use duck-typing or explicit
+        ``hasattr`` checks when you need full structural verification.
+    """
 
     name: str
     """Human-readable codec name (e.g. ``"spiht_ac"``, ``"rvq_64hz_04x"``)."""

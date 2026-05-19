@@ -80,10 +80,7 @@ class GoldenExperiment(BaseModel):
 
     @model_validator(mode="after")
     def _check_naming(self) -> GoldenExperiment:
-        expected_run = (
-            f"{self.modality}_{self.method}_{self.sample_rate}hz_"
-            f"{self.compression_ratio:02d}x_golden"
-        )
+        expected_run = f"{self.modality}_{self.method}_{self.sample_rate}hz_{self.compression_ratio:02d}x_golden"
         if self.family == "codec" and self.run_name != expected_run:
             raise ValueError(
                 f"run_name {self.run_name!r} does not match the AGENTS.md convention "
@@ -93,10 +90,8 @@ class GoldenExperiment(BaseModel):
             # Back-compat: RVQ goldens omit the method infix in the HF repo id.
             expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.compression_ratio}x"
         else:
-            expected_repo = (
-                f"Ambiq/compressionkit-{self.modality}-{self.method}-{self.compression_ratio}x"
-            )
-        if self.family == "codec" and self.hf_repo_id != expected_repo:
+            expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.method}-{self.compression_ratio}x"
+        if self.family in ("codec", "two_stage") and self.hf_repo_id != expected_repo:
             raise ValueError(
                 f"hf_repo_id {self.hf_repo_id!r} does not match {expected_repo!r} for experiment {self.experiment_id!r}"
             )
