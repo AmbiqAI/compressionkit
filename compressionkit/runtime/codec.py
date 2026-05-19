@@ -358,3 +358,71 @@ class RVQCodec:
         """
         latent = self.dequantize_indices(indices)
         return self.decode_latent(latent)
+
+    # ------------------------------------------------------------------
+    # Codec protocol shims
+    # ------------------------------------------------------------------
+    # These let ``RVQCodec`` satisfy
+    # :class:`compressionkit.runtime.base.Codec` without changing the
+    # existing ``encode``/``decode`` semantics that downstream code and
+    # tests already rely on.
+
+    @property
+    def name(self) -> str:
+        """Codec name (from manifest, falls back to ``"rvq"``)."""
+        return str(self._manifest.get("model_name", "rvq"))
+
+    @property
+    def modality(self) -> str:
+        """``"ppg"`` or ``"ecg"`` if recorded in the model card."""
+        card = self._manifest.get("model_card", {})
+        return str(card.get("modality", "unknown"))
+
+    @property
+    def sample_rate(self) -> int:
+        """Sample rate in Hz (from model card; ``0`` if unknown)."""
+        card = self._manifest.get("model_card", {})
+        return int(card.get("sample_rate", 0) or 0)
+
+    @property
+    def frame_size(self) -> int:
+        """Number of samples per input frame (from encoder shape)."""
+        shape = self._manifest.get("encoder", {}).get("input_shape", [])
+        # Encoder input is typically (N, 1, T, 1); pull the time axis if present.
+        if len(shape) >= 3 and shape[-2] is not None:
+            return int(shape[-2])
+        return 0
+
+    @property
+    def target_cr(self) -> float:
+        """Target compression ratio from the model card."""
+        card = self._manifest.get("model_card", {})
+        return float(card.get("compression_ratio", 0.0) or 0.0)
+
+    def compress(self, frame):
+        """Encode a frame for the uniform :class:`Codec` protocol.
+
+        Returns an :class:`~compressionkit.runtime.base.EncodedFrame`
+        whose payload carries the RVQ index array.
+        """
+        from compressionkit.runtime.base import EncodedFrame
+
+        arr = np.asarray(frame, dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr.reshape(1, 1, -1, 1)
+        elif arr.ndim != 4:
+            raise ValueError(f"RVQCodec.compress expects a (T,) or (N,1,T,1) frame, got shape {arr.shape}")
+        indices = self.encode(arr)
+        # Theoretical upper-bound: every index uniformly drawn from the full
+        # codebook. True entropy is lower; use this for worst-case CR reporting.
+        nbits = int(indices.size) * int(np.ceil(np.log2(max(self._num_embeddings, 2))))
+        return EncodedFrame(
+            payload=indices,
+            nbits=nbits,
+            side={"indices_shape": tuple(indices.shape)},
+        )
+
+    def decompress(self, encoded):
+        """Decode an :class:`EncodedFrame` produced by :meth:`compress`."""
+        recon = self.decode(np.asarray(encoded.payload))
+        return np.asarray(recon, dtype=np.float32).reshape(-1)

@@ -241,7 +241,7 @@ def export_for_deployment(
             "modality": model_card_info.get("modality", "unknown"),
             "sample_rate": model_card_info.get("sample_rate"),
             "compression_ratio": model_card_info.get("compression_ratio"),
-            "license": model_card_info.get("license", "Apache-2.0"),
+            "license": model_card_info.get("license", "other"),
             "scorecard_summary": model_card_info.get("scorecard_summary", {}),
         }
         model_card_path = output_dir / "model_card.json"

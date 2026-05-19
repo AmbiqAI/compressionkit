@@ -18,7 +18,7 @@ def _fmt(val: float, decimals: int = 4) -> str:
 def generate_model_card(
     deploy_dir: str | Path,
     scorecard_path: str | Path | None = None,
-    license_id: str = "apache-2.0",
+    license_id: str = "other",
 ) -> str:
     """Generate a HuggingFace-style README.md model card.
 
@@ -90,6 +90,9 @@ def generate_model_card(
     # YAML frontmatter
     lines.append("---")
     lines.append(f"license: {license_id}")
+    if license_id == "other":
+        lines.append("license_name: ambiq-model-weights-license")
+        lines.append("license_link: https://github.com/AmbiqAI/compressionkit/blob/main/LICENSE-MODEL-WEIGHTS.md")
     lines.append("library_name: compressionkit")
     lines.append("pipeline_tag: other")
     lines.append("tags:")
@@ -184,7 +187,14 @@ def generate_model_card(
             "Training data: PTB-XL (CC BY 4.0). Sample data may include excerpts under the original license terms."
         )
     lines.append("")
-    lines.append(f"Model weights are released under the **{license_id.upper()}** license.")
+    if license_id == "other":
+        lines.append(
+            "Model weights are released under the **Ambiq Model Weights License** — "
+            "deployment is restricted to Ambiq silicon devices. "
+            "See `LICENSE-MODEL-WEIGHTS.md` for full terms."
+        )
+    else:
+        lines.append(f"Model weights are released under the **{license_id.upper()}** license.")
     lines.append("")
 
     # Citation
@@ -266,3 +276,187 @@ def _infer_cr(manifest: dict) -> int | None:
         if t_in and t_out and t_out > 0:
             return t_in // t_out
     return None
+
+
+def generate_spiht_model_card(
+    deploy_dir: str | Path,
+    scorecard_path: str | Path | None = None,
+    license_id: str = "apache-2.0",
+) -> str:
+    """Generate a HuggingFace model card for a DSP-only SPIHT codec.
+
+    SPIHT deploy packages have no trained weights — the publishable
+    artifact is the bitstream contract plus the vendored C99 reference.
+    This card surfaces the operating point, scorecard summary, and
+    Python/C quickstart snippets.
+
+    Args:
+        deploy_dir: Path to a SPIHT deploy directory.
+        scorecard_path: Optional path to ``quality_scorecard.json``.
+        license_id: SPDX license identifier (defaults to ``apache-2.0``
+            because there are no proprietary weights).
+
+    Returns:
+        The model card as a Markdown string with YAML frontmatter.
+    """
+    deploy_dir = Path(deploy_dir)
+    with (deploy_dir / "deploy_manifest.json").open() as f:
+        manifest = json.load(f)
+
+    if manifest.get("family") != "spiht":
+        raise ValueError(f"generate_spiht_model_card expects family='spiht', got {manifest.get('family')!r}")
+
+    codec = manifest.get("codec", {})
+    modality = codec.get("modality", "unknown")
+    sample_rate = codec.get("sample_rate")
+    frame_size = codec.get("frame_size")
+    target_cr = codec.get("target_cr")
+    wavelet = codec.get("wavelet")
+    levels = codec.get("levels")
+    use_ac = codec.get("use_ac", True)
+    max_bits = codec.get("max_bits")
+
+    scorecard: dict | None = None
+    if scorecard_path is not None:
+        sc_path = Path(scorecard_path)
+        if sc_path.exists():
+            with sc_path.open() as f:
+                scorecard = json.load(f)
+    else:
+        # SPIHT deploy packager writes ``scorecard.json`` next to the manifest;
+        # fall back to the embedded ``scorecard_summary`` and finally to the
+        # legacy ``quality_scorecard.json`` in the parent dir (RVQ convention).
+        for candidate in (
+            deploy_dir / "scorecard.json",
+            deploy_dir.parent / "quality_scorecard.json",
+        ):
+            if candidate.exists():
+                with candidate.open() as f:
+                    scorecard = json.load(f)
+                break
+        if scorecard is None and isinstance(manifest.get("scorecard_summary"), dict):
+            embedded = manifest["scorecard_summary"]
+            if embedded:
+                scorecard = embedded
+
+    tags = [
+        "compressionkit",
+        "signal-compression",
+        modality,
+        "spiht",
+        "wavelet",
+        "dsp",
+        "edge-ai",
+    ]
+
+    cr_label = f"{target_cr:g}x" if target_cr else ""
+    hf_name = f"compressionkit-{modality}-spiht-{cr_label}" if cr_label else f"compressionkit-{modality}-spiht"
+
+    lines: list[str] = []
+    lines.append("---")
+    lines.append(f"license: {license_id}")
+    lines.append("library_name: compressionkit")
+    lines.append("pipeline_tag: other")
+    lines.append("tags:")
+    for tag in tags:
+        lines.append(f"  - {tag}")
+    lines.append("---")
+    lines.append("")
+
+    lines.append(f"# {hf_name}")
+    lines.append("")
+    lines.append(
+        f"A **{modality.upper()}** signal compression codec built on "
+        "wavelet + SPIHT + arithmetic coding. **DSP-only — no trained "
+        "weights.** The deployable artifact is the bitstream contract "
+        "plus a portable C99 reference implementation."
+    )
+    lines.append("")
+
+    lines.append("## Operating point")
+    lines.append("")
+    lines.append("| Field | Value |")
+    lines.append("|-------|-------|")
+    lines.append(f"| Modality | {modality.upper()} |")
+    if sample_rate:
+        lines.append(f"| Sample rate | {sample_rate} Hz |")
+    if frame_size:
+        lines.append(f"| Frame size | {frame_size} samples |")
+    if target_cr:
+        lines.append(f"| Target CR | {target_cr:g}x |")
+    if wavelet:
+        lines.append(f"| Wavelet | `{wavelet}` |")
+    if levels:
+        lines.append(f"| DWT levels | {levels} |")
+    if max_bits:
+        lines.append(f"| Bit budget | {max_bits} bits/frame |")
+    lines.append(f"| Entropy coder | {'arithmetic coding' if use_ac else 'raw SPIHT'} |")
+    lines.append("")
+
+    if scorecard:
+        lines.append("## Quality metrics")
+        lines.append("")
+        _add_scorecard_section(lines, scorecard)
+
+    lines.append("## Python quickstart")
+    lines.append("")
+    lines.append("```python")
+    lines.append("from compressionkit.runtime import load_codec")
+    lines.append("")
+    lines.append(f'codec = load_codec("Ambiq/{hf_name}")')
+    lines.append("enc = codec.compress(frame)   # frame: (frame_size,) float32")
+    lines.append("recon = codec.decompress(enc)")
+    lines.append("```")
+    lines.append("")
+
+    lines.append("## C quickstart")
+    lines.append("")
+    lines.append("```c")
+    lines.append('#include "spiht_app_config.h"')
+    lines.append("")
+    lines.append("float frame[APP_SPIHT_FRAME_SIZE];")
+    lines.append("uint8_t bitstream[APP_SPIHT_MAX_BYTES];")
+    lines.append("/* ... fill frame from sensor ... */")
+    lines.append("size_t nbits = spiht_encode_frame(&enc, bitstream, APP_SPIHT_MAX_BITS);")
+    lines.append("```")
+    lines.append("")
+
+    lines.append("## Files")
+    lines.append("")
+    lines.append("| File | Description |")
+    lines.append("|------|-------------|")
+    lines.append('| `config.json` | Deploy manifest (`family: "spiht"`) |')
+    lines.append("| `spiht_config.json` | Codec parameters (language-neutral) |")
+    lines.append("| `sample_stimulus.npz` | Synthetic test frames |")
+    lines.append("| `reference_vectors.npz` | Reference encode/decode vectors |")
+    lines.append("| `c_sources/spiht.[ch]` | Portable C99 reference |")
+    lines.append("| `c_sources/spiht_app_config.h` | Codec-specific defines |")
+    lines.append("| `model_card.json` | Provenance metadata |")
+    lines.append("| `scorecard.json` | Frozen evaluation summary |")
+    lines.append("")
+
+    lines.append("## Dataset & license")
+    lines.append("")
+    if modality == "ppg":
+        lines.append(
+            "Evaluation data: MESA (NSRR restricted). Synthetic stimulus only "
+            "(generated via physiokit) is redistributed — no patient data."
+        )
+    elif modality == "ecg":
+        lines.append("Evaluation data: PTB-XL (CC BY 4.0). Synthetic stimulus only is redistributed.")
+    lines.append("")
+    lines.append(f"Codec source released under the **{license_id.upper()}** license.")
+    lines.append("")
+
+    lines.append("## Citation")
+    lines.append("")
+    lines.append("```bibtex")
+    lines.append("@software{compressionkit,")
+    lines.append("  author = {Ambiq AI},")
+    lines.append("  title = {compressionKIT: Signal Compression for Edge AI},")
+    lines.append("  url = {https://github.com/AmbiqAI/compressionkit}")
+    lines.append("}")
+    lines.append("```")
+    lines.append("")
+
+    return "\n".join(lines)

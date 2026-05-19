@@ -110,7 +110,8 @@ class TestModelCardGeneration:
 
         card = generate_model_card(mock_deploy)
         assert card.startswith("---\n")
-        assert "license: apache-2.0" in card
+        assert "license: other" in card
+        assert "license_name: ambiq-model-weights-license" in card
         assert "compressionkit" in card
         assert "ppg" in card.lower()
         assert "RVQ" in card or "rvq" in card.lower()

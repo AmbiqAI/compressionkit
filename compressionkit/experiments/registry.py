@@ -7,12 +7,17 @@ reproduce it from a clean checkout:
 
 * ``experiment_id`` — slug used on the CLI (``compressionkit golden run <id>``).
 * ``modality`` — ``"ppg"`` or ``"ecg"`` (extensible to future signals).
-* ``family`` — ``"codec"`` for single-stage RVQ, ``"two_stage"`` for codec + prior.
+* ``family`` — ``"codec"`` for single-stage, ``"two_stage"`` for codec + prior.
+* ``method`` — ``"rvq"`` (neural), ``"spiht"`` (DSP), or ``"hybrid"`` (DSP+AI).
+  Drives the ``run_name`` infix and the HF repo naming convention.
 * ``parent`` — for ``two_stage`` entries, the ``experiment_id`` of the codec they pair with.
 * ``recipe`` — registered training recipe name (see :mod:`compressionkit.recipes`).
+  Optional for DSP-only entries that have nothing to train.
 * ``config_path`` — YAML config path, relative to the repository root.
-* ``run_name`` — ``{modality}_rvq_{sample_rate}hz_{cr:02d}x_golden`` (matches AGENTS.md naming).
-* ``hf_repo_id`` — ``Ambiq/compressionkit-{modality}-{cr}x``.
+* ``run_name`` — ``{modality}_{method}_{sample_rate}hz_{cr:02d}x_golden``
+  (matches AGENTS.md naming; ``method="rvq"`` preserves the historical infix).
+* ``hf_repo_id`` — ``Ambiq/compressionkit-{modality}-{cr}x`` for the default
+  RVQ family (back-compat), ``Ambiq/compressionkit-{modality}-{method}-{cr}x`` otherwise.
 * ``dataset_id`` — short, stable identifier consumed by the dataset
   acquisition contract (#26).
 * ``expected_metrics`` — optional, frozen scorecard summary populated
@@ -28,6 +33,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 GoldenModality = Literal["ppg", "ecg"]
 GoldenFamily = Literal["codec", "two_stage"]
+GoldenMethod = Literal["rvq", "spiht", "hybrid"]
 
 
 class GoldenExperiment(BaseModel):
@@ -42,16 +48,30 @@ class GoldenExperiment(BaseModel):
     )
     modality: GoldenModality
     family: GoldenFamily = "codec"
+    method: GoldenMethod = Field(
+        default="rvq",
+        description="Codec method family: 'rvq' (neural), 'spiht' (DSP), or 'hybrid'.",
+    )
     parent: str | None = Field(
         default=None,
         description="For two-stage entries, the experiment_id of the paired codec.",
     )
-    recipe: str = Field(..., description="Registered training recipe name.")
-    config_path: Path = Field(..., description="YAML config path (repo-relative).")
+    recipe: str | None = Field(
+        default=None,
+        description="Registered training recipe name. Optional for DSP-only methods.",
+    )
+    config_path: Path | None = Field(
+        default=None,
+        description="YAML config path (repo-relative). Optional for DSP-only methods.",
+    )
     run_name: str = Field(..., description="Run directory name under results/.")
     sample_rate: int = Field(..., gt=0, description="Frame sample rate in Hz.")
     compression_ratio: int = Field(..., gt=1, description="Target compression ratio (×).")
-    hf_repo_id: str = Field(..., description="Ambiq/compressionkit-{modality}-{cr}x")
+    hf_repo_id: str = Field(
+        ...,
+        description="HF repo: 'Ambiq/compressionkit-{modality}-{cr}x' for RVQ, "
+        "'Ambiq/compressionkit-{modality}-{method}-{cr}x' otherwise.",
+    )
     dataset_id: str = Field(..., description="Stable dataset identifier (see #26).")
     expected_metrics: dict[str, float] | None = Field(
         default=None,
@@ -60,14 +80,18 @@ class GoldenExperiment(BaseModel):
 
     @model_validator(mode="after")
     def _check_naming(self) -> GoldenExperiment:
-        expected_run = f"{self.modality}_rvq_{self.sample_rate}hz_{self.compression_ratio:02d}x_golden"
+        expected_run = f"{self.modality}_{self.method}_{self.sample_rate}hz_{self.compression_ratio:02d}x_golden"
         if self.family == "codec" and self.run_name != expected_run:
             raise ValueError(
                 f"run_name {self.run_name!r} does not match the AGENTS.md convention "
                 f"{expected_run!r} for experiment {self.experiment_id!r}"
             )
-        expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.compression_ratio}x"
-        if self.family == "codec" and self.hf_repo_id != expected_repo:
+        if self.method == "rvq":
+            # Back-compat: RVQ goldens omit the method infix in the HF repo id.
+            expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.compression_ratio}x"
+        else:
+            expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.method}-{self.compression_ratio}x"
+        if self.family in ("codec", "two_stage") and self.hf_repo_id != expected_repo:
             raise ValueError(
                 f"hf_repo_id {self.hf_repo_id!r} does not match {expected_repo!r} for experiment {self.experiment_id!r}"
             )
@@ -162,10 +186,50 @@ def _ecg_two_stage(cr: int) -> GoldenExperiment:
     )
 
 
+def _ppg_spiht(cr: int) -> GoldenExperiment:
+    """DSP-only SPIHT golden for PPG.
+
+    Uses ``coif5`` with 6 DWT levels per AGENTS.md. Since SPIHT has no
+    trained weights, ``recipe`` and ``config_path`` are intentionally
+    left unset \u2014 the operating point is fully described by the fields
+    on this :class:`GoldenExperiment`, the export packager generates the
+    rest.
+    """
+    return GoldenExperiment(
+        experiment_id=f"ppg-spiht-{cr}x",
+        modality="ppg",
+        family="codec",
+        method="spiht",
+        run_name=f"ppg_spiht_64hz_{cr:02d}x_golden",
+        sample_rate=64,
+        compression_ratio=cr,
+        hf_repo_id=f"Ambiq/compressionkit-ppg-spiht-{cr}x",
+        dataset_id="mesa",
+    )
+
+
+def _ecg_spiht(cr: int) -> GoldenExperiment:
+    """DSP-only SPIHT golden for ECG (``bior4.4``, L=6)."""
+    return GoldenExperiment(
+        experiment_id=f"ecg-spiht-{cr}x",
+        modality="ecg",
+        family="codec",
+        method="spiht",
+        run_name=f"ecg_spiht_256hz_{cr:02d}x_golden",
+        sample_rate=256,
+        compression_ratio=cr,
+        hf_repo_id=f"Ambiq/compressionkit-ecg-spiht-{cr}x",
+        dataset_id="ptb-xl",
+    )
+
+
 # v1 golden codec experiments. Two-stage paired entries land via #27.
 GOLDEN_REGISTRY: list[GoldenExperiment] = [
     *(_ppg_codec(cr) for cr in (2, 4, 8, 16, 32)),
     *(_ecg_codec(cr) for cr in (2, 4, 8, 16, 32, 64)),
+    # DSP-only SPIHT goldens (no trained weights).
+    *(_ppg_spiht(cr) for cr in (2, 4, 8)),
+    *(_ecg_spiht(cr) for cr in (2, 4, 8)),
     # Two-stage (codec + entropy prior) paired entries for selected operating points.
     *(_ppg_two_stage(cr) for cr in (4, 8)),
     *(_ecg_two_stage(cr) for cr in (4, 8)),
@@ -206,6 +270,7 @@ __all__ = [
     "GOLDEN_REGISTRY",
     "GoldenExperiment",
     "GoldenFamily",
+    "GoldenMethod",
     "GoldenModality",
     "get_golden",
     "list_goldens",

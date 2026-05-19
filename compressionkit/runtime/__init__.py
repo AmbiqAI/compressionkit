@@ -22,6 +22,16 @@ Example::
     result = two_stage.compress(signal)
 """
 
+from compressionkit.runtime.base import Codec, EncodedFrame
 from compressionkit.runtime.codec import RVQCodec
+from compressionkit.runtime.loader import load_codec, resolve_deploy_dir
+from compressionkit.runtime.spiht import SpihtCodec
 
-__all__ = ["RVQCodec"]
+__all__ = [
+    "Codec",
+    "EncodedFrame",
+    "RVQCodec",
+    "SpihtCodec",
+    "load_codec",
+    "resolve_deploy_dir",
+]

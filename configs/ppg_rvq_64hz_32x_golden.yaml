@@ -15,7 +15,7 @@ data:
   batch_size: 64
   buffer_size: 10000
   steps_per_epoch: 50
-  epochs: 200
+  epochs: 300
   epsilon: 0.001
   gaussian_noise: [0.01, 0.1]
   shuffle_seed: 42
@@ -45,11 +45,9 @@ training:
   learning_rate: 0.001
   lr_schedule:
     enabled: true
-    type: cosine_restarts
-    first_decay_steps: 200
-    t_mul: 2.0
-    m_mul: 1.0
-    alpha: 0.01
+    type: cosine_decay
+    first_decay_steps: 60000
+    alpha: 0.001
   derivative_loss:
     enabled: true
     weight: 0.1
@@ -59,10 +57,10 @@ training:
     fft_sizes: [16, 32, 64, 128]
   val_metric: mse
   val_mode: min
-  early_stop_patience: 50
+  early_stop_patience: 100
   reduce_lr_on_plateau: false
   selection_metric: val_mse
-  validation_steps: 8
+  validation_steps: 160
 
 evaluation:
   num_samples: 50

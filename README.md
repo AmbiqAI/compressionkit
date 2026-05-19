@@ -1,14 +1,21 @@
 # compressionKIT
 
-**Edge-grade neural compression for physiological signals (PPG, ECG).**
+**Edge-grade compression for physiological signals (PPG, ECG).** Three flavors,
+one runtime contract:
+
+- **DSP-only** — wavelet + SPIHT + arithmetic coding. No trained weights,
+  Apache-licensed C99 reference, ideal for the most constrained MCUs at
+  modest CRs.
+- **AI-only** — Residual Vector Quantization (RVQ) autoencoders, INT8
+  TFLite, the deepest CRs at the best quality.
+- **DSP+AI hybrid** — DSP front-end + small neural prior, sweet spot for
+  low-CR / low-energy deployments.
 
 [![Docs](https://img.shields.io/badge/docs-ambiqai.github.io-blue)](https://ambiqai.github.io/compressionkit/)
 [![HuggingFace](https://img.shields.io/badge/HF-Ambiq%2Fcompressionkit--*-yellow)](https://huggingface.co/Ambiq)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-Ambiq%20Silicon%20Only-green)](LICENSE-MODEL-WEIGHTS.md)
 
-compressionKIT trains and deploys neural codecs that compress continuous PPG/ECG streams down to
-2×–64× at fixed quality tiers, then exports INT8 TFLite + C headers for Ambiq-class MCUs. Every
-release ships a registry of [golden experiments](https://ambiqai.github.io/compressionkit/experiments/),
+Every release ships a registry of [golden experiments](https://ambiqai.github.io/compressionkit/experiments/),
 each reproducible with a single command and published to HuggingFace.
 
 > **Pre-v1.** APIs and configs may shift on major versions until v1.
@@ -23,17 +30,27 @@ uv pip install compressionkit                # runtime
 uv sync
 ```
 
-Load any golden model from HuggingFace and round-trip a sample frame:
+Load any golden codec from HuggingFace and round-trip a sample frame — the
+loader dispatches on the deploy manifest's `family` field, so the same code
+works for DSP-only SPIHT, AI-only RVQ, and hybrid packages:
 
 ```python
-from huggingface_hub import snapshot_download
-from compressionkit.runtime import RVQCodec
+from compressionkit.runtime import load_codec
 import numpy as np
 
-deploy_dir = snapshot_download("Ambiq/compressionkit-ppg-4x")
-codec = RVQCodec(deploy_dir)
+codec = load_codec("Ambiq/compressionkit-ppg-4x")          # AI-only RVQ
+# codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x")  # DSP-only SPIHT
 
-signal = np.load(f"{deploy_dir}/sample_stimulus.npz")["stimulus"][:1]
+frame = ...  # (frame_size,) float32
+enc = codec.compress(frame)
+recon = codec.decompress(enc)
+```
+
+The legacy RVQ-native API is still available for code that wants raw indices:
+
+```python
+from compressionkit.runtime import RVQCodec
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x")
 indices = codec.encode(signal)
 recon = codec.decode(indices)
 ```
@@ -43,13 +60,55 @@ two-stage (codec + entropy prior) usage.
 
 ---
 
+## DSP-only (SPIHT) quickstart
+
+DSP-only SPIHT codecs ship as **weightless** deploy packages: a deploy
+manifest, codec parameters, license-safe synthetic stimulus, reference
+encode/decode vectors, and the portable C99 reference under
+`c_sources/` with a generated `spiht_app_config.h`.
+
+```bash
+# Build the weightless deploy package locally (no dataset required).
+uv run compressionkit golden run ppg-spiht-4x
+
+# Optional: publish to HuggingFace (Apache-2.0, no proprietary weights).
+uv run compressionkit golden run ppg-spiht-4x --publish
+```
+
+Python:
+
+```python
+from compressionkit.runtime import load_codec
+
+codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x")
+enc = codec.compress(frame)   # frame: (frame_size,) float32
+recon = codec.decompress(enc)
+```
+
+C (embedded integration):
+
+```c
+#include "spiht_app_config.h"
+
+float frame[APP_SPIHT_FRAME_SIZE];
+uint8_t bitstream[APP_SPIHT_MAX_BYTES];
+/* ... fill frame from sensor ... */
+size_t nbits = spiht_encode_frame(&enc, bitstream, APP_SPIHT_MAX_BITS);
+```
+
+---
+
 ## Reproduce a golden experiment
 
-The lifecycle runner chains dataset pre-flight → training → evaluation → export → optional publish:
+The lifecycle runner dispatches on the experiment's `method` field:
+
+- `method == "rvq"`: dataset pre-flight → training → evaluation → export → optional publish.
+- `method == "spiht"`: build codec → write weightless deploy package → optional publish.
 
 ```bash
 # Single experiment.
 uv run compressionkit golden run ppg-rvq-4x
+uv run compressionkit golden run ppg-spiht-4x
 
 # Whole modality.
 uv run compressionkit golden run-all --modality ppg
@@ -96,6 +155,15 @@ HuggingFace repo (`prior_int8.tflite`).
   [`ppg-rvq-8x-prior`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-8x-prior/)
 - [`ecg-rvq-4x-prior`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-4x-prior/) ·
   [`ecg-rvq-8x-prior`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-8x-prior/)
+
+### DSP-only (SPIHT)
+
+Weightless codec packages built from wavelet (`coif5` for PPG, `bior4.4` for
+ECG, both L=6) + SPIHT + arithmetic coding. No trained weights, Apache-2.0
+licensed, distributed with portable C99 source for direct MCU integration.
+
+- `ppg-spiht-2x` · `ppg-spiht-4x` · `ppg-spiht-8x` → `Ambiq/compressionkit-ppg-spiht-{2,4,8}x`
+- `ecg-spiht-2x` · `ecg-spiht-4x` · `ecg-spiht-8x` → `Ambiq/compressionkit-ecg-spiht-{2,4,8}x`
 
 ---
 

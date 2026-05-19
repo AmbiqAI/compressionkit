@@ -14,8 +14,9 @@ from compressionkit.experiments import (
 )
 from compressionkit.recipes import get_recipe
 
-_HF_REPO_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-(\d+)x$")
-_RUN_NAME_RE = re.compile(r"^(ppg|ecg)_rvq_\d+hz_\d{2}x_golden$")
+_HF_REPO_RVQ_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-(\d+)x$")
+_HF_REPO_OTHER_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-([a-z0-9]+)-(\d+)x$")
+_RUN_NAME_RE = re.compile(r"^(ppg|ecg)_([a-z0-9]+)_\d+hz_\d{2}x_golden$")
 
 
 def test_registry_is_non_empty() -> None:
@@ -35,22 +36,43 @@ def test_v1_codec_set_present() -> None:
         assert f"ecg-rvq-{cr}x" in by_id
 
 
+def test_v1_spiht_set_present() -> None:
+    by_id = {exp.experiment_id for exp in GOLDEN_REGISTRY}
+    for modality in ("ppg", "ecg"):
+        for cr in (2, 4, 8):
+            assert f"{modality}-spiht-{cr}x" in by_id
+
+
 @pytest.mark.parametrize("exp", GOLDEN_REGISTRY, ids=lambda e: e.experiment_id)
 def test_entry_invariants(exp: GoldenExperiment) -> None:
-    # Config exists relative to repo root (tests run from repo root in CI).
-    assert exp.config_path.is_file(), f"missing config for {exp.experiment_id}: {exp.config_path}"
+    # Config (when declared) exists relative to repo root.
+    if exp.config_path is not None:
+        assert exp.config_path.is_file(), f"missing config for {exp.experiment_id}: {exp.config_path}"
 
     # Run name and HF repo follow AGENTS.md conventions for codec entries.
     if exp.family == "codec":
-        assert _RUN_NAME_RE.match(exp.run_name)
-        assert _HF_REPO_RE.match(exp.hf_repo_id)
-        modality_in_repo, cr_in_repo = _HF_REPO_RE.match(exp.hf_repo_id).groups()
-        assert modality_in_repo == exp.modality
-        assert int(cr_in_repo) == exp.compression_ratio
+        match = _RUN_NAME_RE.match(exp.run_name)
+        assert match, f"run_name does not match pattern: {exp.run_name!r}"
+        assert match.group(2) == exp.method
 
-    # Recipe is registered (import side effect of compressionkit.recipes).
-    spec = get_recipe(exp.recipe)
-    assert spec.name == exp.recipe
+        if exp.method == "rvq":
+            repo_match = _HF_REPO_RVQ_RE.match(exp.hf_repo_id)
+            assert repo_match, f"RVQ repo id does not match: {exp.hf_repo_id!r}"
+            modality_in_repo, cr_in_repo = repo_match.groups()
+            assert modality_in_repo == exp.modality
+            assert int(cr_in_repo) == exp.compression_ratio
+        else:
+            repo_match = _HF_REPO_OTHER_RE.match(exp.hf_repo_id)
+            assert repo_match, f"non-RVQ repo id does not match: {exp.hf_repo_id!r}"
+            modality_in_repo, method_in_repo, cr_in_repo = repo_match.groups()
+            assert modality_in_repo == exp.modality
+            assert method_in_repo == exp.method
+            assert int(cr_in_repo) == exp.compression_ratio
+
+    # Recipe (when declared) is registered.
+    if exp.recipe is not None:
+        spec = get_recipe(exp.recipe)
+        assert spec.name == exp.recipe
 
 
 def test_list_goldens_filter() -> None:

@@ -38,12 +38,15 @@ from compressionkit.evaluation.spectral_metrics import (
 
 
 def _aggregate(values: list[float]) -> dict[str, float]:
-    arr = np.asarray(values, dtype=np.float64)
-    arr = arr[np.isfinite(arr)]
+    raw = np.asarray(values, dtype=np.float64)
+    finite_mask = np.isfinite(raw)
+    arr = raw[finite_mask]
+    n_dropped = int(raw.size - arr.size)
     if arr.size == 0:
-        return {"n": 0}
+        return {"n": 0, "n_dropped": n_dropped}
     return {
         "n": int(arr.size),
+        "n_dropped": n_dropped,
         "mean": float(arr.mean()),
         "std": float(arr.std(ddof=0)),
         "median": float(np.median(arr)),
