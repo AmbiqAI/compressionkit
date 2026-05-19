@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from compressionkit.evaluation.codec import SpihtAcCodec
 from compressionkit.runtime.base import EncodedFrame
@@ -60,6 +60,17 @@ class SpihtCodecConfig(BaseModel):
     levels: int = Field(default=6, gt=0, le=10)
     use_ac: bool = True
     bits_per_sample: int = Field(default=16, gt=0, le=32)
+
+    @model_validator(mode="after")
+    def _check_frame_vs_levels(self) -> SpihtCodecConfig:
+        """A DWT of ``levels`` levels needs ``frame_size >= 2**levels``."""
+        minimum = 1 << self.levels
+        if self.frame_size < minimum:
+            raise ValueError(
+                f"frame_size={self.frame_size} is too small for levels={self.levels}; "
+                f"need at least {minimum} samples (2**levels)"
+            )
+        return self
 
     @classmethod
     def with_defaults(
