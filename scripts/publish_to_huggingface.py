@@ -108,9 +108,7 @@ def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | Non
     return staged
 
 
-def _stage_files_spiht(
-    deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None
-) -> list[str]:
+def _stage_files_spiht(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None) -> list[str]:
     """Copy SPIHT (DSP-only) deploy artifacts to a staging directory.
 
     Includes the ``c_sources/`` subtree verbatim so consumers get the
@@ -178,8 +176,9 @@ def publish(
         raise FileNotFoundError(f"deploy_manifest.json not found in {deploy_dir}")
 
     family = _detect_family(deploy_dir)
-    if family not in ("rvq", "spiht"):
-        raise ValueError(f"Unknown deploy family {family!r}; expected 'rvq' or 'spiht'")
+    _KNOWN_FAMILIES = ("rvq", "spiht")
+    if family not in _KNOWN_FAMILIES:
+        raise ValueError(f"Unknown deploy family {family!r}; expected one of {_KNOWN_FAMILIES!r}")
     logger.info("Detected deploy family: %s", family)
 
     # Validate HuggingFace availability before allocating any resources (skip for dry runs)

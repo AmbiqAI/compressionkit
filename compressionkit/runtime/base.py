@@ -20,14 +20,24 @@ additional family-specific methods alongside the protocol.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 import numpy as np
 
 __all__ = [
+    "MANIFEST_VERSION",
     "Codec",
+    "CodecFamily",
     "EncodedFrame",
 ]
+
+# Schema version of ``deploy_manifest.json``. Bump when adding/removing
+# top-level keys so older consumers can fail loudly instead of silently.
+MANIFEST_VERSION = 1
+
+# Closed set of codec families. Keep in sync with the dispatcher in
+# :mod:`compressionkit.runtime.loader` and the publisher's family map.
+CodecFamily = Literal["rvq", "spiht", "hybrid"]
 
 
 @dataclass

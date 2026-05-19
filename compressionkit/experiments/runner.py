@@ -34,9 +34,21 @@ logger = logging.getLogger(__name__)
 # Modality defaults for DSP-only SPIHT goldens. Mirrors AGENTS.md
 # guidance (PPG → coif5 L=6; ECG → bior4.4 L=6) and the frame sizes
 # already used by the RVQ goldens at the same sample rate.
-_SPIHT_DEFAULTS: dict[str, dict[str, object]] = {
-    "ppg": {"wavelet": "coif5", "levels": 6, "frame_size": 320, "use_ac": True},
-    "ecg": {"wavelet": "bior4.4", "levels": 6, "frame_size": 512, "use_ac": True},
+class _SpihtModalityDefaults:
+    """Typed per-modality SPIHT operating-point defaults."""
+
+    __slots__ = ("frame_size", "levels", "use_ac", "wavelet")
+
+    def __init__(self, *, wavelet: str, levels: int, frame_size: int, use_ac: bool) -> None:
+        self.wavelet = wavelet
+        self.levels = levels
+        self.frame_size = frame_size
+        self.use_ac = use_ac
+
+
+_SPIHT_DEFAULTS: dict[str, _SpihtModalityDefaults] = {
+    "ppg": _SpihtModalityDefaults(wavelet="coif5", levels=6, frame_size=320, use_ac=True),
+    "ecg": _SpihtModalityDefaults(wavelet="bior4.4", levels=6, frame_size=512, use_ac=True),
 }
 
 
@@ -59,11 +71,11 @@ def _build_spiht(experiment: GoldenExperiment, run_dir: Path) -> dict[str, objec
     codec = SpihtCodec(
         modality=experiment.modality,
         sample_rate=experiment.sample_rate,
-        frame_size=int(defaults["frame_size"]),
+        frame_size=defaults.frame_size,
         target_cr=float(experiment.compression_ratio),
-        wavelet=str(defaults["wavelet"]),
-        levels=int(defaults["levels"]),
-        use_ac=bool(defaults["use_ac"]),
+        wavelet=defaults.wavelet,
+        levels=defaults.levels,
+        use_ac=defaults.use_ac,
         name=experiment.experiment_id.replace("-", "_"),
     )
 
@@ -177,13 +189,10 @@ def run_golden(
             trained = True
         else:
             if experiment.config_path is None or not experiment.config_path.is_file():
-                raise FileNotFoundError(
-                    f"config for {experiment.experiment_id!r} not found: {experiment.config_path}"
-                )
+                raise FileNotFoundError(f"config for {experiment.experiment_id!r} not found: {experiment.config_path}")
             if experiment.recipe is None:
                 raise ValueError(
-                    f"experiment {experiment.experiment_id!r} has method={experiment.method!r} "
-                    "but no recipe declared"
+                    f"experiment {experiment.experiment_id!r} has method={experiment.method!r} but no recipe declared"
                 )
             if not skip_dataset_check:
                 from compressionkit.datasets.contract import ensure_dataset_available

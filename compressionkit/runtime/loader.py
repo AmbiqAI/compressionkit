@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["load_codec", "resolve_deploy_dir"]
 
+_KNOWN_FAMILIES: tuple[str, ...] = ("rvq", "spiht")
+
 
 def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
     """Return a local deploy directory, downloading from HF if needed.
@@ -79,7 +81,7 @@ def load_codec(repo_or_dir: str | Path) -> Codec:
     """
     deploy_dir = resolve_deploy_dir(repo_or_dir)
     manifest = _read_manifest(deploy_dir)
-    family = manifest.get("family", "rvq")  # legacy manifests are RVQ
+    family: str = str(manifest.get("family", "rvq"))  # legacy manifests are RVQ
 
     if family == "rvq":
         from compressionkit.runtime.codec import RVQCodec
@@ -90,4 +92,4 @@ def load_codec(repo_or_dir: str | Path) -> Codec:
 
         return SpihtCodec.from_deploy_dir(deploy_dir)
 
-    raise ValueError(f"Unknown codec family {family!r} in {deploy_dir}. Known families: 'rvq', 'spiht'.")
+    raise ValueError(f"Unknown codec family {family!r} in {deploy_dir}. Known families: {_KNOWN_FAMILIES!r}.")

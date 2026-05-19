@@ -35,7 +35,7 @@ from pathlib import Path
 import numpy as np
 
 from compressionkit.export.stimulus import generate_stimulus
-from compressionkit.runtime.base import EncodedFrame
+from compressionkit.runtime.base import MANIFEST_VERSION, EncodedFrame
 from compressionkit.runtime.spiht import SpihtCodec
 
 logger = logging.getLogger(__name__)
@@ -222,17 +222,11 @@ def export_spiht_deploy(
     artifacts = SpihtDeploymentArtifacts(output_dir=output_dir)
 
     name = model_name or codec.name
-    cfg = {
-        "modality": codec.modality,
-        "sample_rate": codec.sample_rate,
-        "frame_size": codec.frame_size,
-        "target_cr": codec.target_cr,
-        "wavelet": codec.wavelet,
-        "levels": codec.levels,
-        "use_ac": codec.use_ac,
-        "max_bits": codec.max_bits,
-        "bits_per_sample": 16,
-    }
+    # Source of truth for codec parameters is the typed SpihtCodecConfig.
+    cfg = codec.config.model_dump()
+    # ``max_bits`` is derived (not part of the typed config) but is needed
+    # by both the C header and consumers comparing against the bitstream.
+    cfg["max_bits"] = codec.max_bits
 
     # 1. Synthetic stimulus + reference vectors (round-trip through Python ref).
     logger.info("Generating synthetic stimulus (%d frames)...", num_stimulus_samples)
@@ -336,6 +330,7 @@ def export_spiht_deploy(
     # 6. Top-level manifest tying everything together.
     artifacts.manifest = output_dir / "deploy_manifest.json"
     manifest = {
+        "manifest_version": MANIFEST_VERSION,
         "family": "spiht",
         "model_name": name,
         "model_version": model_version,

@@ -19,16 +19,82 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict, Field
 
 from compressionkit.evaluation.codec import SpihtAcCodec
 from compressionkit.runtime.base import EncodedFrame
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["SpihtCodec"]
+__all__ = ["SpihtCodec", "SpihtCodecConfig"]
+
+# Wavelet / modality names are embedded verbatim in generated C string
+# literals; restrict them up-front to safe identifier-like characters.
+_SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+# Modality-paired wavelet defaults (mirrors AGENTS.md).
+_DEFAULT_WAVELET_BY_MODALITY: dict[str, str] = {"ppg": "coif5", "ecg": "bior4.4"}
+
+Modality = Literal["ppg", "ecg"]
+
+
+class SpihtCodecConfig(BaseModel):
+    """Typed codec parameters for SPIHT.
+
+    Used both as the constructor argument for :class:`SpihtCodec` and
+    as the schema for the ``codec`` section of ``deploy_manifest.json``.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    modality: Modality
+    sample_rate: int = Field(..., gt=0)
+    frame_size: int = Field(..., gt=0)
+    target_cr: float = Field(..., gt=1.0)
+    wavelet: str = Field(..., min_length=1)
+    levels: int = Field(default=6, gt=0, le=10)
+    use_ac: bool = True
+    bits_per_sample: int = Field(default=16, gt=0, le=32)
+
+    @classmethod
+    def with_defaults(
+        cls,
+        *,
+        modality: Modality,
+        sample_rate: int,
+        frame_size: int,
+        target_cr: float,
+        wavelet: str | None = None,
+        levels: int = 6,
+        use_ac: bool = True,
+        bits_per_sample: int = 16,
+    ) -> SpihtCodecConfig:
+        """Build a config with the modality-paired wavelet as default."""
+        chosen_wavelet = wavelet or _DEFAULT_WAVELET_BY_MODALITY[modality]
+        return cls(
+            modality=modality,
+            sample_rate=sample_rate,
+            frame_size=frame_size,
+            target_cr=target_cr,
+            wavelet=chosen_wavelet,
+            levels=levels,
+            use_ac=use_ac,
+            bits_per_sample=bits_per_sample,
+        )
+
+    def validate_c_safe(self) -> None:
+        """Reject names that would corrupt the generated C header."""
+        if not _SAFE_NAME_RE.match(self.wavelet):
+            raise ValueError(f"wavelet name {self.wavelet!r} contains characters unsafe for C string-literal embedding")
+        if not _SAFE_NAME_RE.match(self.modality):
+            raise ValueError(
+                f"modality name {self.modality!r} contains characters unsafe for C string-literal embedding"
+            )
 
 
 class SpihtCodec:
@@ -42,31 +108,55 @@ class SpihtCodec:
     def __init__(
         self,
         *,
-        modality: str,
-        sample_rate: int,
-        frame_size: int,
-        target_cr: float,
-        wavelet: str = "bior4.4",
+        modality: Modality | None = None,
+        sample_rate: int | None = None,
+        frame_size: int | None = None,
+        target_cr: float | None = None,
+        wavelet: str | None = None,
         levels: int = 6,
         use_ac: bool = True,
         bits_per_sample: int = 16,
         name: str | None = None,
+        config: SpihtCodecConfig | None = None,
         deploy_dir: Path | None = None,
         manifest: dict | None = None,
     ) -> None:
+        if config is None:
+            if modality is None or sample_rate is None or frame_size is None or target_cr is None:
+                raise ValueError(
+                    "SpihtCodec requires either a `config=SpihtCodecConfig(...)` or all of "
+                    "(modality, sample_rate, frame_size, target_cr)"
+                )
+            config = SpihtCodecConfig.with_defaults(
+                modality=modality,
+                sample_rate=sample_rate,
+                frame_size=frame_size,
+                target_cr=target_cr,
+                wavelet=wavelet,
+                levels=levels,
+                use_ac=use_ac,
+                bits_per_sample=bits_per_sample,
+            )
+        config.validate_c_safe()
+        self._config = config
         self._inner = SpihtAcCodec(
-            name=name or f"spiht_{modality}_{int(target_cr):02d}x",
-            modality=modality,
-            sample_rate=sample_rate,
-            frame_size=frame_size,
-            target_cr=target_cr,
-            wavelet=wavelet,
-            levels=levels,
-            use_ac=use_ac,
-            bits_per_sample=bits_per_sample,
+            name=name or f"spiht_{config.modality}_{int(config.target_cr):02d}x",
+            modality=config.modality,
+            sample_rate=config.sample_rate,
+            frame_size=config.frame_size,
+            target_cr=config.target_cr,
+            wavelet=config.wavelet,
+            levels=config.levels,
+            use_ac=config.use_ac,
+            bits_per_sample=config.bits_per_sample,
         )
         self._deploy_dir = deploy_dir
         self._manifest = manifest or {}
+
+    @property
+    def config(self) -> SpihtCodecConfig:
+        """Typed codec parameters."""
+        return self._config
 
     # ----- Codec protocol fields -----
 
@@ -128,7 +218,12 @@ class SpihtCodec:
 
     def compress(self, frame: np.ndarray) -> EncodedFrame:
         """Encode a single ``(frame_size,)`` frame."""
-        inner = self._inner.encode(np.asarray(frame, dtype=np.float32))
+        arr = np.asarray(frame, dtype=np.float32)
+        if arr.ndim != 1:
+            raise ValueError(f"SpihtCodec.compress expects a 1-D (frame_size,) array, got shape {arr.shape}")
+        if arr.shape[0] != self._inner.frame_size:
+            raise ValueError(f"SpihtCodec.compress expects {self._inner.frame_size} samples, got {arr.shape[0]}")
+        inner = self._inner.encode(arr)
         return EncodedFrame(payload=inner.payload, nbits=inner.nbits, side=dict(inner.side))
 
     def decompress(self, encoded: EncodedFrame) -> np.ndarray:
@@ -136,9 +231,7 @@ class SpihtCodec:
         # SpihtAcCodec.decode expects its own EncodedFrame dataclass; rebuild it.
         from compressionkit.evaluation.codec import EncodedFrame as _EvalEncodedFrame
 
-        inner = _EvalEncodedFrame(
-            payload=encoded.payload, nbits=encoded.nbits, side=dict(encoded.side)
-        )
+        inner = _EvalEncodedFrame(payload=encoded.payload, nbits=encoded.nbits, side=dict(encoded.side))
         return self._inner.decode(inner)
 
     # ----- Loader conventions -----
@@ -148,7 +241,8 @@ class SpihtCodec:
         """Hydrate a SPIHT codec from a deploy directory.
 
         Reads ``deploy_manifest.json`` and constructs the codec with
-        the parameters stored under ``manifest["codec"]``.
+        the parameters stored under ``manifest["codec"]``. The codec
+        section is validated via :class:`SpihtCodecConfig`.
         """
         deploy_dir = Path(deploy_dir)
         manifest_path = deploy_dir / "deploy_manifest.json"
@@ -158,20 +252,17 @@ class SpihtCodec:
             manifest = json.load(f)
 
         if manifest.get("family") != "spiht":
-            raise ValueError(
-                f"Expected family='spiht' in manifest, got {manifest.get('family')!r}"
-            )
+            raise ValueError(f"Expected family='spiht' in manifest, got {manifest.get('family')!r}")
 
-        codec_cfg = manifest.get("codec", {})
+        codec_section = manifest.get("codec")
+        if not isinstance(codec_section, dict):
+            raise ValueError(f"manifest['codec'] must be a dict, got {type(codec_section).__name__}")
+        # Drop unknown keys (forward-compat) before strict pydantic parse.
+        known = set(SpihtCodecConfig.model_fields)
+        cleaned = {k: v for k, v in codec_section.items() if k in known}
+        config = SpihtCodecConfig.model_validate(cleaned)
         return cls(
-            modality=codec_cfg["modality"],
-            sample_rate=int(codec_cfg["sample_rate"]),
-            frame_size=int(codec_cfg["frame_size"]),
-            target_cr=float(codec_cfg["target_cr"]),
-            wavelet=codec_cfg.get("wavelet", "bior4.4"),
-            levels=int(codec_cfg.get("levels", 6)),
-            use_ac=bool(codec_cfg.get("use_ac", True)),
-            bits_per_sample=int(codec_cfg.get("bits_per_sample", 16)),
+            config=config,
             name=manifest.get("model_name"),
             deploy_dir=deploy_dir,
             manifest=manifest,
@@ -189,11 +280,10 @@ class SpihtCodec:
             from huggingface_hub import snapshot_download
         except ImportError as exc:  # pragma: no cover
             raise ImportError(
-                "huggingface_hub is required for from_pretrained(). "
-                "Install with: uv sync --extra hf"
+                "huggingface_hub is required for from_pretrained(). Install with: uv sync --extra hf"
             ) from exc
 
-        kwargs: dict = {"repo_id": repo_id, "repo_type": "model"}
+        kwargs: dict[str, str] = {"repo_id": repo_id, "repo_type": "model"}
         if revision is not None:
             kwargs["revision"] = revision
         if cache_dir is not None:
