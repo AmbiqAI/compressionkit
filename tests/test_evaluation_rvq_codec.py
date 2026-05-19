@@ -8,7 +8,6 @@ golden artifacts).
 from __future__ import annotations
 
 import itertools
-
 from pathlib import Path
 
 import numpy as np
