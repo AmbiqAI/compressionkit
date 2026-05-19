@@ -197,8 +197,3 @@ internal/**
 # Local-only model weight workspace (large binaries; published artifacts go to
 # results/ or HuggingFace).
 /models/
-
-# C algorithm implementations live in a separate C-module repository. This
-# directory is for local cross-validation only and must not be committed
-# (deploy packages emit operating-point parameters, not algorithm sources).
-/csrc/
