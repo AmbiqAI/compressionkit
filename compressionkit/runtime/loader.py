@@ -67,6 +67,24 @@ def _read_manifest(deploy_dir: Path) -> dict:
         return json.load(f)
 
 
+def _ensure_deploy_manifest(deploy_dir: Path) -> None:
+    """Ensure ``deploy_manifest.json`` exists, symlinking from ``config.json`` if needed.
+
+    HuggingFace snapshots stage the manifest as ``config.json``; the
+    family-specific codec constructors look for ``deploy_manifest.json``.
+    """
+    manifest_path = deploy_dir / "deploy_manifest.json"
+    config_path = deploy_dir / "config.json"
+    if not manifest_path.exists() and config_path.exists():
+        try:
+            manifest_path.symlink_to(config_path.name)
+        except OSError:
+            # Symlinks unavailable (e.g. Windows w/o privilege); copy instead.
+            import shutil
+
+            shutil.copyfile(config_path, manifest_path)
+
+
 def load_codec(repo_or_dir: str | Path) -> Codec:
     """Hydrate a codec from a local deploy directory or HF repo id.
 
@@ -82,6 +100,7 @@ def load_codec(repo_or_dir: str | Path) -> Codec:
     deploy_dir = resolve_deploy_dir(repo_or_dir)
     manifest = _read_manifest(deploy_dir)
     family: str = str(manifest.get("family", "rvq"))  # legacy manifests are RVQ
+    _ensure_deploy_manifest(deploy_dir)
 
     if family == "rvq":
         from compressionkit.runtime.codec import RVQCodec

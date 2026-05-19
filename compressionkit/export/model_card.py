@@ -304,9 +304,7 @@ def generate_spiht_model_card(
         manifest = json.load(f)
 
     if manifest.get("family") != "spiht":
-        raise ValueError(
-            f"generate_spiht_model_card expects family='spiht', got {manifest.get('family')!r}"
-        )
+        raise ValueError(f"generate_spiht_model_card expects family='spiht', got {manifest.get('family')!r}")
 
     codec = manifest.get("codec", {})
     modality = codec.get("modality", "unknown")
@@ -325,10 +323,21 @@ def generate_spiht_model_card(
             with sc_path.open() as f:
                 scorecard = json.load(f)
     else:
-        sc_path = deploy_dir.parent / "quality_scorecard.json"
-        if sc_path.exists():
-            with sc_path.open() as f:
-                scorecard = json.load(f)
+        # SPIHT deploy packager writes ``scorecard.json`` next to the manifest;
+        # fall back to the embedded ``scorecard_summary`` and finally to the
+        # legacy ``quality_scorecard.json`` in the parent dir (RVQ convention).
+        for candidate in (
+            deploy_dir / "scorecard.json",
+            deploy_dir.parent / "quality_scorecard.json",
+        ):
+            if candidate.exists():
+                with candidate.open() as f:
+                    scorecard = json.load(f)
+                break
+        if scorecard is None and isinstance(manifest.get("scorecard_summary"), dict):
+            embedded = manifest["scorecard_summary"]
+            if embedded:
+                scorecard = embedded
 
     tags = [
         "compressionkit",
@@ -416,7 +425,7 @@ def generate_spiht_model_card(
     lines.append("")
     lines.append("| File | Description |")
     lines.append("|------|-------------|")
-    lines.append("| `config.json` | Deploy manifest (`family: \"spiht\"`) |")
+    lines.append('| `config.json` | Deploy manifest (`family: "spiht"`) |')
     lines.append("| `spiht_config.json` | Codec parameters (language-neutral) |")
     lines.append("| `sample_stimulus.npz` | Synthetic test frames |")
     lines.append("| `reference_vectors.npz` | Reference encode/decode vectors |")
@@ -434,10 +443,7 @@ def generate_spiht_model_card(
             "(generated via physiokit) is redistributed — no patient data."
         )
     elif modality == "ecg":
-        lines.append(
-            "Evaluation data: PTB-XL (CC BY 4.0). Synthetic stimulus only is "
-            "redistributed."
-        )
+        lines.append("Evaluation data: PTB-XL (CC BY 4.0). Synthetic stimulus only is redistributed.")
     lines.append("")
     lines.append(f"Codec source released under the **{license_id.upper()}** license.")
     lines.append("")
