@@ -1,6 +1,28 @@
 """Evaluation modules for compressionkit."""
 
+from compressionkit.evaluation.adversarial import (
+    PHYSIO_BANDS,
+    AdversarialResult,
+    inject_baseline_wander,
+    inject_gaussian,
+    inject_powerline,
+    make_dc_offset,
+    make_gaussian_noise,
+    make_signal_zero_mix,
+    make_sinusoid,
+    make_step,
+    make_zero_burst,
+    make_zero_input,
+    run_adversarial_battery,
+)
 from compressionkit.evaluation.artifacts import save_sample_artifacts
+from compressionkit.evaluation.codec import (
+    Codec,
+    EncodedFrame,
+    IdentityCodec,
+    SpihtAcCodec,
+    compression_ratio,
+)
 from compressionkit.evaluation.metrics import (
     PRD,
     TruePRD,
@@ -21,6 +43,12 @@ from compressionkit.evaluation.overlap_add import (
     evaluate_long_recordings,
     reconstruct_overlap_add,
 )
+from compressionkit.evaluation.qos import (
+    RvqQoS,
+    RvqQoSCalibrator,
+    compute_rvq_qos,
+)
+from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.evaluation.spectral_metrics import (
     ECG_DEFAULT_BANDS,
     ECG_DEFAULT_COHERENCE_BAND,
@@ -40,19 +68,36 @@ from compressionkit.evaluation.stitching import (
     seam_discontinuity_ratio,
     stitch,
 )
+from compressionkit.evaluation.stitching_report import (
+    codec_predict_fn,
+    compare_stitching_methods,
+)
 
 __all__ = [
     "ECG_DEFAULT_BANDS",
     "ECG_DEFAULT_COHERENCE_BAND",
     "ECG_DEFAULT_FREQ_WEIGHTS",
+    "PHYSIO_BANDS",
     "PPG_DEFAULT_BANDS",
     "PPG_DEFAULT_COHERENCE_BAND",
     "PPG_DEFAULT_FREQ_WEIGHTS",
     "PRD",
     "STITCH_METHODS",
+    "AdversarialResult",
+    "Codec",
+    "EncodedFrame",
+    "IdentityCodec",
+    "RvqCodec",
+    "RvqQoS",
+    "RvqQoSCalibrator",
+    "SpihtAcCodec",
     "TruePRD",
+    "codec_predict_fn",
+    "compare_stitching_methods",
+    "compression_ratio",
     "compute_ecg_hr_hrv",
     "compute_ppg_physiokit_metrics",
+    "compute_rvq_qos",
     "compute_signal_metrics",
     "estimate_bandpass_residual_noise",
     "estimate_ecg_noise_floor",
@@ -60,11 +105,22 @@ __all__ = [
     "estimate_hf_noise_power",
     "estimate_ppg_noise_floor",
     "evaluate_long_recordings",
+    "inject_baseline_wander",
+    "inject_gaussian",
+    "inject_powerline",
+    "make_dc_offset",
+    "make_gaussian_noise",
+    "make_signal_zero_mix",
+    "make_sinusoid",
+    "make_step",
+    "make_zero_burst",
+    "make_zero_input",
     "psd_band_error",
     "reconstruct_hard_concat",
     "reconstruct_linear_crossfade",
     "reconstruct_overlap_add",
     "reconstruct_tukey_overlap_add",
+    "run_adversarial_battery",
     "save_sample_artifacts",
     "seam_discontinuity_ratio",
     "spectral_coherence",
