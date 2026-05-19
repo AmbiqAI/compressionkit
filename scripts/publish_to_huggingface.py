@@ -25,6 +25,7 @@ Requires ``HF_TOKEN`` environment variable or ``huggingface-cli login``.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import shutil
 import sys
@@ -34,7 +35,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# Files from the deploy directory to upload, mapped to their HF repo names.
+# Files from an RVQ deploy directory to upload, mapped to their HF repo names.
 # If a file doesn't exist, it is silently skipped.
 _DEPLOY_FILE_MAP: dict[str, str] = {
     "encoder.tflite": "encoder_int8.tflite",
@@ -55,13 +56,30 @@ _DEPLOY_FILE_MAP: dict[str, str] = {
     "prior_manifest.json": "prior_manifest.json",
 }
 
+# Files from a SPIHT (DSP-only) deploy directory. The vendored C sources
+# live in a ``c_sources/`` subdirectory and are uploaded recursively.
+_SPIHT_FILE_MAP: dict[str, str] = {
+    "deploy_manifest.json": "config.json",
+    "spiht_config.json": "spiht_config.json",
+    "sample_stimulus.npz": "sample_stimulus.npz",
+    "reference_vectors.npz": "reference_vectors.npz",
+    "model_card.json": "model_card.json",
+    "scorecard.json": "scorecard.json",
+}
+
+
+def _detect_family(deploy_dir: Path) -> str:
+    manifest_path = deploy_dir / "deploy_manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"deploy_manifest.json not found in {deploy_dir}")
+    with manifest_path.open() as f:
+        manifest = json.load(f)
+    # Legacy RVQ manifests didn't carry a family field.
+    return str(manifest.get("family", "rvq"))
+
 
 def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None) -> list[str]:
-    """Copy deploy artifacts to a staging directory with HF naming.
-
-    Returns:
-        List of staged file names.
-    """
+    """Copy RVQ deploy artifacts to a staging directory with HF naming."""
     staged: list[str] = []
 
     for src_name, dst_name in _DEPLOY_FILE_MAP.items():
@@ -86,6 +104,45 @@ def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | Non
         shutil.copy2(license_file, dst)
         staged.append("LICENSE-MODEL-WEIGHTS.md")
         logger.info("Staged: LICENSE-MODEL-WEIGHTS.md")
+
+    return staged
+
+
+def _stage_files_spiht(
+    deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None
+) -> list[str]:
+    """Copy SPIHT (DSP-only) deploy artifacts to a staging directory.
+
+    Includes the ``c_sources/`` subtree verbatim so consumers get the
+    portable C99 reference plus the generated ``spiht_app_config.h``.
+    """
+    staged: list[str] = []
+
+    for src_name, dst_name in _SPIHT_FILE_MAP.items():
+        src = deploy_dir / src_name
+        dst = staging_dir / dst_name
+        if src.exists() and not dst.exists():
+            shutil.copy2(src, dst)
+            staged.append(dst_name)
+            logger.info("Staged: %s → %s", src_name, dst_name)
+
+    # Copy the c_sources/ subtree if present.
+    c_src = deploy_dir / "c_sources"
+    if c_src.is_dir():
+        dst_dir = staging_dir / "c_sources"
+        shutil.copytree(c_src, dst_dir, dirs_exist_ok=True)
+        for p in sorted(dst_dir.rglob("*")):
+            if p.is_file():
+                rel = p.relative_to(staging_dir)
+                staged.append(str(rel))
+                logger.info("Staged: c_sources/%s", p.name)
+
+    # Optional external scorecard.
+    if scorecard_path and scorecard_path.exists():
+        dst = staging_dir / "quality_scorecard.json"
+        shutil.copy2(scorecard_path, dst)
+        staged.append("quality_scorecard.json")
+        logger.info("Staged: scorecard → quality_scorecard.json")
 
     return staged
 
@@ -116,11 +173,14 @@ def publish(
         ImportError: If ``huggingface_hub`` is not installed and dry_run is False.
         ValueError: If no files are found to stage.
     """
-    from compressionkit.export.model_card import generate_model_card
-
     deploy_dir = Path(deploy_dir)
     if not (deploy_dir / "deploy_manifest.json").exists():
         raise FileNotFoundError(f"deploy_manifest.json not found in {deploy_dir}")
+
+    family = _detect_family(deploy_dir)
+    if family not in ("rvq", "spiht"):
+        raise ValueError(f"Unknown deploy family {family!r}; expected 'rvq' or 'spiht'")
+    logger.info("Detected deploy family: %s", family)
 
     # Validate HuggingFace availability before allocating any resources (skip for dry runs)
     if not dry_run:
@@ -137,15 +197,32 @@ def publish(
 
     # Stage and generate card; clean up on any error
     try:
-        staged = _stage_files(deploy_dir, staging_dir, sc_path)
+        if family == "spiht":
+            staged = _stage_files_spiht(deploy_dir, staging_dir, sc_path)
+        else:
+            staged = _stage_files(deploy_dir, staging_dir, sc_path)
         if not staged:
             raise ValueError("No files staged — check deploy directory contents")
 
-        card_text = generate_model_card(
-            deploy_dir=deploy_dir,
-            scorecard_path=sc_path,
-            license_id=license_id,
-        )
+        if family == "spiht":
+            from compressionkit.export.model_card import generate_spiht_model_card
+
+            # DSP-only SPIHT has no proprietary weights — default to Apache-2.0
+            # unless the caller explicitly overrode license_id.
+            spiht_license = "apache-2.0" if license_id == "other" else license_id
+            card_text = generate_spiht_model_card(
+                deploy_dir=deploy_dir,
+                scorecard_path=sc_path,
+                license_id=spiht_license,
+            )
+        else:
+            from compressionkit.export.model_card import generate_model_card
+
+            card_text = generate_model_card(
+                deploy_dir=deploy_dir,
+                scorecard_path=sc_path,
+                license_id=license_id,
+            )
         readme_path = staging_dir / "README.md"
         readme_path.write_text(card_text)
         staged.append("README.md")
