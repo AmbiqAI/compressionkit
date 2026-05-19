@@ -160,7 +160,7 @@ def make_signal_zero_mix(
         raise ValueError("zero_fraction must be in [0, 1]")
     n_frames, frame_size = out.shape
     rng = np.random.default_rng(seed)
-    n_zero = int(round(zero_fraction * frame_size))
+    n_zero = round(zero_fraction * frame_size)
     if n_zero <= 0:
         return out
     for i in range(n_frames):
@@ -282,7 +282,7 @@ def _peak_count_in_band(
     if signal_1d.size == 0 or np.allclose(signal_1d, 0.0):
         return 0
     f_hi = max(0.1, float(band[1]))
-    min_dist = max(1, int(round(fs / f_hi)))
+    min_dist = max(1, round(fs / f_hi))
     std = float(np.std(signal_1d))
     if std <= 1e-9:
         return 0

@@ -7,6 +7,8 @@ golden artifacts).
 
 from __future__ import annotations
 
+import itertools
+
 from pathlib import Path
 
 import numpy as np
@@ -84,7 +86,7 @@ def test_rvq_round_trip_shape_and_metadata(rvq_codec) -> None:
     # Residual norms decrease monotonically (greedy RVQ is non-increasing)
     norms = enc.side["residual_norms"]
     assert len(norms) == len(token_ids) + 1
-    for a, b in zip(norms, norms[1:]):
+    for a, b in itertools.pairwise(norms):
         assert b <= a + 1e-4, f"residual norm increased: {a} -> {b}"
 
     # Quant distances: one per token per level

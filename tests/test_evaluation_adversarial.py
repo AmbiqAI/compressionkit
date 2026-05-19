@@ -187,6 +187,6 @@ def test_spiht_zero_input_does_not_hallucinate(spiht_ppg: SpihtAcCodec) -> None:
 def test_physio_bands_table_completeness() -> None:
     assert "ppg" in PHYSIO_BANDS
     assert "ecg" in PHYSIO_BANDS
-    for k, (lo, hi) in PHYSIO_BANDS.items():
+    for _k, (lo, hi) in PHYSIO_BANDS.items():
         assert lo < hi
         assert lo > 0

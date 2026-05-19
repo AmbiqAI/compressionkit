@@ -42,7 +42,7 @@ __all__ = ["RvqCodec"]
 
 def _bits_per_index(codebook_sizes: list[int]) -> int:
     """Sum of ceil(log2(K_l)) across RVQ levels."""
-    return sum(int(math.ceil(math.log2(max(2, k)))) for k in codebook_sizes)
+    return sum(math.ceil(math.log2(max(2, k))) for k in codebook_sizes)
 
 
 def _load_config(run_dir: Path, modality: str):

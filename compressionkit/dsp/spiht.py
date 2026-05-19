@@ -358,7 +358,7 @@ def _pack_coefficients(approx: np.ndarray, details: list[np.ndarray]) -> np.ndar
     Note: The codebase convention stores details as [finest→coarsest],
     so we reverse to get the tree-compatible [coarsest→finest] order.
     """
-    bands = [approx] + list(reversed(details))
+    bands = [approx, *list(reversed(details))]
     return np.concatenate(bands).astype(np.float64)
 
 
@@ -511,7 +511,7 @@ def spiht_encode(
             "use_ac": bool(use_ac),
         }
 
-    n_start = int(math.floor(math.log2(max_coeff)))
+    n_start = math.floor(math.log2(max_coeff))
     threshold = 2.0**n_start
 
     sink: _RawSink | _AcSink | _LoggingAcSink
@@ -546,7 +546,7 @@ def spiht_encode(
             lsp_before_sort = len(LSP)
             if log_emissions:
                 # Bit-plane index = log2(threshold); record for the upcoming pass.
-                sink.set_bitplane(int(round(math.log2(threshold))))  # type: ignore[union-attr]
+                sink.set_bitplane(round(math.log2(threshold)))  # type: ignore[union-attr]
 
             # --- Sorting pass: LIP ---
             new_lip = []
@@ -607,7 +607,7 @@ def spiht_encode(
                     else:
                         new_lis.append((idx, "B"))
 
-            LIS = new_lis + [x for x in LIS[lis_idx:]]
+            LIS = new_lis + list(LIS[lis_idx:])
 
             # --- Refinement pass ---
             for i in LSP[:lsp_before_sort]:
@@ -745,7 +745,7 @@ def spiht_decode(bitstream: bytes, metadata: dict) -> tuple[np.ndarray, list[np.
                     else:
                         new_lis.append((idx, "B"))
 
-            LIS = new_lis + [x for x in LIS[lis_idx:]]
+            LIS = new_lis + list(LIS[lis_idx:])
 
             # --- Refinement pass ---
             for i in LSP[:lsp_before_sort]:
