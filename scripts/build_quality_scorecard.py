@@ -15,6 +15,20 @@ from pathlib import Path
 from compressionkit.evaluation.scorecard import write_quality_scorecard
 
 
+def _fmt_agg(block: dict, *, precision: int = 2) -> str:
+    """Format an aggregate block defensively."""
+    if not isinstance(block, dict) or not block.get("n"):
+        return "n/a"
+    mean = block.get("mean")
+    std = block.get("std")
+    p90 = block.get("p90")
+    if mean is None or std is None:
+        return "n/a"
+    if p90 is None:
+        return f"{mean:.{precision}f} ± {std:.{precision}f}"
+    return f"{mean:.{precision}f} ± {std:.{precision}f}  (p90 {p90:.{precision}f})"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run_dir", type=Path, help="Path to a trained run directory.")
@@ -38,6 +52,24 @@ def main() -> None:
         default=1.0e-4,
         help="Reject near-flat/corrupted sample windows below this std before aggregation.",
     )
+    ap.add_argument(
+        "--clean-reference",
+        type=Path,
+        default=None,
+        help="Optional .npz/.npy bundle of aligned clean-reference windows for truth-aware evaluation.",
+    )
+    ap.add_argument(
+        "--clean-reference-key",
+        type=str,
+        default=None,
+        help="Optional array key when --clean-reference points to a .npz.",
+    )
+    ap.add_argument(
+        "--clean-reference-label",
+        type=str,
+        default="clean_truth",
+        help="Label stored in the output for the clean-reference bundle.",
+    )
     args = ap.parse_args()
 
     out = write_quality_scorecard(
@@ -46,6 +78,9 @@ def main() -> None:
         sample_rate=args.sample_rate,
         noise_estimator=args.noise_estimator,
         min_signal_std=args.min_signal_std,
+        clean_reference_path=args.clean_reference,
+        clean_reference_key=args.clean_reference_key,
+        clean_reference_label=args.clean_reference_label,
         output_path=args.output,
     )
     card = json.loads(out.read_text())
@@ -65,11 +100,9 @@ def main() -> None:
 
     # Primary metrics: PRD + MSE/RMSE
     print("  PRIMARY (mean ± std)  :")
-    print(
-        f"    PRD %                = {td['prd_percent']['mean']:.2f} ± {td['prd_percent']['std']:.2f}  (p90 {td['prd_percent']['p90']:.2f})"
-    )
-    print(f"    RMSE                 = {td['rmse']['mean']:.4f} ± {td['rmse']['std']:.4f}")
-    print(f"    cosine_similarity    = {td['cosine_similarity']['mean']:.4f} ± {td['cosine_similarity']['std']:.4f}")
+    print(f"    PRD %                = {_fmt_agg(td['prd_percent'], precision=2)}")
+    print(f"    RMSE                 = {_fmt_agg(td['rmse'], precision=4)}")
+    print(f"    cosine_similarity    = {_fmt_agg(td['cosine_similarity'], precision=4)}")
 
     # Domain-specific physiology (HR/HRV) is the primary clinical claim
     if phys:
@@ -135,13 +168,9 @@ def main() -> None:
 
     # Frequency-domain reconstruction quality
     print("  SPECTRAL (mean ± std) :")
-    print(
-        f"    band_total_rel_error = {sp['band_total_rel_error']['mean']:.4f} ± {sp['band_total_rel_error']['std']:.4f}"
-    )
-    print(
-        f"    weighted_freq_prd %  = {sp['weighted_freq_prd_percent']['mean']:.2f} ± {sp['weighted_freq_prd_percent']['std']:.2f}"
-    )
-    print(f"    coherence            = {sp['coherence']['mean']:.4f} ± {sp['coherence']['std']:.4f}")
+    print(f"    band_total_rel_error = {_fmt_agg(sp['band_total_rel_error'], precision=4)}")
+    print(f"    weighted_freq_prd %  = {_fmt_agg(sp['weighted_freq_prd_percent'], precision=2)}")
+    print(f"    coherence            = {_fmt_agg(sp['coherence'], precision=4)}")
 
     # Supplementary: PRDN-noise (interpret with care; see scripts/sanity_clean_ecg.py)
     if td["prdn_noise_percent"].get("n"):
@@ -150,6 +179,29 @@ def main() -> None:
             f"    PRDN-noise %         = {td['prdn_noise_percent']['mean']:.2f} ± {td['prdn_noise_percent']['std']:.2f}"
         )
         print(f"      (noise estimator: {card['noise_estimator']}; compare against PRD on clean synthetic for context)")
+
+    clean_ref = card.get("clean_reference")
+    if isinstance(clean_ref, dict):
+        base_td = clean_ref.get("input_baseline", {}).get("time_domain", {})
+        out_td = clean_ref.get("reconstruction", {}).get("time_domain", {})
+        denoise_td = clean_ref.get("denoising", {}).get("time_domain", {})
+        print(f"  CLEAN REFERENCE ({clean_ref.get('label', 'clean_truth')}) :")
+        if base_td.get("prd_percent", {}).get("n"):
+            print(
+                f"    input PRD vs clean    = {_fmt_agg(base_td['prd_percent'], precision=2)}"
+            )
+        if out_td.get("prd_percent", {}).get("n"):
+            print(
+                f"    recon PRD vs clean    = {_fmt_agg(out_td['prd_percent'], precision=2)}"
+            )
+        if denoise_td.get("prd_percent_improvement") is not None:
+            print(
+                f"    denoise delta PRD     = {denoise_td['prd_percent_improvement']:.2f}"
+            )
+        if denoise_td.get("cosine_similarity_improvement") is not None:
+            print(
+                f"    denoise delta cosine  = {denoise_td['cosine_similarity_improvement']:.4f}"
+            )
 
 
 if __name__ == "__main__":
