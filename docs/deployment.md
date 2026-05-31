@@ -6,6 +6,8 @@ icon: lucide/package-check
 
 This guide covers the deployment package emitted by `compressionkit.export.deploy.export_for_deployment()`, the lightweight runtime APIs, HuggingFace loading, and the optional two-stage entropy-coding path.
 
+For the release-grade package requirements that span AI, DSP, HuggingFace publication, and docs generation, see the [v1 release contract](release-contract.md).
+
 ## Deployment Workflow
 
 The standard RVQ deployment flow has three pieces:

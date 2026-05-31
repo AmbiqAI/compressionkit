@@ -27,6 +27,7 @@ from compressionkit.experiments.registry import (
     list_goldens,
 )
 from compressionkit.experiments.runner import run_golden
+from compressionkit.export.validate import validate_deploy_package
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--skip-dataset-check", action="store_true", help="Skip the dataset availability pre-flight.")
     p_run.add_argument("--publish", action="store_true", help="Publish to HuggingFace after training.")
     p_run.add_argument("--dry-run", action="store_true", help="Stage publish files without uploading.")
+    p_run.add_argument("--skip-validation", action="store_true", help="Skip deploy-package validation.")
+    p_run.add_argument(
+        "--strict-release-validation",
+        action="store_true",
+        help="Require release-contract extras such as model_card.json and scorecard.json.",
+    )
 
     p_all = sub.add_parser("run-all", help="Run every golden in a modality, sequentially.")
     p_all.add_argument("--modality", choices=["ppg", "ecg"], required=True)
@@ -75,6 +82,23 @@ def build_parser() -> argparse.ArgumentParser:
     p_all.add_argument("--skip-dataset-check", action="store_true")
     p_all.add_argument("--publish", action="store_true")
     p_all.add_argument("--dry-run", action="store_true")
+    p_all.add_argument("--skip-validation", action="store_true")
+    p_all.add_argument("--strict-release-validation", action="store_true")
+
+    p_validate = sub.add_parser("validate-deploy", help="Validate a deploy package against the package contract.")
+    p_validate.add_argument("deploy_dir", type=Path)
+    p_validate.add_argument("--skip-runtime", action="store_true", help="Skip runtime hydration checks.")
+    p_validate.add_argument(
+        "--skip-reference-vectors",
+        action="store_true",
+        help="Skip replaying stored reference vectors.",
+    )
+    p_validate.add_argument(
+        "--strict-release",
+        action="store_true",
+        help="Treat release-contract extras like model_card.json and scorecard.json as required.",
+    )
+    p_validate.add_argument("--max-vectors", type=int, default=2)
 
     return parser
 
@@ -98,12 +122,36 @@ def main(argv: list[str] | None = None) -> int:
                 skip_dataset_check=args.skip_dataset_check,
                 publish=args.publish,
                 dry_run=args.dry_run,
+                validate=not args.skip_validation,
+                strict_release_validation=args.strict_release_validation,
             )
         except DatasetNotAvailableError as err:
             logger.error("%s", err)
             return 2
         logger.info("golden run summary: %s", summary)
         return 0 if (not args.publish or summary["published"] or args.dry_run) else 1
+
+    if args.action == "validate-deploy":
+        result = validate_deploy_package(
+            args.deploy_dir,
+            check_runtime=not args.skip_runtime,
+            check_reference_vectors=not args.skip_reference_vectors,
+            strict_release=args.strict_release,
+            max_vectors=args.max_vectors,
+        )
+        print(f"family: {result.family}")
+        print(f"checked: {', '.join(result.checked_files) if result.checked_files else '(none)'}")
+        if result.warnings:
+            print("warnings:")
+            for warning in result.warnings:
+                print(f"- {warning}")
+        if result.errors:
+            print("errors:")
+            for error in result.errors:
+                print(f"- {error}")
+            return 1
+        print("validation: ok")
+        return 0
 
     # run-all
     failures: list[str] = []
@@ -116,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
                 skip_dataset_check=args.skip_dataset_check,
                 publish=args.publish,
                 dry_run=args.dry_run,
+                validate=not args.skip_validation,
+                strict_release_validation=args.strict_release_validation,
             )
         except Exception:  # keep running other goldens
             logger.exception("golden %s failed", exp.experiment_id)

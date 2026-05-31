@@ -4,10 +4,16 @@ The ECG and PPG golden recipes follow the same top-level flow: create a run
 directory, build data and model objects, fit, evaluate, export deploy
 artifacts, and serialize a summary. This module keeps that orchestration in one
 place while leaving modality-specific details in thin subclasses.
+
+This is intentionally a convenience layer for the shipped golden recipes, not a
+required framework entry point for all experiments. New experiments should be
+able to import smaller blocks directly and only adopt this shared flow when it
+actually reduces boilerplate.
 """
 
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from pathlib import Path
@@ -15,7 +21,9 @@ from typing import Any
 
 import keras
 
-from compressionkit.export.deploy import export_for_deployment
+from compressionkit.evaluation.scorecard import write_quality_scorecard
+from compressionkit.export.deploy import export_for_deployment, sync_scorecard_to_deploy
+from compressionkit.export.release import build_release_metadata
 from compressionkit.logging.wandb_utils import finalize_wandb_run, init_wandb_run
 from compressionkit.trainers.common import (
     BEST_CKPT_NAME,
@@ -56,7 +64,12 @@ def _build_long_recording_payload(eval_results: dict[str, Any]) -> dict[str, Any
 
 
 class BaseRVQTrainer[ConfigT](ABC):
-    """Template-method orchestrator for RVQ recipes."""
+    """Optional template-method orchestrator for RVQ recipes.
+
+    The contract for an experiment is the artifacts it can produce, not whether
+    it subclasses this type. Use this when it helps; bypass it when a custom
+    experiment needs a different control flow.
+    """
 
     def __init__(self, cfg: ConfigT):
         self.cfg = cfg
@@ -235,6 +248,17 @@ class BaseRVQTrainer[ConfigT](ABC):
             run_dir=run_dir,
             validation_steps=validation_steps,
         )
+        compression = self.build_compression_stats()
+
+        sample_rate = getattr(self.cfg.data, "sampling_rate", None)
+        if sample_rate is None:
+            sample_rate = getattr(self.cfg.data, "effective_sample_rate", None)
+        model_card_info = build_release_metadata(
+            run_name=self.cfg.run_name,
+            modality=str(self.cfg.run_name).split("_", 1)[0],
+            sample_rate=sample_rate,
+            compression_ratio=compression.get("compression_ratio"),
+        )
 
         rep_dataset = collect_rep_dataset(
             val_ds,
@@ -251,13 +275,13 @@ class BaseRVQTrainer[ConfigT](ABC):
             sample_targets=eval_results["sample_targets"],
             sample_reconstructions=eval_results["sample_reconstructions"],
             model_name=self.cfg.run_name,
+            model_card_info=model_card_info,
         )
 
         best_epoch, best_metrics, final_metrics, selection_metric = extract_history_metrics(
             history.history,
             selection_metric=self.cfg.training.selection_metric,
         )
-        compression = self.build_compression_stats()
 
         model_artifacts["best_model"] = BEST_CKPT_NAME
         summary = self.assemble_summary(
@@ -275,6 +299,25 @@ class BaseRVQTrainer[ConfigT](ABC):
             validation_steps=validation_steps,
         )
         write_summary(summary, run_dir)
+
+        if sample_rate is None:
+            self.logger.info("Skipping quality scorecard build because sample_rate metadata is unavailable.")
+        else:
+            try:
+                scorecard_path = write_quality_scorecard(
+                    run_dir,
+                    modality=model_card_info["modality"],
+                    sample_rate=int(sample_rate),
+                )
+            except Exception:
+                self.logger.exception("Quality scorecard build failed; continuing without deploy scorecard sync.")
+            else:
+                scorecard_summary = json.loads(scorecard_path.read_text())
+                deploy.scorecard = sync_scorecard_to_deploy(run_dir / "deploy", scorecard_summary)
+                deploy.checksums = deploy.output_dir / "checksums.json"
+                summary["artifacts"]["deploy"] = deploy.as_dict()
+                write_summary(summary, run_dir)
+
         _long_payload = _build_long_recording_payload(eval_results)
         if _long_payload is not None:
             write_long_recording_eval(_long_payload, run_dir)

@@ -26,6 +26,7 @@ import sys
 from pathlib import Path
 
 from compressionkit.experiments.registry import GoldenExperiment, get_golden
+from compressionkit.export.validate import DeployValidationResult, validate_deploy_package
 from compressionkit.recipes import get_recipe
 
 logger = logging.getLogger(__name__)
@@ -112,6 +113,35 @@ def _build_spiht(experiment: GoldenExperiment, run_dir: Path) -> dict[str, objec
     return {"deploy_dir": str(deploy_dir), "artifacts": arts.as_dict()}
 
 
+def _summarize_validation(result: DeployValidationResult) -> dict[str, object]:
+    return {
+        "ok": result.ok,
+        "family": result.family,
+        "checked_files": result.checked_files,
+        "warnings": result.warnings,
+        "errors": result.errors,
+    }
+
+
+def _validate_release_package(
+    experiment: GoldenExperiment,
+    run_dir: Path,
+    *,
+    strict_release: bool,
+) -> DeployValidationResult:
+    deploy_dir = run_dir / "deploy"
+    if not deploy_dir.is_dir():
+        raise FileNotFoundError(f"deploy directory missing for {experiment.experiment_id!r}: {deploy_dir}")
+    result = validate_deploy_package(deploy_dir, strict_release=strict_release)
+    if result.errors:
+        details = "; ".join(result.errors)
+        raise RuntimeError(f"deploy validation failed for {experiment.experiment_id!r}: {details}")
+    if result.warnings:
+        logger.warning("deploy validation warnings for %s: %s", experiment.experiment_id, "; ".join(result.warnings))
+    logger.info("deploy validation passed for %s (%s)", experiment.experiment_id, result.family)
+    return result
+
+
 def _publish(experiment: GoldenExperiment, run_dir: Path, dry_run: bool) -> int:
     deploy_dir = run_dir / "deploy"
     if not deploy_dir.is_dir():
@@ -145,6 +175,8 @@ def run_golden(
     skip_dataset_check: bool = False,
     publish: bool = False,
     dry_run: bool = False,
+    validate: bool = True,
+    strict_release_validation: bool = False,
 ) -> dict[str, object]:
     """Run a single golden experiment end-to-end.
 
@@ -166,6 +198,10 @@ def run_golden(
         skip_dataset_check: If True, do not pre-flight dataset availability.
         publish: If True, upload the deploy package to HuggingFace.
         dry_run: If True (and ``publish`` is set), stage without upload.
+        validate: If True, validate the deploy package after build/resume and
+            before optional publishing.
+        strict_release_validation: If True, require release-contract extras
+            such as model cards and scorecards during deploy validation.
 
     Returns:
         Run summary with ``experiment_id``, ``run_dir``, ``trained``,
@@ -238,6 +274,15 @@ def run_golden(
                 spec.train_fn(cfg)
                 trained = True
 
+    validation: dict[str, object] | None = None
+    if validate:
+        validation_result = _validate_release_package(
+            experiment,
+            run_dir,
+            strict_release=strict_release_validation,
+        )
+        validation = _summarize_validation(validation_result)
+
     published = False
     publish_rc: int | None = None
     if publish:
@@ -250,6 +295,7 @@ def run_golden(
         "trained": trained,
         "published": published,
         "publish_returncode": publish_rc,
+        "validation": validation,
     }
     if experiment.family == "two_stage":
         summary["parent_trained"] = parent_trained

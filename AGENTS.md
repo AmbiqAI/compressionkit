@@ -27,6 +27,15 @@ These are the project guidelines for agentic AI models working in this repositor
 - Major building blocks include datasets, dataloaders, models, optimizers, loss functions, metrics, callbacks, and training loops.
 - For logging and metrics, prefer TensorBoard and Keras callbacks where possible.
 
+## Experiment Architecture
+- Prefer composition over orchestration: experiments should pull in reusable blocks, not be forced into one framework-shaped entry point.
+- Keep blocks, ready-made experiments, and golden release automation separate.
+- `BaseRVQTrainer` and `compressionkit golden` are convenience paths for shipped/golden flows, not mandatory APIs for every experiment.
+- Release validation should target artifacts (`deploy_manifest.json`, `codec_spec.json`, `checksums.json`, `reference_vectors.npz`, scorecards), not how an experiment was written.
+- When a shared trainer or runner starts accumulating export, validation, or scorecard policy, extract that behavior into standalone helpers before adding new abstract hooks.
+- Consider moving generic Keras 3 edge-model training/deployment blocks to HeliaEdge once they are no longer compressionKIT-specific. Good candidates include RVQ/VQ layers, reusable RVQ architectures, generic losses/metrics/callbacks, LiteRT export helpers, and reference-vector utilities.
+- Keep modality-specific datasets, physiological scorecards, signal preprocessing policy, golden registry entries, HuggingFace naming, and v1 release policy in compressionKIT.
+
 ## Style
 - Docstrings should use Google style.
 

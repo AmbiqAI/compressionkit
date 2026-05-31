@@ -28,13 +28,13 @@ C-module repository and are not vendored here.
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 
+from compressionkit.export.release import write_checksums, write_json, write_model_card, write_scorecard_artifact
 from compressionkit.export.stimulus import generate_stimulus
 from compressionkit.runtime.base import MANIFEST_VERSION, EncodedFrame
 from compressionkit.runtime.spiht import SpihtCodec
@@ -59,7 +59,10 @@ class SpihtDeploymentArtifacts:
     app_config_header: Path = field(default_factory=Path)
     model_card: Path = field(default_factory=Path)
     scorecard: Path = field(default_factory=Path)
+    codec_spec: Path = field(default_factory=Path)
     readme: Path = field(default_factory=Path)
+
+    checksums: Path = field(default_factory=Path)
 
     def as_dict(self) -> dict[str, str]:
         """Return artifact paths relative to ``output_dir``."""
@@ -216,6 +219,10 @@ def export_spiht_deploy(
     # by both the C header and consumers comparing against the bitstream.
     cfg["max_bits"] = codec.max_bits
 
+    artifacts.codec_spec = output_dir / "codec_spec.json"
+    artifacts.manifest = output_dir / "deploy_manifest.json"
+    artifacts.checksums = output_dir / "checksums.json"
+
     # 1. Synthetic stimulus + reference vectors (round-trip through Python ref).
     logger.info("Generating synthetic stimulus (%d frames)...", num_stimulus_samples)
     stimulus = generate_stimulus(
@@ -265,8 +272,7 @@ def export_spiht_deploy(
 
     # 2. spiht_config.json (language-neutral parameters).
     artifacts.spiht_config = output_dir / "spiht_config.json"
-    with artifacts.spiht_config.open("w") as f:
-        json.dump(cfg, f, indent=2)
+    write_json(artifacts.spiht_config, cfg)
 
     # 3. Operating-point header (parameters only; algorithm lives elsewhere).
     artifacts.app_config_header = output_dir / "spiht_app_config.h"
@@ -284,15 +290,36 @@ def export_spiht_deploy(
 
     # 4. Optional model card / scorecard.
     if model_card_info is not None:
-        artifacts.model_card = output_dir / "model_card.json"
-        with artifacts.model_card.open("w") as f:
-            json.dump(model_card_info, f, indent=2)
+        artifacts.model_card = write_model_card(
+            output_dir,
+            model_name=name,
+            model_version=model_version,
+            model_card_info=model_card_info,
+        )
     if scorecard_summary is not None:
-        artifacts.scorecard = output_dir / "scorecard.json"
-        with artifacts.scorecard.open("w") as f:
-            json.dump(scorecard_summary, f, indent=2)
+        artifacts.scorecard = write_scorecard_artifact(output_dir, scorecard_summary)
 
-    # 5. README.
+    # 5. Canonical runtime hydration spec.
+    codec_spec = {
+        "family": "spiht",
+        "method": "dsp",
+        "modality": codec.modality,
+        "sample_rate": codec.sample_rate,
+        "frame_size": codec.frame_size,
+        "compression_ratio": codec.target_cr,
+        "experiment_id": model_card_info.get("experiment_id") if model_card_info else None,
+        "run_name": model_card_info.get("run_name") if model_card_info else None,
+        "package_version": model_version,
+        "packet_contract": {
+            "payload_type": "uint8_bitstream",
+            "nbits_field": True,
+            "byte_order": "little-endian-byte-array",
+        },
+        "codec": cfg,
+    }
+    write_json(artifacts.codec_spec, codec_spec)
+
+    # 6. README.
     artifacts.readme = output_dir / "README.md"
     artifacts.readme.write_text(
         _render_readme(
@@ -307,11 +334,19 @@ def export_spiht_deploy(
         )
     )
 
-    # 6. Top-level manifest tying everything together.
-    artifacts.manifest = output_dir / "deploy_manifest.json"
+    # 7. Top-level manifest tying everything together.
     manifest = {
         "manifest_version": MANIFEST_VERSION,
+        "package_version": model_version,
         "family": "spiht",
+        "method": "dsp",
+        "modality": codec.modality,
+        "experiment_id": model_card_info.get("experiment_id") if model_card_info else None,
+        "run_name": model_card_info.get("run_name") if model_card_info else None,
+        "compression_ratio": codec.target_cr,
+        "spec": artifacts.codec_spec.name,
+        "scorecard": artifacts.scorecard.name if artifacts.scorecard != Path() else None,
+        "checksums": artifacts.checksums.name,
         "model_name": name,
         "model_version": model_version,
         "codec": cfg,
@@ -319,8 +354,10 @@ def export_spiht_deploy(
         "model_card": model_card_info or {},
         "scorecard_summary": scorecard_summary or {},
     }
-    with artifacts.manifest.open("w") as f:
-        json.dump(manifest, f, indent=2)
+    write_json(artifacts.manifest, manifest)
+
+    # 8. File-integrity manifest.
+    artifacts.checksums = write_checksums(output_dir)
 
     logger.info("SPIHT deploy package written to %s", output_dir)
     return artifacts
