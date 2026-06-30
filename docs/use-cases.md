@@ -56,7 +56,7 @@ compressionKIT exists for one reason: **enable continuous‑sensing products tha
 
 <div class="grid cards" markdown>
 
--   :material-compress:{ .lg .middle } **2× – 32×**
+-   :material-compress:{ .lg .middle } **2× – 64×**
 
     Compression operating points, one codec
 
@@ -163,9 +163,9 @@ Every product has a different tradeoff. These are the default recommendations fo
 | **Clinical‑grade HR / HRV / rhythm** | 4× – 8× | 4× – 8× |
 | **Wellness / ambulatory monitoring** | 8× – 16× | 8× – 16× |
 | **Event logging / screening / triage** | 16× – 32× | 16× – 32× |
-| **Ultra‑low bandwidth telemetry** | 32× | 32× |
+| **Ultra‑low bandwidth telemetry** | 32× | 32× – 64× |
 
-All five operating points ship as golden configs. See the [PPG Model Zoo](models/ppg.md) and [ECG Model Zoo](models/ecg.md) for measured metrics at each ratio.
+All PPG (2×–32×) and ECG (2×–64×) operating points ship as golden configs. See the [PPG Model Zoo](models/ppg.md) and [ECG Model Zoo](models/ecg.md) for measured metrics at each ratio.
 
 ---
 

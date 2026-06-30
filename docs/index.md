@@ -72,7 +72,7 @@ configs may shift on major versions until v1.
 | Signal | Status | Sample Rate | Dataset | Compression Range | Models |
 |--------|--------|-------------|---------|-------------------|--------|
 | **PPG** | :material-check-circle: Production | 64 Hz | MESA (restricted) | 2x – 32x | [PPG Model Zoo](models/ppg.md) |
-| **ECG** | :material-check-circle: Production | 256 Hz | PTB-XL (open) | 2x – 32x | [ECG Model Zoo](models/ecg.md) |
+| **ECG** | :material-check-circle: Production | 256 Hz | PTB-XL (open) | 2x – 64x | [ECG Model Zoo](models/ecg.md) |
 
 ---
 

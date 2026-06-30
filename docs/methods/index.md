@@ -10,9 +10,9 @@ compressionKIT implements multiple compression approaches for physiological sign
 
 | Method | Type | Compression | Latency | Quality | Deployable |
 |--------|------|-------------|---------|---------|------------|
-| [**RVQ Autoencoder**](rvq.md) | Learned | 2×–16× documented | Low | High | :material-check: INT8 TFLite |
-| **Wavelet + SPIHT** | Classical | 2×–16× | Very Low | Medium | :material-progress-clock: Planned |
-| **Decimation** | Baseline | 2×–16× | Minimal | Low | Trivial |
+| [**RVQ Autoencoder**](rvq.md) | Learned | 2×–64× documented | Low | High | :material-check: INT8 TFLite |
+| **Wavelet + SPIHT** | Classical | 2×–64× | Very Low | Medium | :material-progress-clock: Planned |
+| **Decimation** | Baseline | 2×–32× | Minimal | Low | Trivial |
 
 ## Design Principles
 
