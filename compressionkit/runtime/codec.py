@@ -389,19 +389,21 @@ class RVQCodec:
     @property
     def name(self) -> str:
         """Codec name (from manifest, falls back to ``"rvq"``)."""
-        return str(self._manifest.get("model_name", "rvq"))
+        return str(self._manifest.get("model_name") or self._spec.get("run_name") or "rvq")
 
     @property
     def modality(self) -> str:
-        """``"ppg"`` or ``"ecg"`` if recorded in the model card."""
-        card = self._manifest.get("model_card", {})
-        return str(card.get("modality", "unknown"))
+        """``"ppg"`` or ``"ecg"`` (from codec spec / manifest)."""
+        return str(
+            self._spec.get("modality") or self._manifest.get("modality") or "unknown"
+        )
 
     @property
     def sample_rate(self) -> int:
-        """Sample rate in Hz (from model card; ``0`` if unknown)."""
-        card = self._manifest.get("model_card", {})
-        return int(card.get("sample_rate", 0) or 0)
+        """Sample rate in Hz (from codec spec / manifest; ``0`` if unknown)."""
+        return int(
+            self._spec.get("sample_rate") or self._manifest.get("sample_rate", 0) or 0
+        )
 
     @property
     def frame_size(self) -> int:
@@ -414,9 +416,12 @@ class RVQCodec:
 
     @property
     def target_cr(self) -> float:
-        """Target compression ratio from the model card."""
-        card = self._manifest.get("model_card", {})
-        return float(card.get("compression_ratio", 0.0) or 0.0)
+        """Target compression ratio (from codec spec / manifest)."""
+        return float(
+            self._spec.get("compression_ratio")
+            or self._manifest.get("compression_ratio", 0.0)
+            or 0.0
+        )
 
     def compress(self, frame):
         """Encode a frame for the uniform :class:`Codec` protocol.
