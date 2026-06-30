@@ -5,7 +5,7 @@
 run_name: ppg_rvq_64hz_04x_denoise
 
 data:
-  datasets_dir: /home/vscode/datasets
+  datasets_dir: datasets
   dataset_glob: "mesa-commercial-use/polysomnography/edfs/*.edf"
   sampling_rate: 64
   frame_size: 320
@@ -42,7 +42,7 @@ data:
       - ppg_dalia
       - wesad
     noise_bank_max_segments: 2000
-    noise_bank_root: /home/vscode/datasets
+    noise_bank_root: datasets
 
 model:
   embedding_dim: 16
