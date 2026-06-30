@@ -21,11 +21,12 @@ Golden reference models for ECG compression, trained on the PTB-XL dataset at 25
 
 | Model | Config | CR | PRD (%) | MSE | Cosine |
 |-------|--------|----|---------|-----|--------|
-| `ecg-rvq-02x` | [`ecg_rvq_256hz_02x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_02x_golden.yaml) | 2.00× | 2.59 | 0.000623 | 0.9997 |
-| `ecg-rvq-04x` | [`ecg_rvq_256hz_04x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden.yaml) | 4.00× | 3.68 | 0.001259 | 0.9993 |
-| `ecg-rvq-08x` | [`ecg_rvq_256hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden.yaml) | 8.00× | 6.66 | 0.004123 | 0.9978 |
-| `ecg-rvq-16x` | [`ecg_rvq_256hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml) | 16.00× | 11.02 | 0.011278 | 0.9938 |
-| `ecg-rvq-32x` | [`ecg_rvq_256hz_32x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_32x_golden.yaml) | 32.00× | 15.53 | 0.022405 | 0.9878 |
+| `ecg-rvq-02x` | [`ecg_rvq_256hz_02x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_02x_golden.yaml) | 2.00× | 2.50 | 0.000580 | 0.9997 |
+| `ecg-rvq-04x` | [`ecg_rvq_256hz_04x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden.yaml) | 4.00× | 4.09 | 0.001550 | 0.9992 |
+| `ecg-rvq-08x` | [`ecg_rvq_256hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden.yaml) | 8.00× | 7.48 | 0.005187 | 0.9972 |
+| `ecg-rvq-16x` | [`ecg_rvq_256hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml) | 16.00× | 11.18 | 0.011581 | 0.9936 |
+| `ecg-rvq-32x` | [`ecg_rvq_256hz_32x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_32x_golden.yaml) | 32.00× | 16.04 | 0.023812 | 0.9868 |
+| `ecg-rvq-64x` | [`ecg_rvq_256hz_64x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_64x_golden.yaml) | 64.00× | 22.35 | 0.046250 | 0.9742 |
 
 All metrics are on the validation set.
 
@@ -58,6 +59,7 @@ All ECG models share the same architecture as PPG models:
 | 08x | 3 | 8× | 64 | 2 | 1024 | 8.00× |
 | 16x | 4 | 16× | 32 | 2 | 512 | 16.00× |
 | 32x | 4 | 16× | 32 | 1 | 256 | 32.00× |
+| 64x | 5 | 32× | 16 | 1 | 128 | 64.00× |
 
 Frame size = 512 samples (2 s at 256 Hz). Raw frame = 8192 bits (16-bit). Codebook size K = 256 (8 bits/index).
 
@@ -99,7 +101,7 @@ Or point the config `data.data_dir` to your existing PTB-XL HDF5 directory.
 # Train a specific compression ratio
 python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
 
-# Train all five golden configs
+# Train all six golden configs
 bash run_ecg_golden.sh
 ```
 

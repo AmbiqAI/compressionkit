@@ -21,11 +21,11 @@ Golden reference models for PPG compression, trained on the MESA dataset at 64 H
 
 | Model | Config | CR | PRD (%) | MSE | Cosine | HR MAE (bpm) | SDNN MAE (ms) |
 |-------|--------|----|---------|-----|--------|--------------|---------------|
-| `ppg-rvq-02x` | [`ppg_rvq_64hz_02x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_02x_golden.yaml) | 2.00x | 2.99 | 0.000666 | 0.9921 | 0.10 | 32.8 |
-| `ppg-rvq-04x` | [`ppg_rvq_64hz_04x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_04x_golden.yaml) | 4.00x | 3.96 | 0.001167 | 0.9887 | 0.09 | 27.2 |
-| `ppg-rvq-08x` | [`ppg_rvq_64hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden.yaml) | 8.00x | 6.95 | 0.003601 | 0.9688 | 0.19 | 43.3 |
-| `ppg-rvq-16x` | [`ppg_rvq_64hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_16x_golden.yaml) | 16.00x | 8.60 | 0.005492 | 0.9688 | 0.20 | 51.2 |
-| `ppg-rvq-32x` | [`ppg_rvq_64hz_32x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_32x_golden.yaml) | 32.00x | 11.26 | 0.009432 | 0.9606 | 0.30 | 63.4 |
+| `ppg-rvq-02x` | [`ppg_rvq_64hz_02x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_02x_golden.yaml) | 2.00x | 0.80 | 0.000063 | 0.99997 | 0.06 | 9.6 |
+| `ppg-rvq-04x` | [`ppg_rvq_64hz_04x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_04x_golden.yaml) | 4.00x | 1.29 | 0.000165 | 0.99992 | 0.05 | 12.9 |
+| `ppg-rvq-08x` | [`ppg_rvq_64hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden.yaml) | 8.00x | 2.76 | 0.000756 | 0.99963 | 0.10 | 32.4 |
+| `ppg-rvq-16x` | [`ppg_rvq_64hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_16x_golden.yaml) | 16.00x | 5.90 | 0.003457 | 0.99831 | 0.19 | 58.2 |
+| `ppg-rvq-32x` | [`ppg_rvq_64hz_32x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_32x_golden.yaml) | 32.00x | 12.62 | 0.015843 | 0.99220 | 0.36 | 110.2 |
 
 All metrics are on the validation set. HR/HRV metrics are from long-recording overlap-add evaluation (60 s windows, 50% hop).
 

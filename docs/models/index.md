@@ -21,7 +21,7 @@ compressionKIT ships golden reference models for both PPG and ECG signals. Each 
 
     ---
 
-    Five operating points from 2× to 32× compression at 256 Hz.
+    Six operating points from 2× to 64× compression at 256 Hz.
     Trained on PTB-XL Lead II with QRS-preserving derivative loss.
 
     [:octicons-arrow-right-24: Browse ECG models](ecg.md)
@@ -33,7 +33,7 @@ compressionKIT ships golden reference models for both PPG and ECG signals. Each 
 | Signal | Rate | Frame | Compression Ratios | Dataset | Access |
 |--------|------|-------|--------------------|---------|--------|
 | **PPG** | 64 Hz | 5 s (320 samples) | 2× / 4× / 8× / 16× / 32× | MESA | Restricted |
-| **ECG** | 256 Hz | 2 s (512 samples) | 2× / 4× / 8× / 16× / 32× | PTB-XL | Open |
+| **ECG** | 256 Hz | 2 s (512 samples) | 2× / 4× / 8× / 16× / 32× / 64× | PTB-XL | Open |
 
 !!! note "How the compression ratio is computed"
     The `NNx` label is the **true end-to-end compression ratio**:

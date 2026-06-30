@@ -39,11 +39,11 @@ configs may shift on major versions until v1.
 
 <div class="grid cards" markdown="1">
 
--   :material-archive:{ .lg .middle } **2x–32x Compression**
+-   :material-archive:{ .lg .middle } **2x–64x Compression**
 
     ---
 
-    Five operating points per signal type (2x, 4x, 8x, 16x, 32x) with clear tradeoffs between fidelity, bandwidth, and deployment cost.
+    Operating points from 2x to 32x for PPG and 2x to 64x for ECG, with clear tradeoffs between fidelity, bandwidth, and deployment cost.
 
 -   :material-chip:{ .lg .middle } **Edge-Ready Export**
 

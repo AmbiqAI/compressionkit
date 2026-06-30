@@ -57,12 +57,15 @@ nav = [
   { "Methods" = [
     { "Overview" = "methods/index.md" },
     { "RVQ Autoencoder" = "methods/rvq.md" },
+    { "ECG CR vs Fidelity" = "methods/cr_vs_fidelity_ecg.md" },
+    { "PPG CR vs Fidelity" = "methods/cr_vs_fidelity_ppg.md" },
   ]},
   { "Reference" = [
     { "CLI" = "cli.md" },
     { "Deployment" = "deployment.md" },
     { "Experiment Architecture" = "experiment-architecture.md" },
     { "V1 Release Contract" = "release-contract.md" },
+    { "Validation Scorecard" = "validation-scorecard.md" },
     { "HuggingFace" = "huggingface.md" },
     { "API" = [
       { "Configs" = "api/configs.md" },
