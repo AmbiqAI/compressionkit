@@ -52,17 +52,17 @@
       }
     },
     {
-      "name": "ecg_rvq_256hz_08x_golden",
+      "name": "ecg_rvq_256hz_08x_golden_empirical_midpoint",
       "signal": "ECG",
       "task": "1ch_rvq",
       "compression_ratio": 8.0,
-      "config_yaml": "configs/ecg_rvq_256hz_08x_golden.yaml",
-      "results_dir": "results/ecg_rvq_256hz_08x_golden",
-      "weights": "results/ecg_rvq_256hz_08x_golden/best_model.weights.h5",
+      "config_yaml": "configs/ecg_rvq_256hz_08x_golden_empirical_midpoint.yaml",
+      "results_dir": "results/ecg_rvq_256hz_08x_golden_empirical_midpoint",
+      "weights": "results/ecg_rvq_256hz_08x_golden_empirical_midpoint/best_model.weights.h5",
       "metrics": {
-        "val_mse": 0.004108,
-        "val_prd": 6.649,
-        "val_cos": 0.997797
+        "val_mse": 0.004677222575992346,
+        "val_prd": 7.107149600982666,
+        "val_cos": 0.9974477887153625
       },
       "architecture": {
         "frame_size": 512,
