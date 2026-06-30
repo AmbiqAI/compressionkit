@@ -14,8 +14,6 @@ rerun paths for users.
 For the artifact-level requirements, see [V1 Release Contract](release-contract.md).
 For the code-organization rules behind the plan, see
 [Experiment Architecture](experiment-architecture.md).
-For the current ECG and PPG release-status audit, see
-[V1 Golden Gap Audit](v1-golden-gap-audit.md).
 
 ## Frozen V1 Cut
 
