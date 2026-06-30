@@ -4,31 +4,45 @@
 run_name: ppg_rvq_64hz_32x_golden
 
 data:
-  dataset_id: mesa
-  datasets_dir: /home/vscode/datasets
-  dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
   sampling_rate: 64
   frame_size: 320
-  segment_samples: 640
-  offset_samples: 192
-  target_label: Pleth
   batch_size: 64
   buffer_size: 10000
   steps_per_epoch: 50
   epochs: 300
   epsilon: 0.001
-  gaussian_noise: [0.01, 0.1]
+  gaussian_noise: [0.0, 0.0]
   shuffle_seed: 42
-  cache:
+  unified_cache:
     enabled: true
-    cache_root: datasets/ppg_tfrecord_cache
-    auto_build: true
-    force_rebuild: false
-    min_segment_scale: 1.2
-    windows_per_subject_train: 512
-    windows_per_subject_val: 512
-    train_ratio: 0.8
-    val_ratio: 0.2
+    cache_root: datasets/ppg_cache_strict_sanitize
+    shuffle_buffer: 10000
+    sources:
+      - {slug: bidmc, weight: 1.0}
+      - {slug: butppg, weight: 0.25}
+      - {slug: ppg_dalia, weight: 1.0}
+      - {slug: wesad, weight: 1.0}
+  # Faithful (recover-only) morphology suite: target == input, so clean PRD stays
+  # apples-to-apples with SPIHT. Expands the valid-signal manifold (HRV/perfusion/
+  # slow drift) without teaching denoising. See experiments/ppg_v1_augmentation_eval_design.md.
+  artifact_suite:
+    enabled: true
+    faithful_all: false
+    normalize_after: true
+    noise_budget:
+      max_simultaneous: 2
+      min_post_corruption_snr_db: 9.0
+      enforce: scale_down
+    curriculum:
+      enabled: true
+      start_scale: 0.1
+      end_scale: 1.0
+      ramp_epochs: 50
+      schedule: linear
+    artifacts:
+      - {name: time_warp, role: recover, param: max_warp_fraction, prob: 0.20, severity_min: 0.08, severity_max: 0.15, higher_is_worse: true}
+      - {name: beat_scale, role: recover, param: scale_spread, prob: 0.15, severity_min: 0.10, severity_max: 0.20, higher_is_worse: true}
+      - {name: baseline_wander, role: recover, param: amplitude, prob: 0.20, severity_min: 0.05, severity_max: 0.20, higher_is_worse: true}
 
 model:
   embedding_dim: 16
@@ -63,7 +77,7 @@ training:
   validation_steps: 160
 
 evaluation:
-  num_samples: 50
+  num_samples: 10000
   input_bit_depth: 16
   physiokit_metrics:
     enabled: true
