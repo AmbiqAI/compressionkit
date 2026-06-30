@@ -25,7 +25,7 @@ These pages cover the PPG signal path:
 1. [PPG](ppg.md) for signal context and preprocessing details.
 2. [PPG Workflow](ppg-workflow.md) for the end-to-end supported task.
 3. [PPG Models (v1.0)](../models/ppg.md) for the five golden reference operating points.
-4. [PPG Codec Demo](../demo/ppg-codec.md) for the customer-facing browser and hardware experience.
+4. [PPG Codec Demo](../demo/ppg-codec.md) for the browser and hardware evaluation experience.
 
 ## ECG Section
 

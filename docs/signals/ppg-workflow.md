@@ -77,4 +77,4 @@ The detailed walkthrough is in [PPG 2x-16x Examples](ppg-v1-examples.md).
 
 ## Related Demo
 
-The workflow is also exposed through a customer-facing browser demo that shows reconstruction quality, compression tradeoffs, and live controls in a more visual format. See [PPG Codec Demo](../demo/ppg-codec.md).
+The workflow is also exposed through a browser demo that shows reconstruction quality, compression tradeoffs, and live controls in a more visual format. See [PPG Codec Demo](../demo/ppg-codec.md).

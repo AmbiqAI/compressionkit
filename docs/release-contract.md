@@ -6,6 +6,8 @@ icon: lucide/badge-check
 
 This page defines what it means for a compressionKIT artifact to be release-grade for v1.
 
+For the execution plan that turns this contract into epics, milestones, and the target golden matrix, see [V1 Roadmap](v1-roadmap.md).
+
 The core rule is simple: a v1 release is anchored on a frozen deploy package, not only on a training config. Configs remain the recipe for reproducing a run, but the deploy package is the contract used for runtime hydration, validation, HuggingFace publication, and website rendering.
 
 Just as important: release-grade packaging must not force experiments into a single framework-shaped entry point. Experiments should be able to adopt reusable blocks incrementally and only opt into the release contract when they want a packageable golden artifact.
@@ -38,23 +40,24 @@ But those blocks should stay decoupled enough that a new experiment can start sm
 
 The v1 release contract must support:
 
-- PPG, ECG, and IMU modalities.
-- DSP and AI methods for every modality.
+- PPG and ECG modalities in the first v1 cut.
+- DSP and AI methods through one common release boundary, with both families represented in the canonical ECG and PPG golden matrix.
 - Reproducible golden runs with frozen scorecards.
 - Portable deployment artifacts for Python, embedded C, and browser demos.
 - Runtime hydration from the packaged artifact instead of re-deriving settings from YAML.
 
+IMU remains an intended extension of the contract, but it does not block the first v1 release cut.
+
 ## Golden Matrix
 
-The minimum v1 matrix is:
+The minimum first-cut v1 matrix is:
 
 | Modality | DSP | AI | Hybrid |
 |----------|-----|----|--------|
-| PPG | Required | Required | Optional |
-| ECG | Required | Required | Optional |
-| IMU | Required | Required | Optional |
+| PPG | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x | Optional |
+| ECG | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x, 64x | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x, 64x | Optional |
 
-Hybrid remains a supported method family in the registry, but it should not block v1 unless a specific hybrid operating point is intentionally promoted to release-grade.
+DSP and AI should therefore be treated symmetrically at the registry and package boundary for ECG and PPG. Hybrid remains supported, but it should not block v1 unless a specific hybrid operating point is intentionally promoted to release-grade.
 
 Each golden experiment must have:
 

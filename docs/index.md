@@ -12,7 +12,7 @@ compressionKIT helps teams reduce memory footprint, wireless bandwidth, and ener
 
 <div class="ck-hero-links" markdown="1">
 
-- [See customer use cases & savings](use-cases.md)
+- [See use cases & savings](use-cases.md)
 - [View PPG model zoo](models/ppg.md)
 - [View ECG model zoo](models/ecg.md)
 - [Open the live PPG demo](https://ambiqai.github.io/compressionkit-demo/)
@@ -164,6 +164,14 @@ ds.download(token="your-nsrr-token")  # or set NSRR_TOKEN env var
     Architecture deep-dive: RVQ autoencoder, loss functions, and training recipe.
 
     [:octicons-arrow-right-24: RVQ autoencoder](methods/rvq.md)
+
+-   :material-map-marker-path:{ .lg .middle } **V1 Roadmap**
+
+    ---
+
+    Execution plan for the release contract: modality and family coverage, golden registry growth, scorecards, deploy packages, and publication milestones.
+
+    [:octicons-arrow-right-24: View roadmap](v1-roadmap.md)
 
 -   :material-monitor-dashboard:{ .lg .middle } **Live Demo**
 

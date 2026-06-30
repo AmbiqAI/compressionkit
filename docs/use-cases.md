@@ -2,9 +2,9 @@
 icon: lucide/target
 ---
 
-# Use Cases & Customer Value
+# Use Cases & Value
 
-compressionKIT exists for one reason: **help our customers ship continuous‑sensing products that were previously impossible on a wearable power and memory budget.** This page summarizes where the toolkit adds concrete value and quantifies the savings a typical integration delivers.
+compressionKIT exists for one reason: **enable continuous‑sensing products that were previously impossible on a wearable power and memory budget.** This page summarizes where the toolkit adds concrete value and quantifies the savings a typical integration delivers.
 
 ---
 
@@ -81,7 +81,7 @@ compressionKIT exists for one reason: **help our customers ship continuous‑sen
 
 ## Benefit 1 — On‑device memory
 
-compressionKIT lets customers keep **much more continuous waveform** in the same MCU flash partition or PSRAM region.
+compressionKIT lets devices keep **much more continuous waveform** in the same MCU flash partition or PSRAM region.
 
 ### PPG — continuous recording capacity
 
@@ -155,7 +155,7 @@ Unlike naive downsampling or bit‑depth truncation, compressionKIT learns the s
 
 ## Choosing an operating point
 
-Every product has a different tradeoff. These are the default recommendations we make to customers:
+Every product has a different tradeoff. These are the default recommendations for each operating point:
 
 | Goal | PPG | ECG |
 |------|-----|-----|
@@ -169,7 +169,7 @@ All five operating points ship as golden configs. See the [PPG Model Zoo](models
 
 ---
 
-## Getting started as a customer
+## Getting started
 
 1. **Evaluate** — pull the v1.0 golden models and run them on your own data ([Getting Started](getting-started.md))
 2. **Retrain** — use the YAML config system to fine‑tune on your sensor / front‑end characteristics

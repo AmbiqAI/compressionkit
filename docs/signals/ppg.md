@@ -4,7 +4,7 @@ icon: lucide/heart-pulse
 
 # PPG (Photoplethysmography)
 
-PPG is the most complete signal path in compressionKIT today. The toolkit includes a documented training flow, golden operating points, export artifacts, and a customer-ready live demo centered on this signal type.
+PPG is the most complete signal path in compressionKIT today. The toolkit includes a documented training flow, golden operating points, export artifacts, and a production-ready live demo centered on this signal type.
 
 ## What is PPG?
 
