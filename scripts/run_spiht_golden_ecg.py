@@ -25,6 +25,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.datasets.ecg import (
     _resample,
     load_ecg_file_splits,
@@ -79,7 +80,7 @@ def _aggregate(values: list[float]) -> dict[str, float]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiment-id", default="ecg-spiht-4x")
-    parser.add_argument("--datasets-dir", default="/home/vscode/datasets")
+    parser.add_argument("--datasets-dir", default=default_datasets_dir())
     parser.add_argument("--dataset-glob", default="ptbxl/*.h5")
     parser.add_argument("--results-root", default="results")
     parser.add_argument("--max-val-files", type=int, default=200)

@@ -20,3 +20,8 @@ def default_datasets_dir() -> str:
     directory (the repository / workspace root).
     """
     return os.environ.get(DATASETS_DIR_ENV, "datasets")
+
+
+def default_ppg_cache_dir() -> str:
+    """Return the default PPG cache directory under the dataset root."""
+    return os.path.join(default_datasets_dir(), "ppg_cache")

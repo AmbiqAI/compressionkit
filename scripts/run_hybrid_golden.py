@@ -37,6 +37,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.codec import LearnedShrinkSpihtCodec
 from compressionkit.evaluation.scorecard import build_quality_scorecard
 from compressionkit.experiments.registry import GoldenExperiment, get_golden
@@ -144,7 +145,7 @@ def main() -> None:
     parser.add_argument("--experiment-id", required=True, help="e.g. ecg-hybrid-8x or ppg-hybrid-8x")
     parser.add_argument("--results-root", default="results")
     # ECG data source
-    parser.add_argument("--datasets-dir", default="/home/vscode/datasets")
+    parser.add_argument("--datasets-dir", default=default_datasets_dir())
     parser.add_argument("--dataset-glob", default="ptbxl/*.h5")
     parser.add_argument("--max-val-files", type=int, default=200)
     parser.add_argument("--lead-index", type=int, default=1)

@@ -25,6 +25,7 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 import keras
 import numpy as np
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.codec import (
     BayesShrinkSpihtCodec,
     LearnedShrinkSpihtCodec,
@@ -83,7 +84,7 @@ def main() -> None:
     ap.add_argument("--n-windows", type=int, default=500)
     ap.add_argument("--crs", type=_parse_crs, default=[2, 4, 8, 16, 32])
     ap.add_argument("--snr-db", type=_parse_snr_db, default=DEFAULT_SNR_DB)
-    ap.add_argument("--noise-bank-root", type=Path, default=Path("/home/vscode/datasets"))
+    ap.add_argument("--noise-bank-root", type=Path, default=Path(default_datasets_dir()))
     ap.add_argument("--noise-bank-sources", type=_parse_sources, default=["ppg_dalia", "wesad"])
     ap.add_argument("--noise-bank-files", type=int, default=400)
     ap.add_argument("--wavelet", type=str, default="bior4.4")

@@ -12,6 +12,7 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 import numpy as np
 
 from compressionkit.configs.artifact_suite import ArtifactSpec, ArtifactSuiteConfig, NoiseBudgetConfig
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.codec import SpihtAcCodec
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.playbook.catalog import get_method
@@ -223,7 +224,7 @@ def main() -> None:
     ap.add_argument("--families", type=_parse_families, default=list(DEFAULT_FAMILIES))
     ap.add_argument("--severities", type=_parse_severities, default=list(DEFAULT_SEVERITIES))
     ap.add_argument("--run-dirs", type=_parse_run_dirs, default=None)
-    ap.add_argument("--noise-bank-root", type=Path, default=Path("/home/vscode/datasets"))
+    ap.add_argument("--noise-bank-root", type=Path, default=Path(default_datasets_dir()))
     ap.add_argument("--noise-bank-sources", type=_parse_sources, default=["ppg_dalia", "wesad"])
     ap.add_argument("--noise-bank-files", type=int, default=400)
     ap.add_argument("--output-stem", type=str, default="ppg_artifact_regime")

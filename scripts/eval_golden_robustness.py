@@ -33,6 +33,7 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
 import numpy as np
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.codec import LearnedShrinkSpihtCodec, SpihtAcCodec
 from compressionkit.evaluation.robustness import (
     ImprintProbe,
@@ -302,7 +303,7 @@ def main() -> None:
     ap.add_argument("--ecg-noise-bank-files", type=int, default=300)
     # PPG fixture args
     ap.add_argument("--ppg-reference-run", type=Path, default=Path("results/ppg_rvq_64hz_08x_golden"))
-    ap.add_argument("--ppg-noise-bank-root", type=Path, default=Path("/home/vscode/datasets"))
+    ap.add_argument("--ppg-noise-bank-root", type=Path, default=Path(default_datasets_dir()))
     ap.add_argument("--ppg-noise-bank-sources", type=lambda s: [p.strip() for p in s.split(",") if p.strip()], default=["ppg_dalia", "wesad"])
     ap.add_argument("--ppg-noise-bank-files", type=int, default=400)
     args = ap.parse_args()

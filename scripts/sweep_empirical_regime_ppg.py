@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import physiokit as pk
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.configs.ppg_rvq import PpgRvqConfig
 from compressionkit.datasets.ppg import collect_random_samples
 from compressionkit.evaluation.codec import BayesShrinkSpihtCodec, SpihtAcCodec
@@ -187,7 +188,7 @@ def main() -> None:
     ap.add_argument("--crs", type=_parse_crs, default=[2, 4, 8, 16, 32])
     ap.add_argument("--snr-db", type=_parse_snr_db, default=DEFAULT_SNR_DB)
     ap.add_argument("--run-dirs", type=str, default=None)
-    ap.add_argument("--noise-bank-root", type=Path, default=Path("/home/vscode/datasets"))
+    ap.add_argument("--noise-bank-root", type=Path, default=Path(default_datasets_dir()))
     ap.add_argument("--noise-bank-sources", type=_parse_sources, default=["ppg_dalia", "wesad"])
     ap.add_argument("--noise-bank-files", type=int, default=400)
     ap.add_argument("--output-stem", type=str, default="ppg_empirical_regime")

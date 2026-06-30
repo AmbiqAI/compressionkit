@@ -33,6 +33,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.datasets.ppg import load_ppg_file_splits, load_ppg_signal
 from compressionkit.datasets.ppg_cache import SourceWeight, load_cached_raw_windows
 from compressionkit.evaluation.codec import SpihtAcCodec
@@ -107,7 +108,7 @@ def _load_eval_frames_from_cache(args: argparse.Namespace, *, frame_size: int) -
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiment-id", default="ppg-spiht-4x")
-    parser.add_argument("--datasets-dir", default="/home/vscode/datasets")
+    parser.add_argument("--datasets-dir", default=default_datasets_dir())
     parser.add_argument(
         "--dataset-glob",
         default="mesa-commercial-use/polysomnography/edfs/*.edf",
