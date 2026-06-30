@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+import math
 
 import numpy as np
 
@@ -172,6 +173,50 @@ def apply_threshold(details: Sequence[np.ndarray], thresholds: Sequence[float], 
             raise ValueError(f"Unknown threshold mode: {mode}")
         output.append(band)
     return output
+
+
+def estimate_noise_sigma(detail_band: np.ndarray) -> float:
+    """Estimate additive white noise sigma from a detail band via MAD."""
+    band = np.asarray(detail_band, dtype=np.float32)
+    if band.size == 0:
+        return 0.0
+    mad = float(np.median(np.abs(band - np.median(band))))
+    return mad / 0.6745 if mad > 0.0 else 0.0
+
+
+def compute_bayes_shrink_thresholds(details: Sequence[np.ndarray]) -> list[float]:
+    """Compute per-band BayesShrink soft-thresholds."""
+    if not details:
+        return []
+    sigma_n = estimate_noise_sigma(details[0])
+    sigma_n2 = sigma_n * sigma_n
+    thresholds: list[float] = []
+    for band in details:
+        coeffs = np.asarray(band, dtype=np.float32)
+        if coeffs.size == 0:
+            thresholds.append(0.0)
+            continue
+        sigma_y2 = float(np.mean(coeffs**2))
+        sigma_x2 = max(sigma_y2 - sigma_n2, 0.0)
+        sigma_x = math.sqrt(sigma_x2)
+        if sigma_x <= 1e-12:
+            thresholds.append(float(np.max(np.abs(coeffs))))
+            continue
+        thresholds.append(float(sigma_n2 / sigma_x))
+    return thresholds
+
+
+def bayes_shrink_coeffs(coeffs: WaveletCoeffs) -> WaveletCoeffs:
+    """Apply BayesShrink soft-thresholding to detail bands only."""
+    thresholds = compute_bayes_shrink_thresholds(coeffs.details)
+    shrunk = apply_threshold(coeffs.details, thresholds, mode="soft")
+    return WaveletCoeffs(approx=np.asarray(coeffs.approx, dtype=np.float32).copy(), details=shrunk)
+
+
+def bayes_shrink_signal(x: np.ndarray, *, levels: int = 4, wavelet: str = "haar") -> np.ndarray:
+    """DWT -> BayesShrink -> inverse DWT for a 1-D signal."""
+    coeffs = dwt_forward(np.asarray(x, dtype=np.float32), levels=levels, wavelet=wavelet)
+    return dwt_inverse(bayes_shrink_coeffs(coeffs), wavelet=wavelet).astype(np.float32)
 
 
 def compute_step_sizes(details: Sequence[np.ndarray], scale: float = 0.5) -> list[float]:
