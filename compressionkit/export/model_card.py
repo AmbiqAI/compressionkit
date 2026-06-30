@@ -212,17 +212,73 @@ def generate_model_card(
     return "\n".join(lines)
 
 
+def _add_fidelity_robustness_section(lines: list[str], headline: dict) -> None:
+    """Append the paired clean-truth + noise-regime fidelity view.
+
+    Release surfaces must never present faithfulness PRD (vs the recorded,
+    still-noisy input) alone, because that yardstick penalizes denoising lanes.
+    This block pairs it with truth PRD (vs clean ground truth) and the
+    noise-regime anchors so the operating behaviour is read fairly (issue B4).
+    """
+    faithful = headline.get("faithful_prd_vs_input_pct")
+    truth_clean = headline.get("truth_prd_vs_clean_pct")
+    truth_native = headline.get("truth_prd_at_native_noise_pct")
+    slope = headline.get("prd_degradation_slope_per_db")
+    prd_0db = headline.get("prd_at_0db_pct")
+    prd_m6db = headline.get("prd_at_-6db_pct")
+    imprint = headline.get("imprint_output_autocorr")
+
+    if all(v is None for v in (faithful, truth_clean, truth_native, slope, prd_0db, prd_m6db, imprint)):
+        return
+
+    lines.append("### Fidelity & Robustness")
+    lines.append("")
+    lines.append(
+        "Both fidelity yardsticks are reported so the codec is judged fairly: "
+        "**faithfulness** is PRD vs the recorded (still-noisy) input, while "
+        "**truth fidelity** is PRD vs clean ground truth. Lower is better."
+    )
+    lines.append("")
+    lines.append("| Metric | Value |")
+    lines.append("|--------|-------|")
+    if truth_clean is not None:
+        lines.append(f"| Truth PRD vs clean (%) | {_fmt(truth_clean, 2)} |")
+    if truth_native is not None:
+        lines.append(f"| Truth PRD at native noise (%) | {_fmt(truth_native, 2)} |")
+    if faithful is not None:
+        lines.append(f"| Faithful PRD vs input (%) | {_fmt(faithful, 2)} |")
+    if slope is not None:
+        lines.append(f"| PRD degradation slope (PRD%/dB) | {_fmt(slope, 2)} |")
+    if prd_0db is not None:
+        lines.append(f"| PRD at 0 dB SNR (%) | {_fmt(prd_0db, 2)} |")
+    if prd_m6db is not None:
+        lines.append(f"| PRD at -6 dB SNR (%) | {_fmt(prd_m6db, 2)} |")
+    if imprint is not None:
+        lines.append(f"| Pure-noise imprint autocorr | {_fmt(imprint, 4)} |")
+    lines.append("")
+
+
 def _add_scorecard_section(lines: list[str], scorecard: dict) -> None:
     """Append quality metrics from scorecard to lines."""
+    # Fidelity & robustness (paired clean-truth + noise-regime view first)
+    headline = scorecard.get("headline", {}) or {}
+    if headline:
+        _add_fidelity_robustness_section(lines, headline)
+
     # Time domain
     td = scorecard.get("time_domain", {})
     if td:
         lines.append("### Time Domain")
         lines.append("")
+        lines.append(
+            "_PRD here is faithfulness (vs the recorded input); see "
+            "**Fidelity & Robustness** above for the clean-truth and noise-regime view._"
+        )
+        lines.append("")
         lines.append("| Metric | Mean | Median | P90 |")
         lines.append("|--------|------|--------|-----|")
         for key, label in [
-            ("prd_percent", "PRD (%)"),
+            ("prd_percent", "PRD vs input — faithfulness (%)"),
             ("rmse", "RMSE"),
             ("cosine_similarity", "Cosine Similarity"),
         ]:
@@ -323,12 +379,13 @@ def generate_spiht_model_card(
             with sc_path.open() as f:
                 scorecard = json.load(f)
     else:
-        # SPIHT deploy packager writes ``scorecard.json`` next to the manifest;
-        # fall back to the embedded ``scorecard_summary`` and finally to the
-        # legacy ``quality_scorecard.json`` in the parent dir (RVQ convention).
+        # Prefer the corrected ``quality_scorecard.json`` in the parent run dir
+        # (it carries the v1 ``headline`` block with the clean-truth / noise
+        # view) over the frozen deploy-time ``scorecard.json``; fall back to the
+        # embedded ``scorecard_summary`` last.
         for candidate in (
-            deploy_dir / "scorecard.json",
             deploy_dir.parent / "quality_scorecard.json",
+            deploy_dir / "scorecard.json",
         ):
             if candidate.exists():
                 with candidate.open() as f:

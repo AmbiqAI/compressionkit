@@ -46,6 +46,7 @@ _DEPLOY_FILE_MAP: dict[str, str] = {
     "decoder.h": "decoder.h",
     "codebook.npz": "codebook.npz",
     "codebook.h": "codebook.h",
+    "codec_spec.json": "codec_spec.json",
     "sample_data.npz": "sample_stimulus.npz",
     "sample_stimulus.npz": "sample_stimulus.npz",
     "deploy_manifest.json": "config.json",
@@ -61,6 +62,7 @@ _DEPLOY_FILE_MAP: dict[str, str] = {
 _SPIHT_FILE_MAP: dict[str, str] = {
     "deploy_manifest.json": "config.json",
     "spiht_config.json": "spiht_config.json",
+    "codec_spec.json": "codec_spec.json",
     "sample_stimulus.npz": "sample_stimulus.npz",
     "reference_vectors.npz": "reference_vectors.npz",
     "model_card.json": "model_card.json",
@@ -193,7 +195,14 @@ def publish(
     logger.info("Staging directory: %s", staging_dir)
 
     sc_path = Path(scorecard_path) if scorecard_path else None
-
+    if sc_path is None:
+        # Point the release at the corrected scorecard (carries the v1 headline
+        # block with the paired clean-truth / noise-regime view) rather than any
+        # frozen deploy-time copy.
+        candidate = deploy_dir.parent / "quality_scorecard.json"
+        if candidate.exists():
+            sc_path = candidate
+            logger.info("Using corrected scorecard: %s", sc_path)
     # Stage and generate card; clean up on any error
     try:
         if family == "spiht":
