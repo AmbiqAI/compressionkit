@@ -24,6 +24,13 @@ at the chosen compression ratios. Use `compressionkit golden list --method rvq` 
 
 ## v1 Registry
 
+!!! info "Publication status"
+    **AI (RVQ) baselines are published** and downloadable from HuggingFace today —
+    the links in the table below resolve. **DSP (SPIHT) and hybrid baselines are
+    registered and fully reproducible** from their configs via
+    `compressionkit golden run <id>`, but their HuggingFace repos are **not yet
+    published**; the slugs shown are reserved targets.
+
 ### AI Baselines
 
 | Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace |
@@ -46,8 +53,11 @@ at the chosen compression ratios. Use `compressionkit golden list --method rvq` 
 
 ### DSP Baselines
 
-| Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace |
-|------------|----------|--------|----|--------|---------|-------------|
+These operating points are registered and reproducible today; their HuggingFace
+repos are **not yet published** (slugs reserved).
+
+| Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace (pending) |
+|------------|----------|--------|----|--------|---------|-----------------------|
 | `ppg-spiht-2x` | PPG | codec | 2× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-2x` |
 | `ppg-spiht-4x` | PPG | codec | 4× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-4x` |
 | `ppg-spiht-8x` | PPG | codec | 8× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-8x` |
