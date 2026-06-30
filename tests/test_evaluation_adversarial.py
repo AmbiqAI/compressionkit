@@ -10,6 +10,7 @@ from compressionkit.evaluation import (
     AdversarialResult,
     IdentityCodec,
     SpihtAcCodec,
+    evaluate_zero_input_gate,
     inject_gaussian,
     make_dc_offset,
     make_gaussian_noise,
@@ -122,6 +123,13 @@ def test_identity_zero_input_no_hallucination(identity_ppg: IdentityCodec) -> No
     assert zero.hallucinated_peaks == 0.0
 
 
+def test_identity_zero_input_gate_passes(identity_ppg: IdentityCodec) -> None:
+    results = run_adversarial_battery(identity_ppg, n_frames=4, seed=0)
+    gate = evaluate_zero_input_gate(results)
+    assert gate.passed is True
+    assert gate.failures == []
+
+
 def test_identity_gaussian_energy_preserved(identity_ppg: IdentityCodec) -> None:
     """Identity codec on Gaussian noise: out energy == in energy."""
     results = run_adversarial_battery(identity_ppg, n_frames=4, seed=0)
@@ -182,6 +190,32 @@ def test_spiht_zero_input_does_not_hallucinate(spiht_ppg: SpihtAcCodec) -> None:
     assert zero.output_l2_when_input_zero is not None
     assert zero.output_l2_when_input_zero < 1e-3
     assert zero.hallucinated_peaks == 0.0
+
+
+def test_spiht_zero_input_gate_passes(spiht_ppg: SpihtAcCodec) -> None:
+    results = run_adversarial_battery(spiht_ppg, n_frames=4, seed=0)
+    gate = evaluate_zero_input_gate(results)
+    assert gate.passed is True
+
+
+def test_zero_input_gate_flags_threshold_violation() -> None:
+    gate = evaluate_zero_input_gate(
+        [
+            AdversarialResult(
+                test_name="zero_input",
+                n_frames=1,
+                input_energy=0.0,
+                output_energy=1.0,
+                energy_ratio=float("inf"),
+                output_l2_when_input_zero=0.1,
+                hallucinated_peaks=1.0,
+            )
+        ],
+        max_output_l2=1.0e-3,
+        max_hallucinated_peaks=0.0,
+    )
+    assert gate.passed is False
+    assert gate.failures == ["output_l2_when_input_zero", "hallucinated_peaks"]
 
 
 def test_physio_bands_table_completeness() -> None:
