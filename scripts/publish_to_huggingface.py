@@ -69,6 +69,20 @@ _SPIHT_FILE_MAP: dict[str, str] = {
     "scorecard.json": "scorecard.json",
 }
 
+# Files from a hybrid (DSP + learned denoiser) deploy directory. A hybrid
+# package uses a DSP backend (SPIHT today) for the bitstream, so it carries
+# the full SPIHT contract *plus* the learned denoiser stage and the hybrid
+# pipeline manifest. Without these extra entries the denoiser — the AI half
+# of the codec — would be silently dropped from the published repo.
+_HYBRID_FILE_MAP: dict[str, str] = {
+    **_SPIHT_FILE_MAP,
+    "denoiser_gain_model.keras": "denoiser_gain_model.keras",
+    "denoiser_train_config.json": "denoiser_train_config.json",
+    "hybrid_manifest.json": "hybrid_manifest.json",
+    "spiht_app_config.h": "spiht_app_config.h",
+    "checksums.json": "checksums.json",
+}
+
 
 def _detect_family(deploy_dir: Path) -> str:
     manifest_path = deploy_dir / "deploy_manifest.json"
@@ -110,15 +124,22 @@ def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | Non
     return staged
 
 
-def _stage_files_spiht(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None) -> list[str]:
-    """Copy SPIHT (DSP-only) deploy artifacts to a staging directory.
+def _stage_files_spiht(
+    deploy_dir: Path,
+    staging_dir: Path,
+    scorecard_path: Path | None,
+    file_map: dict[str, str] | None = None,
+) -> list[str]:
+    """Copy SPIHT (or hybrid) deploy artifacts to a staging directory.
 
     Includes the ``c_sources/`` subtree verbatim so consumers get the
-    portable C99 reference plus the generated ``spiht_app_config.h``.
+    portable C99 reference plus the generated ``spiht_app_config.h``. Pass
+    ``file_map=_HYBRID_FILE_MAP`` to additionally stage the learned denoiser
+    and hybrid pipeline manifest for hybrid deploy packages.
     """
     staged: list[str] = []
 
-    for src_name, dst_name in _SPIHT_FILE_MAP.items():
+    for src_name, dst_name in (file_map or _SPIHT_FILE_MAP).items():
         src = deploy_dir / src_name
         dst = staging_dir / dst_name
         if src.exists() and not dst.exists():
@@ -181,7 +202,11 @@ def publish(
     _KNOWN_FAMILIES = ("rvq", "spiht")
     if family not in _KNOWN_FAMILIES:
         raise ValueError(f"Unknown deploy family {family!r}; expected one of {_KNOWN_FAMILIES!r}")
-    logger.info("Detected deploy family: %s", family)
+    # A hybrid package (learned denoiser + DSP backend) reports the backend
+    # family in its manifest (``spiht`` today) but additionally carries a
+    # ``hybrid_manifest.json`` and the denoiser artifacts.
+    is_hybrid = (deploy_dir / "hybrid_manifest.json").exists()
+    logger.info("Detected deploy family: %s%s", family, " (hybrid)" if is_hybrid else "")
 
     # Validate HuggingFace availability before allocating any resources (skip for dry runs)
     if not dry_run:
@@ -205,7 +230,9 @@ def publish(
             logger.info("Using corrected scorecard: %s", sc_path)
     # Stage and generate card; clean up on any error
     try:
-        if family == "spiht":
+        if is_hybrid:
+            staged = _stage_files_spiht(deploy_dir, staging_dir, sc_path, file_map=_HYBRID_FILE_MAP)
+        elif family == "spiht":
             staged = _stage_files_spiht(deploy_dir, staging_dir, sc_path)
         else:
             staged = _stage_files(deploy_dir, staging_dir, sc_path)

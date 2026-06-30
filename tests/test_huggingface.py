@@ -198,6 +198,46 @@ class TestPublishStaging:
         with pytest.raises(FileNotFoundError):
             publish(deploy_dir=tmp_path, repo_id="test/test", dry_run=True)
 
+    def test_dry_run_hybrid_stages_denoiser(self, tmp_path):
+        """A hybrid deploy (DSP backend + learned denoiser) must publish the denoiser.
+
+        The backend reports ``family='spiht'`` in its manifest; the presence of
+        ``hybrid_manifest.json`` is what marks the package as hybrid. The learned
+        ``denoiser_gain_model.keras`` would be silently dropped if it were staged
+        with the plain SPIHT file map.
+        """
+        deploy = tmp_path / "deploy"
+        deploy.mkdir()
+        manifest = {
+            "family": "spiht",
+            "method": "dsp",
+            "compression_ratio": 16.0,
+            "codec": {"modality": "ecg", "sample_rate": 256, "frame_size": 512, "target_cr": 16.0},
+        }
+        (deploy / "deploy_manifest.json").write_text(json.dumps(manifest))
+        (deploy / "hybrid_manifest.json").write_text(json.dumps({"pipeline": ["denoise", "spiht"]}))
+        (deploy / "spiht_config.json").write_text("{}")
+        (deploy / "denoiser_gain_model.keras").write_bytes(b"\x00" * 64)
+        (deploy / "denoiser_train_config.json").write_text("{}")
+        (deploy / "spiht_app_config.h").write_text("// header")
+        (deploy / "checksums.json").write_text("{}")
+
+        from scripts.publish_to_huggingface import publish
+
+        staging_dir = publish(deploy_dir=deploy, repo_id="test-org/ecg-hybrid-16x", dry_run=True)
+        assert staging_dir is not None
+        try:
+            # The AI denoiser and hybrid pipeline manifest must be staged.
+            assert (staging_dir / "denoiser_gain_model.keras").exists()
+            assert (staging_dir / "denoiser_train_config.json").exists()
+            assert (staging_dir / "hybrid_manifest.json").exists()
+            # Backend (SPIHT) contract is still present.
+            assert (staging_dir / "config.json").exists()  # renamed deploy_manifest.json
+            assert (staging_dir / "spiht_app_config.h").exists()
+            assert (staging_dir / "README.md").exists()
+        finally:
+            shutil.rmtree(staging_dir)
+
 
 # ── from_pretrained symlink logic ──────────────────────────────────
 
