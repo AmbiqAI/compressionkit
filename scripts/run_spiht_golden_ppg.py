@@ -10,9 +10,9 @@ layout used by RVQ goldens:
 * ``deploy/``              — weightless deploy package via
   :func:`compressionkit.export.spiht_deploy.export_spiht_deploy`
 
-The encode/decode pipeline runs on the MESA PPG validation split (same
-seed/ratios as the RVQ goldens) so metrics are directly comparable to
-the trained codecs.
+The canonical v1 encode/decode pipeline runs on the unified strict-sanitized
+PPG validation cache so SPIHT metrics are measured on the same held-out domain
+as the faithful RVQ goldens.
 
 Usage::
 
@@ -34,6 +34,7 @@ import numpy as np
 import pandas as pd
 
 from compressionkit.datasets.ppg import load_ppg_file_splits, load_ppg_signal
+from compressionkit.datasets.ppg_cache import SourceWeight, load_cached_raw_windows
 from compressionkit.evaluation.codec import SpihtAcCodec
 from compressionkit.evaluation.scorecard import build_quality_scorecard
 from compressionkit.evaluation.spiht_stitching import evaluate_spiht_stitching
@@ -48,6 +49,17 @@ logger = logging.getLogger(__name__)
 _PPG_FRAME_SIZE = 320
 _PPG_WAVELET = "coif5"
 _PPG_LEVELS = 6
+_TUNED_WAVELET = "bior4.4"
+_TUNED_LEVELS = 6
+_PPG_V1_DATASET_ID = "ppg-unified-strict-sanitize-v1"
+_PPG_V1_CACHE_ROOT = "datasets/ppg_cache_strict_sanitize"
+_PPG_V1_SOURCE_SLUGS = ("bidmc", "butppg", "ppg_dalia", "wesad")
+
+
+def _purge_old_sample_csvs(run_dir: Path) -> None:
+    """Delete stale sample CSVs so the rebuilt scorecard uses only the current run."""
+    for csv_path in run_dir.glob("sample_*.csv"):
+        csv_path.unlink()
 
 
 def _per_frame_metrics(orig: np.ndarray, recon: np.ndarray) -> dict[str, float]:
@@ -80,6 +92,18 @@ def _aggregate(values: list[float]) -> dict[str, float]:
     }
 
 
+def _load_eval_frames_from_cache(args: argparse.Namespace, *, frame_size: int) -> np.ndarray:
+    sources = [SourceWeight(slug=slug, weight=1.0) for slug in args.cache_sources]
+    return load_cached_raw_windows(
+        sources,
+        cache_root=Path(args.cache_root),
+        frame_size=frame_size,
+        split="val",
+        max_windows=args.num_windows,
+        seed=args.seed,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiment-id", default="ppg-spiht-4x")
@@ -90,15 +114,57 @@ def main() -> None:
     )
     parser.add_argument("--results-root", default="results")
     parser.add_argument("--max-val-files", type=int, default=40)
+    parser.add_argument("--cache-root", default=_PPG_V1_CACHE_ROOT)
+    parser.add_argument(
+        "--cache-sources",
+        nargs="+",
+        default=list(_PPG_V1_SOURCE_SLUGS),
+        help="Unified-cache source slugs for canonical v1 evaluation.",
+    )
+    parser.add_argument(
+        "--num-windows", type=int, default=1000,
+        help="Number of cached validation windows to score for canonical v1 evaluation.",
+    )
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--samples-per-file", type=int, default=64 * 60 * 5,
         help="Per-file PPG sample count (default: 5 min @ 64 Hz).",
     )
     parser.add_argument(
-        "--max-samples-csv", type=int, default=50,
+        "--max-samples-csv", type=int, default=1000,
         help="Number of sample_NNN.csv per-frame files to write for the scorecard.",
     )
     parser.add_argument("--target-label", default="Pleth")
+    parser.add_argument(
+        "--wavelet",
+        default=_PPG_WAVELET,
+        help=(
+            "Wavelet to use for the SPIHT codec. "
+            f"Default: {_PPG_WAVELET}. Tuned PPG setting: {_TUNED_WAVELET}."
+        ),
+    )
+    parser.add_argument(
+        "--levels",
+        type=int,
+        default=_PPG_LEVELS,
+        help=(
+            "DWT levels for the SPIHT codec. "
+            f"Default: {_PPG_LEVELS}. Tuned PPG setting: {_TUNED_LEVELS}."
+        ),
+    )
+    parser.add_argument(
+        "--disable-ac",
+        action="store_true",
+        help="Disable arithmetic coding. By default this script uses AC.",
+    )
+    parser.add_argument(
+        "--tuned",
+        action="store_true",
+        help=(
+            "Shortcut for the tuned PPG operating point: "
+            f"wavelet={_TUNED_WAVELET}, levels={_TUNED_LEVELS}."
+        ),
+    )
     parser.add_argument(
         "--max-stitching-signals", type=int, default=10,
         help="Number of long signals to retain for the stitching evaluation.",
@@ -116,6 +182,10 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(message)s",
     )
 
+    if args.tuned:
+        args.wavelet = _TUNED_WAVELET
+        args.levels = _TUNED_LEVELS
+
     exp = get_golden(args.experiment_id)
     if exp.method != "spiht" or exp.modality != "ppg":
         raise SystemExit(
@@ -132,9 +202,9 @@ def main() -> None:
         sample_rate=exp.sample_rate,
         frame_size=_PPG_FRAME_SIZE,
         target_cr=float(exp.compression_ratio),
-        wavelet=_PPG_WAVELET,
-        levels=_PPG_LEVELS,
-        use_ac=True,
+        wavelet=args.wavelet,
+        levels=args.levels,
+        use_ac=not args.disable_ac,
         name=exp.experiment_id.replace("-", "_"),
     )
     logger.info(
@@ -148,40 +218,24 @@ def main() -> None:
         codec.max_bits,
     )
 
-    datasets_dir = Path(args.datasets_dir)
-    _, val_files, _ = load_ppg_file_splits(
-        datasets_dir, args.dataset_glob,
-        train_ratio=0.8, val_ratio=0.2, seed=42,
-    )
-    if args.max_val_files:
-        val_files = val_files[: args.max_val_files]
-    logger.info("Using %d validation files", len(val_files))
-
     pairs: list[tuple[np.ndarray, np.ndarray]] = []
     bits_used: list[int] = []
     stitching_signals: list[np.ndarray] = []
     skipped_files = 0
     skipped_flat_frames = 0
 
-    for fpath in val_files:
-        try:
-            signal = load_ppg_signal(
-                fpath,
-                target_rate=codec.sample_rate,
-                num_samples=args.samples_per_file,
-                target_label=args.target_label,
-            )
-        except Exception as exc:  # noqa: BLE001 — best-effort over heterogeneous files
-            logger.warning("Skipping %s: %s", fpath.name, exc)
-            skipped_files += 1
-            continue
-
-        # Retain long signals (>= 2 frames) for stitching evaluation.
-        if len(signal) >= 2 * codec.frame_size and len(stitching_signals) < args.max_stitching_signals:
-            stitching_signals.append(np.asarray(signal, dtype=np.float32))
-
-        for start in range(0, len(signal) - codec.frame_size + 1, codec.frame_size):
-            frame = signal[start : start + codec.frame_size].astype(np.float32)
+    datasets_dir = Path(args.datasets_dir)
+    val_files: list[Path] = []
+    if exp.dataset_id == _PPG_V1_DATASET_ID:
+        frames = _load_eval_frames_from_cache(args, frame_size=codec.frame_size)
+        logger.info(
+            "Using %d unified-cache validation windows from %s (%s)",
+            len(frames),
+            args.cache_root,
+            ", ".join(args.cache_sources),
+        )
+        for frame in frames:
+            frame = np.asarray(frame, dtype=np.float32)
             std = float(np.std(frame))
             if std < 1e-3:
                 skipped_flat_frames += 1
@@ -191,6 +245,43 @@ def main() -> None:
             recon = codec.decompress(enc).astype(np.float32)
             pairs.append((frame_norm, recon))
             bits_used.append(int(enc.nbits))
+    else:
+        _, val_files, _ = load_ppg_file_splits(
+            datasets_dir, args.dataset_glob,
+            train_ratio=0.8, val_ratio=0.2, seed=42,
+        )
+        if args.max_val_files:
+            val_files = val_files[: args.max_val_files]
+        logger.info("Using %d legacy validation files", len(val_files))
+
+        for fpath in val_files:
+            try:
+                signal = load_ppg_signal(
+                    fpath,
+                    target_rate=codec.sample_rate,
+                    num_samples=args.samples_per_file,
+                    target_label=args.target_label,
+                )
+            except Exception as exc:  # noqa: BLE001 — best-effort over heterogeneous files
+                logger.warning("Skipping %s: %s", fpath.name, exc)
+                skipped_files += 1
+                continue
+
+            # Retain long signals (>= 2 frames) for stitching evaluation.
+            if len(signal) >= 2 * codec.frame_size and len(stitching_signals) < args.max_stitching_signals:
+                stitching_signals.append(np.asarray(signal, dtype=np.float32))
+
+            for start in range(0, len(signal) - codec.frame_size + 1, codec.frame_size):
+                frame = signal[start : start + codec.frame_size].astype(np.float32)
+                std = float(np.std(frame))
+                if std < 1e-3:
+                    skipped_flat_frames += 1
+                    continue
+                frame_norm = (frame - float(np.mean(frame))) / (std + 1e-6)
+                enc = codec.compress(frame_norm)
+                recon = codec.decompress(enc).astype(np.float32)
+                pairs.append((frame_norm, recon))
+                bits_used.append(int(enc.nbits))
 
     if not pairs:
         raise SystemExit("No frames evaluated — check dataset path and glob.")
@@ -239,8 +330,13 @@ def main() -> None:
         },
         "data": {
             "dataset_id": exp.dataset_id,
-            "datasets_dir": str(datasets_dir),
-            "dataset_glob": args.dataset_glob,
+            "evaluation_source": "unified_cache" if exp.dataset_id == _PPG_V1_DATASET_ID else "mesa_val_split",
+            "cache_root": args.cache_root if exp.dataset_id == _PPG_V1_DATASET_ID else None,
+            "cache_sources": list(args.cache_sources) if exp.dataset_id == _PPG_V1_DATASET_ID else None,
+            "num_windows_requested": args.num_windows if exp.dataset_id == _PPG_V1_DATASET_ID else None,
+            "seed": args.seed if exp.dataset_id == _PPG_V1_DATASET_ID else 42,
+            "datasets_dir": str(datasets_dir) if exp.dataset_id != _PPG_V1_DATASET_ID else None,
+            "dataset_glob": args.dataset_glob if exp.dataset_id != _PPG_V1_DATASET_ID else None,
             "n_val_files": len(val_files),
             "skipped_files": skipped_files,
             "samples_per_file": args.samples_per_file,
@@ -316,6 +412,7 @@ def main() -> None:
         except Exception:  # noqa: BLE001
             logger.exception("Stitching evaluation failed; continuing without it.")
 
+    _purge_old_sample_csvs(run_dir)
     n_csv = min(args.max_samples_csv, n_frames)
     for idx in range(n_csv):
         orig, recon = pairs[idx]

@@ -61,6 +61,17 @@ def main() -> None:
         default=1.0e-4,
         help="Reject near-flat/corrupted windows below this std when rebuilding scorecards.",
     )
+    parser.add_argument(
+        "--skip-safety-metrics",
+        action="store_true",
+        help="Skip rebuilding adversarial and local imprinting artifacts when rebuilding the scorecard.",
+    )
+    parser.add_argument("--adversarial-frames", type=int, default=16)
+    parser.add_argument("--imprinting-samples", type=int, default=64)
+    parser.add_argument("--safety-seed", type=int, default=0)
+    parser.add_argument("--imprinting-pre-ms", type=float, default=125.0)
+    parser.add_argument("--imprinting-post-ms", type=float, default=125.0)
+    parser.add_argument("--imprinting-peak-tolerance-ms", type=float, default=62.5)
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -124,6 +135,30 @@ def main() -> None:
     logger.info("Wrote %d CSVs, %d PNGs to %s", n_csv, n_png, run_dir)
 
     if args.rebuild_scorecard:
+        adversarial_path = None
+        imprinting_path = None
+        if not args.skip_safety_metrics:
+            from compressionkit.evaluation.local_imprinting import write_local_imprinting_report
+            from compressionkit.evaluation.safety_reports import write_adversarial_metrics_report
+
+            adversarial_path = write_adversarial_metrics_report(
+                run_dir,
+                modality="ppg",
+                n_frames=args.adversarial_frames,
+                seed=args.safety_seed,
+            )
+            imprinting_path = write_local_imprinting_report(
+                run_dir,
+                modality="ppg",
+                sample_count=args.imprinting_samples,
+                seed=args.safety_seed,
+                pre_ms=args.imprinting_pre_ms,
+                post_ms=args.imprinting_post_ms,
+                peak_tolerance_ms=args.imprinting_peak_tolerance_ms,
+            )
+            logger.info("Adversarial          : %s", adversarial_path)
+            logger.info("Imprinting           : %s", imprinting_path)
+
         from compressionkit.evaluation.scorecard import write_quality_scorecard
 
         out = write_quality_scorecard(
@@ -132,6 +167,8 @@ def main() -> None:
             sample_rate=sample_rate,
             noise_estimator="bp",
             min_signal_std=args.min_signal_std,
+            adversarial_metrics_path=adversarial_path,
+            imprinting_metrics_path=imprinting_path,
         )
         logger.info("Scorecard            : %s", out)
 

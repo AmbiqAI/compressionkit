@@ -70,6 +70,18 @@ def main() -> None:
         default="clean_truth",
         help="Label stored in the output for the clean-reference bundle.",
     )
+    ap.add_argument(
+        "--adversarial-metrics",
+        type=Path,
+        default=None,
+        help="Optional JSON artifact with hallucination/adversarial metrics to merge into the scorecard.",
+    )
+    ap.add_argument(
+        "--imprinting-metrics",
+        type=Path,
+        default=None,
+        help="Optional JSON artifact with localized imprinting metrics to merge into the scorecard.",
+    )
     args = ap.parse_args()
 
     out = write_quality_scorecard(
@@ -81,6 +93,8 @@ def main() -> None:
         clean_reference_path=args.clean_reference,
         clean_reference_key=args.clean_reference_key,
         clean_reference_label=args.clean_reference_label,
+        adversarial_metrics_path=args.adversarial_metrics,
+        imprinting_metrics_path=args.imprinting_metrics,
         output_path=args.output,
     )
     card = json.loads(out.read_text())
@@ -90,6 +104,20 @@ def main() -> None:
     phys = card.get("physiology", {})
 
     print(f"Wrote: {out}")
+    hl = card.get("headline")
+    if isinstance(hl, dict):
+        print("  HEADLINE              :")
+
+        def _hl(value: object, suffix: str = "") -> str:
+            return f"{value}{suffix}" if value is not None else "n/a"
+
+        print(f"    compression_ratio        = {_hl(hl.get('compression_ratio'), 'x')}")
+        print(f"    faithful_prd_vs_input %  = {_hl(hl.get('faithful_prd_vs_input_pct'))}")
+        print(f"    truth_prd_vs_clean %     = {_hl(hl.get('truth_prd_vs_clean_pct'))}")
+        print(f"    truth_prd_native_noise % = {_hl(hl.get('truth_prd_at_native_noise_pct'))}")
+        print(f"    prd_slope (PRD/dB)       = {_hl(hl.get('prd_degradation_slope_per_db'))}")
+        print(f"    prd_at_0db / -6db %      = {_hl(hl.get('prd_at_0db_pct'))} / {_hl(hl.get('prd_at_-6db_pct'))}")
+        print(f"    imprint_output_autocorr  = {_hl(hl.get('imprint_output_autocorr'))}")
     print(f"  num_samples           : {card['num_samples']}")
     if card.get("num_samples_rejected"):
         print(f"  num_samples_rejected  : {card['num_samples_rejected']}")
@@ -202,6 +230,38 @@ def main() -> None:
             print(
                 f"    denoise delta cosine  = {denoise_td['cosine_similarity_improvement']:.4f}"
             )
+
+    hallucination = card.get("hallucination")
+    if isinstance(hallucination, dict):
+        zero = hallucination.get("zero_input", {})
+        print("  HALLUCINATION         :")
+        for key in (
+            "output_l2_when_input_zero",
+            "hallucinated_peaks",
+            "output_band_power",
+            "output_energy",
+        ):
+            value = zero.get(key)
+            if value is not None:
+                print(f"    {key:32s} = {value:.6f}")
+
+    imprinting = card.get("imprinting")
+    if isinstance(imprinting, dict):
+        metrics = imprinting.get("metrics", {})
+        print("  IMPRINTING            :")
+        gap_rate = metrics.get("gap_peak_rate")
+        if gap_rate is not None:
+            print(f"    {'gap_peak_rate':32s} = {gap_rate:.6f}")
+        for key in (
+            "local_energy_ratio",
+            "local_cosine_to_target",
+            "local_prd_percent",
+            "masked_vs_clean_local_prd",
+            "outside_prd_percent",
+        ):
+            block = metrics.get(key)
+            if isinstance(block, dict) and block.get("mean") is not None:
+                print(f"    {key:32s} = {_fmt_agg(block, precision=4)}")
 
 
 if __name__ == "__main__":

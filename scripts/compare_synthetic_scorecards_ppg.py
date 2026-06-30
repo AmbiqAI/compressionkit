@@ -118,6 +118,12 @@ def main() -> None:
     ap.add_argument("--target-cr", type=int, choices=(4, 8), default=8)
     ap.add_argument("--noise-pct", type=float, default=0.8)
     ap.add_argument("--n-windows", type=int, default=24)
+    ap.add_argument(
+        "--rvq-run-dir",
+        type=Path,
+        default=None,
+        help="Optional RVQ run directory to compare instead of the faithful golden default for the target CR.",
+    )
     args = ap.parse_args()
 
     sample_rate = 64
@@ -125,10 +131,15 @@ def main() -> None:
     clean = _build_clean_windows(args.n_windows, frame_size, sample_rate)
     noisy = clean.copy() if args.noise_pct == 0.0 else _add_gaussian(clean, args.noise_pct, seed=17)
 
-    if args.target_cr == 4:
+    if args.rvq_run_dir is not None:
+        rvq_run = args.rvq_run_dir
+    elif args.target_cr == 4:
         rvq_run = Path("results/ppg_rvq_64hz_04x_golden")
     else:
         rvq_run = Path("results/ppg_rvq_64hz_08x_golden")
+
+    if not rvq_run.exists():
+        raise FileNotFoundError(f"RVQ run dir does not exist: {rvq_run}")
 
     spiht = SpihtAcCodec(
         name=f"spiht_{args.target_cr}x",
@@ -177,6 +188,7 @@ def main() -> None:
         "target_cr": args.target_cr,
         "noise_pct": args.noise_pct,
         "n_windows": args.n_windows,
+        "rvq_run_dir": str(rvq_run),
         "input_baseline": {
             "prd_vs_clean": baseline_prd,
             "cosine_vs_clean": baseline_cosine,

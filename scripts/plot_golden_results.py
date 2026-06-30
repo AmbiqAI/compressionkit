@@ -65,8 +65,6 @@ DARK = Theme(
 
 THEMES = [LIGHT, DARK]
 
-CR_ORDER = ["02x", "04x", "08x", "16x", "32x"]
-CR_LABELS = ["2×", "4×", "8×", "16×", "32×"]
 MARKERS = {"PPG": "o", "ECG": "s"}
 SAMPLE_RATES = {"PPG": 64, "ECG": 256}
 
@@ -139,6 +137,10 @@ def _annotate(ax: plt.Axes, x: float, y: float, text: str, color: str) -> None:
     ax.annotate(
         text, (x, y), textcoords="offset points", xytext=(0, 9), fontsize=8, ha="center", color=color, fontweight="500"
     )
+
+
+def _display_cr_label(cr_label: str) -> str:
+    return f"{int(cr_label[:-1])}×"
 
 
 def _save(fig: plt.Figure, output_dir: Path, name: str, theme: Theme) -> Path:
@@ -224,7 +226,7 @@ def plot_effective_rate(df: pd.DataFrame, output_dir: Path, theme: Theme) -> lis
         )
 
         ax.set_xticks(x)
-        ax.set_xticklabels([CR_LABELS[CR_ORDER.index(cr)] for cr in sdf["cr_label"]])
+        ax.set_xticklabels([_display_cr_label(cr) for cr in sdf["cr_label"]])
         ax.set_xlabel("Compression Ratio")
         ax.set_ylabel("Effective Sample Rate (Hz)")
         ax.set_title(f"{signal} — Effective Latent Sample Rate")
@@ -281,7 +283,7 @@ def plot_bits_budget(df: pd.DataFrame, output_dir: Path, theme: Theme) -> list[P
             )
 
         ax.set_xticks(x)
-        ax.set_xticklabels([CR_LABELS[CR_ORDER.index(cr)] for cr in sdf["cr_label"]])
+        ax.set_xticklabels([_display_cr_label(cr) for cr in sdf["cr_label"]])
         ax.set_xlabel("Compression Ratio")
         ax.set_ylabel("Bits per Frame")
         ax.set_title(f"{signal} — Bit Budget per Frame")

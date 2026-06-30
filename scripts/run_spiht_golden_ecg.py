@@ -85,7 +85,7 @@ def main() -> None:
     parser.add_argument("--max-val-files", type=int, default=200)
     parser.add_argument("--lead-index", type=int, default=1)
     parser.add_argument(
-        "--max-samples-csv", type=int, default=50,
+        "--max-samples-csv", type=int, default=1000,
         help="Number of sample_NNN.csv files to write for the scorecard.",
     )
     parser.add_argument(

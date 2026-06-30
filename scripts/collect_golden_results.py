@@ -22,7 +22,14 @@ logger = logging.getLogger(__name__)
 # Golden run name patterns
 GOLDEN_PATTERNS: dict[str, list[str]] = {
     "ppg": [f"ppg_rvq_64hz_{cr}_golden" for cr in ("02x", "04x", "08x", "16x", "32x")],
-    "ecg": [f"ecg_rvq_256hz_{cr}_golden" for cr in ("02x", "04x", "08x", "16x", "32x")],
+    "ecg": [
+        "ecg_rvq_256hz_02x_golden",
+        "ecg_rvq_256hz_04x_golden",
+        "ecg_rvq_256hz_08x_golden_empirical_midpoint",
+        "ecg_rvq_256hz_16x_golden",
+        "ecg_rvq_256hz_32x_golden",
+        "ecg_rvq_256hz_64x_golden",
+    ],
 }
 
 # Operating sample rates (after resampling)
