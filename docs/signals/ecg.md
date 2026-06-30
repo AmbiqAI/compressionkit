@@ -33,7 +33,7 @@ ECG compression uses the same RVQ autoencoder architecture as PPG, with paramete
 - **Data source**: [PTB-XL](https://physionet.org/content/ptb-xl/1.0.3/) — 21,799 12-lead ECG recordings
 - **Preprocessing**: Resample 500 → 256 Hz, Lead II (`lead_index=1`), layer normalization
 - **Model**: Conv2D encoder/decoder + EMA RVQ bottleneck (256-entry codebooks)
-- **Compression range**: 2× – 32× (five golden configs)
+- **Compression range**: 2× – 64× (six golden configs)
 - **Loss**: MSE + derivative loss (weight 0.1)
 
 ### Golden Models
@@ -42,11 +42,12 @@ See **[ECG Models (v1.0)](../models/ecg.md)** for the full results table, archit
 
 | Model | CR | PRD (%) | Cosine |
 |-------|----|---------|--------|
-| ecg-rvq-02x | 2× | 2.60 | 0.9997 |
-| ecg-rvq-04x | 4× | 3.34 | 0.9994 |
-| ecg-rvq-08x | 8× | 6.21 | 0.9981 |
-| ecg-rvq-16x | 16× | 10.39 | 0.9945 |
-| ecg-rvq-32x | 32× | 14.39 | 0.9895 |
+| ecg-rvq-02x | 2× | 2.50 | 0.9997 |
+| ecg-rvq-04x | 4× | 4.09 | 0.9992 |
+| ecg-rvq-08x | 8× | 7.48 | 0.9972 |
+| ecg-rvq-16x | 16× | 11.18 | 0.9936 |
+| ecg-rvq-32x | 32× | 16.04 | 0.9868 |
+| ecg-rvq-64x | 64× | 22.35 | 0.9742 |
 
 ### Training
 
