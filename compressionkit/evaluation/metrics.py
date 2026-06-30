@@ -9,6 +9,14 @@ import keras
 import numpy as np
 import physiokit as pk
 
+# Minimum fraction of the raw signal power that must remain after subtracting
+# the estimated noise energy for PRDN-noise to be considered measurable. When
+# the noise estimate approaches (or exceeds) the total signal power the implied
+# clean power collapses toward zero and PRDN-noise — normalized by that power —
+# explodes to physically meaningless hundreds of percent. Such windows are
+# reported as NaN so downstream aggregation drops them instead of being skewed.
+_PRDN_MIN_CLEAN_FRAC = 0.05
+
 
 @keras.saving.register_keras_serializable(package="compression_kit")
 class PRD(keras.metrics.Metric):
@@ -94,10 +102,21 @@ def compute_signal_metrics(
         n_samples = max(orig_flat.size, 1)
         noise_energy = float(noise_power) * n_samples
         adjusted_sse = max(sse - noise_energy, 0.0)
-        clean_pow_total = max(sig_pow_sum - noise_energy, 1e-12)
-        prdn = 100.0 * float(np.sqrt(max(adjusted_sse / clean_pow_total, 0.0)))
+        clean_pow_total = sig_pow_sum - noise_energy
+        # Guard against the divide-by-near-zero blow-up when the noise estimate
+        # rivals the signal power: below ``_PRDN_MIN_CLEAN_FRAC`` of the raw
+        # power the metric is dominated by noise-estimator error, so mark it
+        # unmeasurable (NaN) rather than emitting a spurious hundreds-of-percent
+        # value. ``_aggregate`` already drops NaNs and counts them via
+        # ``n_dropped``.
+        if clean_pow_total <= _PRDN_MIN_CLEAN_FRAC * sig_pow_sum:
+            prdn = float("nan")
+            clean_pow_report = max(clean_pow_total, 0.0)
+        else:
+            prdn = 100.0 * float(np.sqrt(max(adjusted_sse / clean_pow_total, 0.0)))
+            clean_pow_report = clean_pow_total
         out["prdn_noise_percent"] = prdn
-        out["clean_signal_power"] = float(clean_pow_total / n_samples)
+        out["clean_signal_power"] = float(clean_pow_report / n_samples)
         out["noise_power_estimate"] = float(noise_power)
     return out
 

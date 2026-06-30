@@ -170,3 +170,23 @@ class TestPrdnNoise:
 
         out = compute_signal_metrics(sig, sig)
         assert "prdn_noise_percent" not in out
+
+    def test_noise_estimate_exceeds_signal_yields_nan(self) -> None:
+        """When the noise estimate rivals/exceeds signal power, PRDN is NaN.
+
+        This guards against the divide-by-near-zero blow-up that previously
+        produced spurious hundreds-of-percent PRDN-noise values. Such windows
+        are unmeasurable and must be reported as NaN so aggregation drops them.
+        """
+        sig = _make_clean_sine(FS_ECG, freq_hz=5.0, duration_s=4.0)
+        recon = sig * 0.9
+        from compressionkit.evaluation.metrics import compute_signal_metrics
+
+        sig_power = float(np.mean(sig**2))
+        # Noise estimate equal to the full signal power → clean power → 0.
+        out = compute_signal_metrics(sig, recon, noise_power=sig_power)
+        assert np.isnan(out["prdn_noise_percent"])
+        # And a near-total noise estimate (>95% of signal power) is also NaN.
+        out2 = compute_signal_metrics(sig, recon, noise_power=0.97 * sig_power)
+        assert np.isnan(out2["prdn_noise_percent"])
+

@@ -1,8 +1,8 @@
-"""Codec noise sweep: PPG SPIHT vs PPG RVQ across 0-100% Gaussian noise.
+"""Codec noise sweep: PPG DSP vs RVQ across noise and artifact levels.
 
 Generates clean synthetic PPG windows, adds Gaussian noise at increasing
-levels, runs each window through SPIHT and RVQ codecs at 4x and 8x, and
-reports two parallel metric tracks:
+levels, runs each window through configured DSP and RVQ codecs, and reports
+two parallel metric tracks:
 
 * **Faithfulness** -- recon vs the noisy input the codec received.
 * **Denoising / truth** -- recon vs the clean ground truth.
@@ -12,13 +12,21 @@ The headline plot stacks both tracks so you can see, per noise level:
 * which codec preserves the input most faithfully (top row), and
 * which codec is closest to the underlying truth (bottom row).
 
-Noise is parameterised as ``noise_pct = noise_std / clean_std`` so
-``0%`` = clean (inf SNR) and ``100%`` = SNR 0 dB. The script also dumps
-``results/_codec_noise_sweep.json`` with all per-noise-level numbers.
+For ``gaussian``, the level is parameterised as ``noise_pct = noise_std / clean_std``
+so ``0`` = clean (inf SNR) and ``1.0`` = SNR 0 dB. For structured artefacts,
+the same ``--noise-pcts`` values are interpreted as a severity control.
+
+Usage::
+
+    uv run python scripts/sweep_codec_noise_ppg.py
+    uv run python scripts/sweep_codec_noise_ppg.py --n-windows 64 \
+        --noise-pcts 0,0.1,0.2,0.4,0.8,1.2 --crs 4,8 \
+        --dsp-modes default,tuned,tuned_ac
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 from pathlib import Path
@@ -34,8 +42,31 @@ import os
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
 from compressionkit.evaluation.codec import SpihtAcCodec
+from compressionkit.evaluation.empirical_regime import corr as _corr
+from compressionkit.evaluation.empirical_regime import encode_decode_batch, prd as _prd
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.synthetic import ppg_dynamical
+from compressionkit.synthetic.noise import NoiseSpec, add_noise
+
+
+PPG_DEFAULT_WAVELET = "coif5"
+PPG_DEFAULT_LEVELS = 6
+PPG_TUNED_WAVELET = "bior4.4"
+PPG_TUNED_LEVELS = 6
+
+
+def _parse_float_list(text: str) -> list[float]:
+    values = [float(part.strip()) for part in text.split(",") if part.strip()]
+    if not values:
+        raise ValueError("expected at least one float value")
+    return values
+
+
+def _parse_int_list(text: str) -> list[int]:
+    values = [int(part.strip()) for part in text.split(",") if part.strip()]
+    if not values:
+        raise ValueError("expected at least one integer value")
+    return values
 
 
 # ---------------------------------------------------------------------------
@@ -78,25 +109,114 @@ def add_gaussian(clean: np.ndarray, noise_pct: float, seed: int) -> np.ndarray:
     return out
 
 
+def _severity_to_snr_db(severity: float) -> float:
+    return float(30.0 - 30.0 * severity)
+
+
+def add_structured_noise(
+    clean: np.ndarray,
+    severity: float,
+    seed: int,
+    *,
+    sample_rate: float,
+    spec: NoiseSpec,
+) -> np.ndarray:
+    rng = np.random.default_rng(seed)
+    out = np.empty_like(clean)
+    snr_db = _severity_to_snr_db(severity)
+    for i, c in enumerate(clean):
+        noisy, _noise = add_noise(
+            c,
+            sample_rate=sample_rate,
+            snr_db=snr_db,
+            spec=spec,
+            seed=int(rng.integers(0, 2**31 - 1)),
+        )
+        x = noisy.astype(np.float32)
+        x = (x - x.mean()) / (x.std() + 1e-9)
+        out[i] = x
+    return out
+
+
+def add_dropout(clean: np.ndarray, severity: float, seed: int) -> np.ndarray:
+    rng = np.random.default_rng(seed)
+    out = np.empty_like(clean)
+    for i, c in enumerate(clean):
+        x = c.copy()
+        frac = min(max(0.05 + 0.30 * severity, 0.02), 0.5)
+        width = max(4, int(round(frac * x.shape[0])))
+        start = int(rng.integers(0, max(1, x.shape[0] - width + 1)))
+        x[start : start + width] = 0.0
+        x = (x - x.mean()) / (x.std() + 1e-9)
+        out[i] = x
+    return out
+
+
+def add_clipping(clean: np.ndarray, severity: float, seed: int) -> np.ndarray:
+    del seed
+    out = np.empty_like(clean)
+    threshold = max(0.35, 2.5 - 1.8 * severity)
+    for i, c in enumerate(clean):
+        x = np.clip(c, -threshold, threshold)
+        x = (x - x.mean()) / (x.std() + 1e-9)
+        out[i] = x.astype(np.float32)
+    return out
+
+
+def corrupt_windows(
+    clean: np.ndarray,
+    *,
+    corruption: str,
+    level: float,
+    seed: int,
+    sample_rate: float,
+) -> np.ndarray:
+    if level <= 0.0:
+        return clean.copy()
+    if corruption == "gaussian":
+        return add_gaussian(clean, level, seed=seed)
+    if corruption == "baseline_wander":
+        return add_structured_noise(
+            clean,
+            level,
+            seed,
+            sample_rate=sample_rate,
+            spec=NoiseSpec(weights={"baseline_wander": 1.0}),
+        )
+    if corruption == "motion":
+        return add_structured_noise(
+            clean,
+            level,
+            seed,
+            sample_rate=sample_rate,
+            spec=NoiseSpec(weights={"motion": 1.0}),
+        )
+    if corruption == "wearable_mix":
+        return add_structured_noise(
+            clean,
+            level,
+            seed,
+            sample_rate=sample_rate,
+            spec=NoiseSpec(weights={"baseline_wander": 1.0, "motion": 1.5, "gauss": 0.5}),
+        )
+    if corruption == "dropout":
+        return add_dropout(clean, level, seed=seed)
+    if corruption == "clipping":
+        return add_clipping(clean, level, seed=seed)
+    raise ValueError(f"Unsupported corruption: {corruption}")
+
+
+def _level_label(corruption: str) -> str:
+    if corruption == "gaussian":
+        return "Gaussian noise (noise_std / signal_std)"
+    if corruption in {"baseline_wander", "motion", "wearable_mix"}:
+        return "Artifact severity (mapped to lower input SNR)"
+    return "Artifact severity"
+
+
 # ---------------------------------------------------------------------------
 # Metrics
 # ---------------------------------------------------------------------------
-
-
-def _prd(ref: np.ndarray, est: np.ndarray) -> np.ndarray:
-    """Percent root-mean-square diff per row. PRD = 100 * ||ref-est|| / ||ref||."""
-    num = np.linalg.norm(ref - est, axis=-1)
-    den = np.linalg.norm(ref, axis=-1) + 1e-12
-    return 100.0 * num / den
-
-
-def _corr(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Pearson correlation per row."""
-    a = a - a.mean(axis=-1, keepdims=True)
-    b = b - b.mean(axis=-1, keepdims=True)
-    num = (a * b).sum(axis=-1)
-    den = np.sqrt((a * a).sum(axis=-1) * (b * b).sum(axis=-1)) + 1e-12
-    return num / den
 
 
 def codec_metrics(
@@ -130,17 +250,78 @@ def codec_metrics(
 # ---------------------------------------------------------------------------
 
 
-def encode_decode_batch(codec, frames: np.ndarray) -> np.ndarray:
-    out = np.empty_like(frames)
-    for i, f in enumerate(frames):
-        enc = codec.encode(f)
-        rec = codec.decode(enc)
-        # Some codecs return (T,) or (T,1) -- flatten
-        rec = np.asarray(rec, dtype=np.float32).reshape(-1)[: frames.shape[1]]
-        # Match per-window z-norm of the input
-        rec = (rec - rec.mean()) / (rec.std() + 1e-9)
-        out[i] = rec
-    return out
+def _build_dsp_codecs(
+    crs: list[int], dsp_modes: list[str], frame_size: int, sample_rate: int
+) -> list[tuple[str, object, str, str]]:
+    mode_styles = {
+        "default": ("#1f77b4", "-"),
+        "tuned": ("#2ca02c", "--"),
+        "tuned_ac": ("#9467bd", "-.")
+    }
+    codecs: list[tuple[str, object, str, str]] = []
+    for cr in crs:
+        for mode in dsp_modes:
+            if mode == "default":
+                codec = SpihtAcCodec(
+                    name=f"spiht_default_{cr}x",
+                    modality="ppg",
+                    sample_rate=sample_rate,
+                    frame_size=frame_size,
+                    target_cr=float(cr),
+                    wavelet=PPG_DEFAULT_WAVELET,
+                    levels=PPG_DEFAULT_LEVELS,
+                    use_ac=True,
+                )
+                label = f"SPIHT default {cr}x"
+            elif mode == "tuned":
+                codec = SpihtAcCodec(
+                    name=f"spiht_tuned_{cr}x",
+                    modality="ppg",
+                    sample_rate=sample_rate,
+                    frame_size=frame_size,
+                    target_cr=float(cr),
+                    wavelet=PPG_TUNED_WAVELET,
+                    levels=PPG_TUNED_LEVELS,
+                    use_ac=False,
+                )
+                label = f"SPIHT tuned {cr}x"
+            elif mode == "tuned_ac":
+                codec = SpihtAcCodec(
+                    name=f"spiht_tuned_ac_{cr}x",
+                    modality="ppg",
+                    sample_rate=sample_rate,
+                    frame_size=frame_size,
+                    target_cr=float(cr),
+                    wavelet=PPG_TUNED_WAVELET,
+                    levels=PPG_TUNED_LEVELS,
+                    use_ac=True,
+                )
+                label = f"SPIHT tuned+AC {cr}x"
+            else:
+                raise ValueError(f"Unsupported DSP mode: {mode}")
+            color, line_style = mode_styles[mode]
+            codecs.append((label, codec, color, line_style))
+    return codecs
+
+
+def _load_rvq_codecs(crs: list[int], rvq_root: Path) -> list[tuple[str, object, str, str]]:
+    codecs: list[tuple[str, object, str, str]] = []
+    styles = {
+        2: ("#d62728", ":"),
+        4: ("#d62728", "-"),
+        8: ("#d62728", "--"),
+        16: ("#d62728", "-.")
+    }
+    for cr in crs:
+        run_dir = rvq_root / f"ppg_rvq_64hz_{cr:02d}x_golden"
+        if not run_dir.exists():
+            print(f"[warn] Skipping RVQ {cr}x; missing {run_dir}")
+            continue
+        print(f"[setup] Loading RVQ {cr}x golden ...")
+        codec = RvqCodec.from_run_dir(run_dir, modality="ppg")
+        color, line_style = styles.get(cr, ("#d62728", "-"))
+        codecs.append((f"RVQ {cr}x", codec, color, line_style))
+    return codecs
 
 
 # ---------------------------------------------------------------------------
@@ -149,43 +330,67 @@ def encode_decode_batch(codec, frames: np.ndarray) -> np.ndarray:
 
 
 def main() -> None:
-    out_dir = Path("results/_codec_noise_sweep")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out-dir", default="results/_codec_noise_sweep")
+    parser.add_argument("--n-windows", type=int, default=24)
+    parser.add_argument("--sample-rate", type=float, default=64.0)
+    parser.add_argument("--frame-size", type=int, default=320)
+    parser.add_argument("--noise-pcts", default="0,0.2,0.4,0.6,0.8,1.0")
+    parser.add_argument(
+        "--corruption",
+        default="gaussian",
+        choices=["gaussian", "baseline_wander", "motion", "wearable_mix", "dropout", "clipping"],
+    )
+    parser.add_argument("--crs", default="4,8")
+    parser.add_argument(
+        "--dsp-modes",
+        default="default,tuned,tuned_ac",
+        help="Comma-separated DSP baselines: default,tuned,tuned_ac",
+    )
+    parser.add_argument("--rvq-root", default="results")
+    args = parser.parse_args()
+
+    out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    sample_rate = 64.0
-    frame_size = 320
-    n_windows = 24
-    noise_pcts = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    sample_rate = float(args.sample_rate)
+    frame_size = int(args.frame_size)
+    n_windows = int(args.n_windows)
+    noise_pcts = _parse_float_list(args.noise_pcts)
+    corruption = str(args.corruption)
+    crs = _parse_int_list(args.crs)
+    dsp_modes = [part.strip() for part in args.dsp_modes.split(",") if part.strip()]
 
     print(f"[setup] Building {n_windows} clean PPG windows ({frame_size} samples @ {sample_rate} Hz)")
     clean = build_clean_windows(n_windows, frame_size, sample_rate)
 
-    print("[setup] Building SPIHT codecs (4x, 8x)")
-    spiht_4 = SpihtAcCodec(name="spiht_4x", modality="ppg", sample_rate=64,
-                           frame_size=frame_size, target_cr=4.0)
-    spiht_8 = SpihtAcCodec(name="spiht_8x", modality="ppg", sample_rate=64,
-                           frame_size=frame_size, target_cr=8.0)
+    print(f"[setup] Building DSP codecs for CRs {crs} with modes {dsp_modes}")
+    codecs = _build_dsp_codecs(crs, dsp_modes, frame_size, int(sample_rate))
+    codecs.extend(_load_rvq_codecs(crs, Path(args.rvq_root)))
+    if not codecs:
+        raise SystemExit("No codecs available for sweep")
 
-    print("[setup] Loading RVQ 4x golden ...")
-    rvq_4 = RvqCodec.from_run_dir("results/ppg_rvq_64hz_04x_golden", modality="ppg")
-    print("[setup] Loading RVQ 8x golden ...")
-    rvq_8 = RvqCodec.from_run_dir("results/ppg_rvq_64hz_08x_golden", modality="ppg")
-
-    codecs = [
-        ("SPIHT 4x", spiht_4, "#1f77b4", "-"),
-        ("SPIHT 8x", spiht_8, "#1f77b4", "--"),
-        ("RVQ 4x",   rvq_4,   "#d62728", "-"),
-        ("RVQ 8x",   rvq_8,   "#d62728", "--"),
-    ]
-
-    summary: dict = {"noise_pcts": noise_pcts, "codecs": {}, "baselines": []}
+    summary: dict = {
+        "corruption": corruption,
+        "noise_pcts": noise_pcts,
+        "crs": crs,
+        "dsp_modes": dsp_modes,
+        "codecs": {},
+        "baselines": [],
+    }
 
     for label, codec, _, _ in codecs:
         summary["codecs"][label] = {"noise_pct": [], "metrics": []}
 
     for npct in noise_pcts:
-        print(f"\n[noise_pct = {npct:.2f}]")
-        noisy = clean.copy() if npct == 0.0 else add_gaussian(clean, npct, seed=int(npct * 1000))
+        print(f"\n[{corruption} severity = {npct:.2f}]")
+        noisy = corrupt_windows(
+            clean,
+            corruption=corruption,
+            level=npct,
+            seed=int(npct * 1000) + 17,
+            sample_rate=sample_rate,
+        )
 
         # Baseline (no codec): how close is noisy to clean?
         base = {
@@ -207,7 +412,7 @@ def main() -> None:
                   f"corr_c={m['corr_vs_clean_mean']:.3f}  "
                   f"denoise_delta={m['denoising_delta_prd']:+5.1f}%")
 
-    json_path = out_dir / "summary.json"
+    json_path = out_dir / f"summary_{corruption}.json"
     json_path.write_text(json.dumps(summary, indent=2,
                                     default=lambda o: None if isinstance(o, float) and math.isnan(o) else o))
     print(f"\nWrote {json_path}")
@@ -239,14 +444,14 @@ def main() -> None:
         if key == "denoising_delta_prd":
             ax.axhline(0, color="#888", lw=0.7, ls=":")
         ax.set_title(subtitle, fontsize=10, loc="left")
-        ax.set_xlabel("Gaussian noise (noise_std / signal_std)")
+        ax.set_xlabel(_level_label(corruption))
         ax.set_ylabel(ylabel)
         ax.grid(alpha=0.3)
         ax.legend(fontsize=8, loc="best", framealpha=0.85)
-    fig.suptitle("PPG codec behaviour under increasing Gaussian noise — synthetic ground truth",
+    fig.suptitle(f"PPG codec behaviour under increasing {corruption} severity — DSP vs RVQ",
                  fontsize=11)
     fig.tight_layout()
-    png_path = out_dir / "ppg_codec_noise_sweep.png"
+    png_path = out_dir / f"ppg_codec_{corruption}_sweep.png"
     fig.savefig(png_path, dpi=130)
     plt.close(fig)
     print(f"Wrote {png_path}")

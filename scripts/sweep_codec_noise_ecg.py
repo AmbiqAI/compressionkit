@@ -8,6 +8,7 @@ and clean truth (denoising). Outputs a 4-panel PNG and a summary JSON.
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import os
@@ -22,6 +23,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from compressionkit.evaluation.codec import SpihtAcCodec
+from compressionkit.evaluation.empirical_regime import corr as _corr
+from compressionkit.evaluation.empirical_regime import encode_decode_batch, prd as _prd
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.synthetic import ecg_mcsharry
 
@@ -64,20 +67,6 @@ def add_gaussian(clean: np.ndarray, noise_pct: float, seed: int) -> np.ndarray:
     return out
 
 
-def _prd(ref: np.ndarray, est: np.ndarray) -> np.ndarray:
-    num = np.linalg.norm(ref - est, axis=-1)
-    den = np.linalg.norm(ref, axis=-1) + 1e-12
-    return 100.0 * num / den
-
-
-def _corr(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    a = a - a.mean(axis=-1, keepdims=True)
-    b = b - b.mean(axis=-1, keepdims=True)
-    num = (a * b).sum(axis=-1)
-    den = np.sqrt((a * a).sum(axis=-1) * (b * b).sum(axis=-1)) + 1e-12
-    return num / den
-
-
 def codec_metrics(clean: np.ndarray, noisy: np.ndarray, recon: np.ndarray) -> dict[str, float]:
     prd_n = _prd(noisy, recon)
     prd_c = _prd(clean, recon)
@@ -96,30 +85,54 @@ def codec_metrics(clean: np.ndarray, noisy: np.ndarray, recon: np.ndarray) -> di
     }
 
 
-def encode_decode_batch(codec, frames: np.ndarray) -> np.ndarray:
-    out = np.empty_like(frames)
-    for i, f in enumerate(frames):
-        enc = codec.encode(f)
-        rec = codec.decode(enc)
-        rec = np.asarray(rec, dtype=np.float32).reshape(-1)[: frames.shape[1]]
-        rec = (rec - rec.mean()) / (rec.std() + 1e-9)
-        out[i] = rec
-    return out
-
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 
+def _parse_noise_pcts(text: str) -> list[float]:
+    vals = [float(part.strip()) for part in text.split(",") if part.strip()]
+    if not vals:
+        raise ValueError("--noise-pcts must provide at least one comma-separated value")
+    return vals
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--n-windows", type=int, default=24)
+    ap.add_argument(
+        "--noise-pcts",
+        type=_parse_noise_pcts,
+        default=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        help="Comma-separated Gaussian noise levels as noise_std / signal_std.",
+    )
+    ap.add_argument(
+        "--rvq-4x-run-dir",
+        type=Path,
+        default=Path("results/ecg_rvq_256hz_04x_golden"),
+        help="RVQ 4x run dir to load instead of the faithful default.",
+    )
+    ap.add_argument(
+        "--rvq-8x-run-dir",
+        type=Path,
+        default=Path("results/ecg_rvq_256hz_08x_golden"),
+        help="RVQ 8x run dir to load instead of the faithful default.",
+    )
+    ap.add_argument(
+        "--output-stem",
+        type=str,
+        default="summary_ecg",
+        help="Output stem for <stem>.json and <stem>.png under results/_codec_noise_sweep/.",
+    )
+    args = ap.parse_args()
+
     out_dir = Path("results/_codec_noise_sweep")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     sample_rate = 256.0
     frame_size = 512  # matches ECG RVQ goldens
-    n_windows = 24
-    noise_pcts = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    n_windows = args.n_windows
+    noise_pcts = args.noise_pcts
 
     print(f"[setup] Building {n_windows} clean ECG windows ({frame_size} samples @ {sample_rate} Hz, ~{frame_size/sample_rate:.1f} s)")
     clean = build_clean_windows(n_windows, frame_size, sample_rate)
@@ -130,10 +143,15 @@ def main() -> None:
     spiht_8 = SpihtAcCodec(name="spiht_8x", modality="ecg", sample_rate=int(sample_rate),
                            frame_size=frame_size, target_cr=8.0)
 
-    print("[setup] Loading ECG RVQ 4x golden ...")
-    rvq_4 = RvqCodec.from_run_dir("results/ecg_rvq_256hz_04x_golden", modality="ecg")
-    print("[setup] Loading ECG RVQ 8x golden ...")
-    rvq_8 = RvqCodec.from_run_dir("results/ecg_rvq_256hz_08x_golden", modality="ecg")
+    if not args.rvq_4x_run_dir.exists():
+        raise FileNotFoundError(f"RVQ 4x run dir does not exist: {args.rvq_4x_run_dir}")
+    if not args.rvq_8x_run_dir.exists():
+        raise FileNotFoundError(f"RVQ 8x run dir does not exist: {args.rvq_8x_run_dir}")
+
+    print(f"[setup] Loading ECG RVQ 4x from {args.rvq_4x_run_dir} ...")
+    rvq_4 = RvqCodec.from_run_dir(args.rvq_4x_run_dir, modality="ecg")
+    print(f"[setup] Loading ECG RVQ 8x from {args.rvq_8x_run_dir} ...")
+    rvq_8 = RvqCodec.from_run_dir(args.rvq_8x_run_dir, modality="ecg")
 
     codecs = [
         ("SPIHT 4x", spiht_4, "#1f77b4", "-"),
@@ -169,7 +187,7 @@ def main() -> None:
                   f"corr_c={m['corr_vs_clean_mean']:.3f}  "
                   f"denoise_delta={m['denoising_delta_prd']:+5.1f}%")
 
-    json_path = out_dir / "summary_ecg.json"
+    json_path = out_dir / f"{args.output_stem}.json"
     json_path.write_text(json.dumps(summary, indent=2,
                                     default=lambda o: None if isinstance(o, float) and math.isnan(o) else o))
     print(f"\nWrote {json_path}")
@@ -202,7 +220,7 @@ def main() -> None:
     fig.suptitle("ECG codec behaviour under increasing Gaussian noise — synthetic ground truth",
                  fontsize=11)
     fig.tight_layout()
-    png_path = out_dir / "ecg_codec_noise_sweep.png"
+    png_path = out_dir / f"{args.output_stem}.png"
     fig.savefig(png_path, dpi=130)
     plt.close(fig)
     print(f"Wrote {png_path}")
