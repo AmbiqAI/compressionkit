@@ -102,7 +102,8 @@ def generate_model_card(
     lines.append("")
 
     # Title
-    hf_name = f"compressionkit-{modality}-{cr}x" if cr else f"compressionkit-{modality}"
+    cr_slug = f"{float(cr):g}" if isinstance(cr, (int, float)) else str(cr)
+    hf_name = f"compressionkit-{modality}-{cr_slug}x" if cr else f"compressionkit-{modality}"
     lines.append(f"# {hf_name}")
     lines.append("")
     lines.append(

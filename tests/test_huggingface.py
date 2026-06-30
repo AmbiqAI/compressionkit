@@ -122,7 +122,7 @@ class TestModelCardGeneration:
 
         card = generate_model_card(mock_deploy, scorecard_path=mock_scorecard)
         assert "Quality Metrics" in card
-        assert "PRD (%)" in card
+        assert "PRD vs input — faithfulness (%)" in card
         assert "Cosine Similarity" in card
         assert "4.0x" in card  # CR uniform
         assert "4.50x" in card  # CR learned
