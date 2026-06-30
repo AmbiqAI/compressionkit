@@ -104,7 +104,7 @@ def _motion(
     n_events = rng.poisson(rate_hz * total_s)
     for _ in range(int(n_events)):
         centre = int(rng.uniform(0, n))
-        dur = max(int(rng.normal(duration_s, 0.25 * duration_s) * fs), int(0.05 * fs))
+        dur = max(int(rng.normal(duration_s, 0.25 * duration_s) * fs), max(int(0.05 * fs), 10))
         amp = rng.normal(0.0, 1.0)
         # Half-cosine envelope filled with low-band noise.
         env_x = np.linspace(-1.0, 1.0, dur)

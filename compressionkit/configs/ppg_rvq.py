@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from compressionkit.configs.artifact_suite import ArtifactSuiteConfig
+from compressionkit.configs.paths import default_datasets_dir
+
 
 class StreamingConfig(BaseModel):
     """Config for subject-level streaming dataset mode."""
@@ -85,7 +88,27 @@ class AugmentationConfig(BaseModel):
         description="H5 dataset slugs to build noise bank from.",
     )
     noise_bank_max_segments: int = 2000
-    noise_bank_root: str = "/home/vscode/datasets"
+    noise_bank_root: str = Field(default_factory=default_datasets_dir)
+
+    # Dataset-level paired null augmentation. These regimes zero both the
+    # input and target so the model learns abstention rather than inpainting.
+    random_cutout: bool = False
+    cutout_factor: list[float] = Field(
+        default_factory=lambda: [0.01, 0.05],
+        description="Cutout duration fraction range (min, max) of frame length.",
+    )
+    long_cutout_prob: float = Field(
+        default=0.0,
+        description="Per-sample probability of a long contiguous paired dropout.",
+    )
+    long_cutout_factor: list[float] = Field(
+        default_factory=lambda: [0.3, 0.9],
+        description="Long dropout duration fraction range (min, max) of frame length.",
+    )
+    null_frame_prob: float = Field(
+        default=0.0,
+        description="Per-sample probability of zeroing the full frame and target.",
+    )
 
 
 class UnifiedSourceConfig(BaseModel):
@@ -119,7 +142,7 @@ class DataConfig(BaseModel):
         default=None,
         description="Identifier registered in compressionkit.datasets.contract (see #26).",
     )
-    datasets_dir: str = "/home/vscode/datasets"
+    datasets_dir: str = Field(default_factory=default_datasets_dir)
     dataset_glob: str = "mesa-commercial-use/polysomnography/edfs/*.edf"
     sampling_rate: int = 64
     frame_size: int = 320
@@ -141,6 +164,7 @@ class DataConfig(BaseModel):
     target_filter: FilterConfig = Field(default_factory=FilterConfig)
     transform: TransformConfig = Field(default_factory=TransformConfig)
     augmentation: AugmentationConfig = Field(default_factory=AugmentationConfig)
+    artifact_suite: ArtifactSuiteConfig = Field(default_factory=ArtifactSuiteConfig)
 
 
 class ModelConfig(BaseModel):
@@ -183,6 +207,22 @@ class ModelConfig(BaseModel):
         description=(
             "Mini-batch k-means warm-start of the EMA RVQ codebooks before training. Run once eagerly via the trainer."
         ),
+    )
+    encoder_type: str = Field(
+        default="default",
+        description="Encoder architecture: 'default', 'inverted_residual', 'soundstream', 'mlp', or 'transformer'.",
+    )
+    decoder_type: str = Field(
+        default="default",
+        description="Decoder architecture: 'default', 'ssm', 'hierarchical', 'soundstream', 'mlp', or 'transformer'.",
+    )
+    encoder_blocks_per_stage: int = Field(
+        default=1,
+        description="Number of blocks/layers per stage (MLP hidden layers, transformer layers, etc.).",
+    )
+    bottleneck_type: str = Field(
+        default="rvq",
+        description="Bottleneck type: 'rvq', 'fsq', or 'significance'.",
     )
 
 

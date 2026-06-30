@@ -20,6 +20,26 @@ import numpy as np
 import physiokit as pk
 import tensorflow as tf
 
+from compressionkit.datasets.null_augmentation import (
+    PairedNullAugmentationConfig,
+    apply_paired_cutout_batch,
+    apply_paired_null_augmentation_batch,
+)
+
+# ---------------------------------------------------------------------------
+# Paired cutout (zeros both input and target)
+# ---------------------------------------------------------------------------
+
+
+def _paired_cutout_batch(
+    x_in: tf.Tensor,
+    x_tgt: tf.Tensor,
+    factor: tuple[float, float],
+) -> tuple[tf.Tensor, tf.Tensor]:
+    """Backward-compatible wrapper around the shared short cutout helper."""
+    return apply_paired_cutout_batch(x_in, x_tgt, factor)
+
+
 # ---------------------------------------------------------------------------
 # Single-file loading
 # ---------------------------------------------------------------------------
@@ -480,6 +500,7 @@ def make_ecg_tfrecord_dataset(
     target_filter_cfg: dict[str, Any] | None = None,
     sample_rate: int = 500,
     num_leads: int = 1,
+    null_aug_cfg: PairedNullAugmentationConfig | None = None,
     shuffle: bool = True,
     seed: int = 42,
 ) -> tf.data.Dataset:
@@ -546,6 +567,7 @@ def make_ecg_tfrecord_dataset(
 
     def _make_pair(inp, target):
         x_aug = augmenter(inp, training=True) if augmenter is not None else inp
+        x_aug, target = apply_paired_null_augmentation_batch(x_aug, target, null_aug_cfg)
         return reshape(x_aug), reshape(target)
 
     ds = ds.map(_make_pair, num_parallel_calls=tf.data.AUTOTUNE)
@@ -561,6 +583,7 @@ def make_ecg_inmemory_dataset(
     preprocessor: keras.layers.Layer,
     augmenter: keras.layers.Layer | None,
     target_data: np.ndarray | None = None,
+    null_aug_cfg: PairedNullAugmentationConfig | None = None,
     shuffle: bool = True,
 ) -> tf.data.Dataset:
     """Build an in-memory tf.data pipeline for ECG segments.
@@ -591,18 +614,22 @@ def make_ecg_inmemory_dataset(
             return preprocessor(x, training=True) if preprocessor is not None else x
 
         def _apply_aug(x):
-            return augmenter(x, training=True) if augmenter is not None else x
+            if augmenter is None:
+                return x
+            x = tf.ensure_shape(x, [batch_size, frame_size, 1])
+            return augmenter(x, training=True)
 
         dataset = dataset.map(lambda x: _apply_prep(x), num_parallel_calls=tf.data.AUTOTUNE)
 
         reshape = keras.layers.Reshape((1, frame_size, 1))
-        dataset = dataset.map(
-            lambda x: (
-                reshape(_apply_aug(x)),
-                reshape(x),
-            ),
-            num_parallel_calls=tf.data.AUTOTUNE,
-        )
+
+        def _make_single_pair(x):
+            x_aug = _apply_aug(x)
+            x_tgt = x
+            x_aug, x_tgt = apply_paired_null_augmentation_batch(x_aug, x_tgt, null_aug_cfg)
+            return reshape(x_aug), reshape(x_tgt)
+
+        dataset = dataset.map(_make_single_pair, num_parallel_calls=tf.data.AUTOTUNE)
         return dataset.prefetch(tf.data.AUTOTUNE)
 
     # Separate target
@@ -639,20 +666,23 @@ def make_ecg_inmemory_dataset(
         return (x - mean) / tf.sqrt(var + epsilon)
 
     def _apply_aug(x):
-        return augmenter(x, training=True) if augmenter is not None else x
+        if augmenter is None:
+            return x
+        x = tf.ensure_shape(x, [batch_size, frame_size, 1])
+        return augmenter(x, training=True)
 
     dataset = dataset.map(_rand_crop_pair, num_parallel_calls=tf.data.AUTOTUNE)
     dataset = dataset.map(
         lambda x_in, x_tgt: (_layer_norm_batch(x_in), _layer_norm_batch(x_tgt)),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
-    dataset = dataset.map(
-        lambda x_in, x_tgt: (
-            reshape(_apply_aug(x_in)),
-            reshape(x_tgt),
-        ),
-        num_parallel_calls=tf.data.AUTOTUNE,
-    )
+
+    def _aug_and_cutout(x_in, x_tgt):
+        x_aug = _apply_aug(x_in)
+        x_aug, x_tgt = apply_paired_null_augmentation_batch(x_aug, x_tgt, null_aug_cfg)
+        return reshape(x_aug), reshape(x_tgt)
+
+    dataset = dataset.map(_aug_and_cutout, num_parallel_calls=tf.data.AUTOTUNE)
     return dataset.prefetch(tf.data.AUTOTUNE)
 
 
@@ -669,8 +699,10 @@ def make_ecg_stream_dataset(
     subject_buffer_size: int = 512,
     window_buffer_size: int = 20_000,
     windows_per_subject: int = 8,
+    sample_rate: int = 500,
     input_filter_cfg: dict[str, Any] | None = None,
     target_filter_cfg: dict[str, Any] | None = None,
+    null_aug_cfg: PairedNullAugmentationConfig | None = None,
     seed: int = 42,
     shuffle: bool = True,
 ) -> tf.data.Dataset:
@@ -690,7 +722,7 @@ def make_ecg_stream_dataset(
                 window_samples=window_samples,
                 rng=rng,
             )
-            window = _maybe_filter(window, sample_rate=500, cfg=input_filter_cfg)
+            window = _maybe_filter(window, sample_rate=sample_rate, cfg=input_filter_cfg)
             yield window.astype(np.float32)
 
     paths = [str(p) for p in file_paths]
@@ -719,7 +751,9 @@ def make_ecg_stream_dataset(
 
     def _make_pair(x):
         x_aug = augmenter(x, training=True) if augmenter is not None else x
-        return reshape(x_aug), reshape(x)
+        x_tgt = x
+        x_aug, x_tgt = apply_paired_null_augmentation_batch(x_aug, x_tgt, null_aug_cfg)
+        return reshape(x_aug), reshape(x_tgt)
 
     ds = ds.map(_make_pair, num_parallel_calls=tf.data.AUTOTUNE)
     return ds.prefetch(tf.data.AUTOTUNE)
