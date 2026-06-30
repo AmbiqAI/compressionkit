@@ -25,6 +25,8 @@ from compressionkit.datasets.ppg import (
     make_ppg_stream_dataset,
     make_ppg_tfrecord_dataset,
 )
+from compressionkit.datasets.null_augmentation import PairedNullAugmentationConfig
+from compressionkit.datasets.null_augmentation import apply_paired_null_augmentation_batch
 from compressionkit.evaluation.artifacts import save_sample_artifacts
 from compressionkit.evaluation.metrics import (
     TruePRD,
@@ -104,31 +106,44 @@ def _wrap_dataset_with_dwt(
 # ---------------------------------------------------------------------------
 
 
+def _build_ppg_noise_bank(cfg: PpgRvqConfig) -> np.ndarray | None:
+    """Build an empirical noise bank from the configured H5 sources.
+
+    Shared by the legacy Tier-1 augmenter and the role-routing artifact suite.
+    Returns ``None`` when no sources are configured or no H5 files are found.
+    """
+    aug_cfg = cfg.data.augmentation
+    if not aug_cfg.noise_bank_sources:
+        return None
+
+    import glob as glob_mod
+
+    h5_paths: list[str] = []
+    for slug in aug_cfg.noise_bank_sources:
+        pattern = f"{aug_cfg.noise_bank_root}/{slug}/*.h5"
+        h5_paths.extend(sorted(glob_mod.glob(pattern)))
+
+    if not h5_paths:
+        return None
+
+    logger.info("Building noise bank from %d h5 files...", len(h5_paths))
+    noise_bank = build_noise_bank_from_h5(
+        h5_paths,
+        target_fs=cfg.data.sampling_rate,
+        window_size=cfg.data.frame_size,
+        max_segments=aug_cfg.noise_bank_max_segments,
+    )
+    logger.info("Noise bank: %d segments", len(noise_bank))
+    return noise_bank
+
+
 def _build_ppg_augmenter(cfg: PpgRvqConfig) -> PPGAugmenter | None:
     """Build Tier-1 augmenter from config, including noise bank."""
     aug_cfg = cfg.data.augmentation
     if not aug_cfg.enabled:
         return None
 
-    # Build noise bank from configured sources
-    noise_bank = None
-    if aug_cfg.noise_bank_sources:
-        import glob as glob_mod
-
-        h5_paths: list[str] = []
-        for slug in aug_cfg.noise_bank_sources:
-            pattern = f"{aug_cfg.noise_bank_root}/{slug}/*.h5"
-            h5_paths.extend(sorted(glob_mod.glob(pattern)))
-
-        if h5_paths:
-            logger.info("Building noise bank from %d h5 files...", len(h5_paths))
-            noise_bank = build_noise_bank_from_h5(
-                h5_paths,
-                target_fs=cfg.data.sampling_rate,
-                window_size=cfg.data.frame_size,
-                max_segments=aug_cfg.noise_bank_max_segments,
-            )
-            logger.info("Noise bank: %d segments", len(noise_bank))
+    noise_bank = _build_ppg_noise_bank(cfg)
 
     return PPGAugmenter(
         sample_rate=cfg.data.sampling_rate,
@@ -142,6 +157,31 @@ def _build_ppg_augmenter(cfg: PpgRvqConfig) -> PPGAugmenter | None:
         noise_bank=noise_bank,
         seed=cfg.data.shuffle_seed,
     )
+
+
+def _build_artifact_suite_augmenter(cfg: PpgRvqConfig) -> "RoleRoutingAugmenter | None":
+    """Build the role-routing artifact suite augmenter from config.
+
+    Returns ``None`` when ``data.artifact_suite.enabled`` is false. Syncs the
+    suite ``sample_rate``/``epsilon`` from the data config and builds the
+    empirical noise bank only when an ``empirical_noise`` artifact can fire.
+    """
+    from compressionkit.preprocessing.artifact_suite import RoleRoutingAugmenter
+
+    suite_cfg = cfg.data.artifact_suite
+    if not suite_cfg.enabled:
+        return None
+
+    suite_cfg = suite_cfg.model_copy(
+        update={"sample_rate": cfg.data.sampling_rate, "epsilon": cfg.data.epsilon}
+    )
+
+    needs_bank = any(
+        spec.name == "empirical_noise" and spec.prob > 0.0 for spec in suite_cfg.effective_specs()
+    )
+    noise_bank = _build_ppg_noise_bank(cfg) if needs_bank else None
+
+    return RoleRoutingAugmenter(suite_cfg, noise_bank=noise_bank, seed=cfg.data.shuffle_seed)
 
 
 def _wrap_dataset_with_augmentation(
@@ -171,6 +211,65 @@ def _wrap_dataset_with_augmentation(
     return ds.map(_apply_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
 
 
+def _wrap_dataset_with_artifact_suite(
+    ds: tf.data.Dataset,
+    suite_augmenter: "RoleRoutingAugmenter",
+    frame_size: int,
+) -> tf.data.Dataset:
+    """Apply the role-routing artifact suite to RAW ``(x, x)`` pairs.
+
+    The dataset must yield raw (unnormalized) pairs shaped ``(B, 1, T, 1)``.
+    The suite corrupts the raw signal (recover/remove), normalizes each branch
+    by its own per-window stats, then applies abstain masks, producing the
+    final ``(input, target)`` training pair.
+    """
+
+    def _suite_batch(inp: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        raw = inp[:, 0, :, 0]
+        x_in, x_tgt = suite_augmenter.apply_batch(raw)
+        out_in = x_in[:, np.newaxis, :, np.newaxis].astype(np.float32)
+        out_tgt = x_tgt[:, np.newaxis, :, np.newaxis].astype(np.float32)
+        return out_in, out_tgt
+
+    def _apply_suite(inp, target):
+        x_in, x_tgt = tf.numpy_function(_suite_batch, [inp], [tf.float32, tf.float32])
+        x_in.set_shape(inp.shape)
+        x_tgt.set_shape(target.shape)
+        return x_in, x_tgt
+
+    return ds.map(_apply_suite, num_parallel_calls=tf.data.AUTOTUNE)
+
+
+def _wrap_paired_dataset_with_base_augmentation(
+    ds: tf.data.Dataset,
+    augmenter: keras.layers.Layer | None,
+    frame_size: int,
+    null_aug_cfg: PairedNullAugmentationConfig | None,
+) -> tf.data.Dataset:
+    """Apply base input corruption and paired null augmentation to 4D pairs.
+
+    Unified-cache datasets already yield normalized autoencoder pairs with
+    shape ``(B, 1, T, 1)``. This wrapper mirrors the legacy/train-stream paths:
+    corrupt the input branch only, then optionally zero both input and target
+    for abstention-focused null regimes.
+    """
+
+    def _apply_aug(inp, target):
+        x_in = tf.squeeze(inp, axis=1)
+        x_tgt = tf.squeeze(target, axis=1)
+        if augmenter is not None:
+            x_in = tf.ensure_shape(x_in, [None, frame_size, 1])
+            x_in = augmenter(x_in, training=True)
+        x_in, x_tgt = apply_paired_null_augmentation_batch(x_in, x_tgt, null_aug_cfg)
+        x_in = tf.expand_dims(x_in, axis=1)
+        x_tgt = tf.expand_dims(x_tgt, axis=1)
+        x_in.set_shape(inp.shape)
+        x_tgt.set_shape(target.shape)
+        return x_in, x_tgt
+
+    return ds.map(_apply_aug, num_parallel_calls=tf.data.AUTOTUNE)
+
+
 # ---------------------------------------------------------------------------
 # Dataset builder
 # ---------------------------------------------------------------------------
@@ -195,6 +294,30 @@ def build_datasets(
         "cache_dir": None,
     }
 
+    aug_cfg = data.augmentation
+    null_aug_cfg: PairedNullAugmentationConfig | None = None
+    if aug_cfg is not None:
+        short_cutout = None
+        if aug_cfg.random_cutout:
+            short_cutout = (float(aug_cfg.cutout_factor[0]), float(aug_cfg.cutout_factor[1]))
+        null_aug_cfg = PairedNullAugmentationConfig(
+            short_cutout_factor=short_cutout,
+            long_cutout_factor=(float(aug_cfg.long_cutout_factor[0]), float(aug_cfg.long_cutout_factor[1])),
+            long_cutout_prob=float(aug_cfg.long_cutout_prob),
+            null_frame_prob=float(aug_cfg.null_frame_prob),
+        )
+        if not null_aug_cfg.enabled:
+            null_aug_cfg = None
+
+    # Role-routing artifact suite (apply-before-norm). When enabled it owns the
+    # full corruption path (recover/remove/abstain) and supersedes the legacy
+    # base-Gaussian, paired-null, and Tier-1 input-only augmentation paths.
+    suite_augmenter = _build_artifact_suite_augmenter(cfg)
+    suite_enabled = suite_augmenter is not None
+    info["artifact_suite"] = suite_enabled
+    if suite_enabled:
+        info["artifact_suite_augmenter"] = suite_augmenter
+
     cache_cfg = data.cache
     streaming_cfg = data.streaming
     unified_cfg = data.unified_cache
@@ -202,6 +325,11 @@ def build_datasets(
     enabled_modes = sum([cache_cfg.enabled, streaming_cfg.enabled, unified_cfg.enabled])
     if enabled_modes > 1:
         raise ValueError("Enable at most one of data.cache, data.streaming, or data.unified_cache.")
+
+    if suite_enabled and not unified_cfg.enabled:
+        raise NotImplementedError(
+            "data.artifact_suite is currently only supported with data.unified_cache mode."
+        )
 
     input_filter_dict = data.input_filter.model_dump() if data.input_filter.enabled else {}
     target_filter_dict = data.target_filter.model_dump() if data.target_filter.enabled else {}
@@ -229,6 +357,7 @@ def build_datasets(
             epsilon=data.epsilon,
             split="train",
             seed=data.shuffle_seed,
+            normalize=not suite_enabled,
         )
         val_ds, val_info = make_cached_ppg_dataset(
             source_weights,
@@ -241,6 +370,19 @@ def build_datasets(
             seed=data.shuffle_seed,
         )
         info["unified_sources"] = train_info["sources"]
+        info["base_input_augmentation"] = augmenter is not None
+        info["paired_null_augmentation"] = bool(null_aug_cfg is not None)
+
+        if suite_enabled:
+            logger.info("Applying role-routing artifact suite (apply-before-norm) to training inputs")
+            train_ds = _wrap_dataset_with_artifact_suite(train_ds, suite_augmenter, data.frame_size)
+        elif augmenter is not None or null_aug_cfg is not None:
+            train_ds = _wrap_paired_dataset_with_base_augmentation(
+                train_ds,
+                augmenter=augmenter,
+                frame_size=data.frame_size,
+                null_aug_cfg=null_aug_cfg,
+            )
 
         if validation_steps is None:
             total_val = sum(load_cache_metadata(cache_root, s.slug)["val_examples"] for s in unified_cfg.sources)
@@ -287,6 +429,7 @@ def build_datasets(
             shuffle_buffer_size=data.buffer_size,
             preprocessor=preprocessor,
             augmenter=augmenter,
+            null_aug_cfg=null_aug_cfg,
             input_filter_cfg=input_filter_dict if data.input_filter.enabled else None,
             target_filter_cfg=target_filter_dict if data.target_filter.enabled else None,
             sample_rate=data.sampling_rate,
@@ -339,6 +482,7 @@ def build_datasets(
             window_buffer_size=streaming_cfg.window_buffer_size,
             windows_per_subject=streaming_cfg.windows_per_subject_train,
             augmenter=augmenter,
+            null_aug_cfg=null_aug_cfg,
             shuffle=True,
             **stream_kwargs,
         )
@@ -443,6 +587,7 @@ def build_datasets(
             preprocessor=preprocessor,
             augmenter=augmenter,
             target_data=train_target_data,
+            null_aug_cfg=null_aug_cfg,
             shuffle=True,
         )
         val_ds = make_ppg_inmemory_dataset(
@@ -456,8 +601,9 @@ def build_datasets(
             shuffle=False,
         )
 
-    # Apply Tier-1 augmentation (input-only corruption for denoising)
-    tier1_augmenter = _build_ppg_augmenter(cfg)
+    # Apply Tier-1 augmentation (input-only corruption for denoising). Skipped
+    # when the role-routing artifact suite is active (the suite owns this path).
+    tier1_augmenter = None if suite_enabled else _build_ppg_augmenter(cfg)
     if tier1_augmenter is not None:
         logger.info("Applying Tier-1 augmentations to training inputs (denoising mode)")
         train_ds = _wrap_dataset_with_augmentation(train_ds, tier1_augmenter, data.frame_size)
@@ -641,6 +787,10 @@ def build_model(cfg: PpgRvqConfig) -> keras.Model:
         revive_dead_codes=mcfg.revive_dead_codes,
         revive_threshold=mcfg.revive_threshold,
         codebook_sizes=mcfg.codebook_sizes,
+        encoder_type=mcfg.encoder_type,
+        decoder_type=mcfg.decoder_type,
+        encoder_blocks_per_stage=mcfg.encoder_blocks_per_stage,
+        bottleneck_type=mcfg.bottleneck_type,
     )
     return model
 

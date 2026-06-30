@@ -160,7 +160,7 @@ def export_for_deployment(
     model_name: str = "rvq_autoencoder",
     model_version: str = "1.0",
     export_decoder_float32: bool = True,
-    export_decoder_int8: bool = False,
+    export_decoder_int8: bool = True,
     model_card_info: dict | None = None,
     scorecard_summary: dict | None = None,
 ) -> DeploymentArtifacts:
@@ -421,26 +421,33 @@ def export_for_deployment(
     if sample_inputs is not None:
         from compressionkit.runtime.codec import RVQCodec
 
-        codec = RVQCodec(output_dir)
-        input_frames = np.asarray(sample_inputs, dtype=np.float32)
-        encoded_batches: list[np.ndarray] = []
-        decoded_batches: list[np.ndarray] = []
-        for idx in range(input_frames.shape[0]):
-            sample = input_frames[idx : idx + 1]
-            encoded = codec.encode(sample).astype(np.int32)
-            decoded = codec.decode(encoded).astype(np.float32)
-            encoded_batches.append(encoded)
-            decoded_batches.append(decoded)
-        encoded_indices = np.concatenate(encoded_batches, axis=0)
-        decoded_frames = np.concatenate(decoded_batches, axis=0)
-        reference_payload = {
-            "input_frames": input_frames,
-            "indices": encoded_indices,
-            "reconstructions": decoded_frames,
-        }
-        if sample_targets is not None:
-            reference_payload["targets"] = np.asarray(sample_targets, dtype=np.float32)
-        np.savez_compressed(artifacts.reference_vectors, **reference_payload)
+        try:
+            codec = RVQCodec(output_dir)
+            input_frames = np.asarray(sample_inputs, dtype=np.float32)
+            encoded_batches: list[np.ndarray] = []
+            decoded_batches: list[np.ndarray] = []
+            for idx in range(input_frames.shape[0]):
+                sample = input_frames[idx : idx + 1]
+                encoded = codec.encode(sample).astype(np.int32)
+                decoded = codec.decode(encoded).astype(np.float32)
+                encoded_batches.append(encoded)
+                decoded_batches.append(decoded)
+            encoded_indices = np.concatenate(encoded_batches, axis=0)
+            decoded_frames = np.concatenate(decoded_batches, axis=0)
+            reference_payload = {
+                "input_frames": input_frames,
+                "indices": encoded_indices,
+                "reconstructions": decoded_frames,
+            }
+            if sample_targets is not None:
+                reference_payload["targets"] = np.asarray(sample_targets, dtype=np.float32)
+            np.savez_compressed(artifacts.reference_vectors, **reference_payload)
+        except Exception:
+            logger.warning(
+                "Reference-vector export skipped because the deploy package has no usable decoder TFLite.",
+                exc_info=True,
+            )
+            artifacts.reference_vectors = Path()
 
     # 8. File-integrity manifest (written last so it can include everything else).
     artifacts.checksums = write_checksums(output_dir)

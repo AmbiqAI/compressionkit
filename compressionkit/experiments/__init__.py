@@ -28,6 +28,7 @@ from compressionkit.experiments.registry import (
     list_goldens,
 )
 from compressionkit.experiments.runner import run_golden
+from compressionkit.experiments.runner import repackage_golden
 
 __all__ = [
     "GOLDEN_REGISTRY",
@@ -37,5 +38,6 @@ __all__ = [
     "GoldenModality",
     "get_golden",
     "list_goldens",
+    "repackage_golden",
     "run_golden",
 ]

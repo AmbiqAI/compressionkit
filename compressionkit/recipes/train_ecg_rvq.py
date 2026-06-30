@@ -8,12 +8,13 @@ the top-level ``recipes/`` folder and edit freely to build on it.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import keras
 
 from compressionkit.configs.ecg_rvq import EcgRvqConfig
-from compressionkit.preprocessing.ecg import build_augmenter, build_preprocessor
+from compressionkit.preprocessing.ecg import build_augmenter, build_noise_bank_from_h5, build_preprocessor
 from compressionkit.recipes._registry import recipe
 from compressionkit.recipes.base_rvq import BaseRVQTrainer
 from compressionkit.trainers.ecg_rvq import (
@@ -58,7 +59,48 @@ class EcgRVQTrainer(BaseRVQTrainer[EcgRvqConfig]):
 
     def build_augmenter(self) -> keras.layers.Layer:
         data = self.cfg.data
-        return build_augmenter(aug_cfg=data.augmentation, sample_rate=data.effective_sample_rate)
+        noise_bank = None
+        aug_cfg = data.augmentation
+        if aug_cfg.empirical_noise_prob > 0.0:
+            file_paths = sorted(Path(data.datasets_dir).glob(data.dataset_glob))
+            noise_bank = build_noise_bank_from_h5(
+                file_paths,
+                source_sample_rate=data.sampling_rate,
+                target_sample_rate=data.effective_sample_rate,
+                window_size=data.frame_size,
+                lead_index=data.lead_index,
+                leads=data.leads,
+                max_segments=aug_cfg.noise_bank_max_segments,
+                noise_threshold_std=aug_cfg.noise_bank_threshold_std,
+            )
+            if noise_bank is not None:
+                logger.info("ECG empirical noise bank: %d segments", len(noise_bank))
+            else:
+                logger.info("ECG empirical noise bank unavailable; empirical noise augmentation skipped")
+
+        artifact_bank = None
+        if getattr(aug_cfg, "artifact_noise_enabled", False):
+            from compressionkit.synthetic.artifact_augment import build_artifact_bank
+
+            # Reuse the empirical noise bank (if built) for families that mix in
+            # real residuals; the family synthesis itself does not require it.
+            artifact_bank = build_artifact_bank(
+                aug_cfg.artifact_bank_size,
+                data.frame_size,
+                float(data.effective_sample_rate),
+                families=tuple(aug_cfg.artifact_families),
+                noise_bank=noise_bank,
+                seed=data.shuffle_seed,
+            )
+            logger.info("ECG contact-artifact bank: %d waveforms", len(artifact_bank))
+
+        return build_augmenter(
+            aug_cfg=aug_cfg,
+            sample_rate=data.effective_sample_rate,
+            noise_bank=noise_bank,
+            artifact_bank=artifact_bank,
+            seed=data.shuffle_seed,
+        )
 
     def build_datasets(
         self,

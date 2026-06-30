@@ -14,6 +14,23 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+def _with_fixed_batch_one(model: keras.Model) -> keras.Model:
+    """Return ``model`` with a fixed batch dimension of 1 when its input batch is dynamic."""
+    input_shape = model.input_shape
+    if not isinstance(input_shape, tuple) or not input_shape or input_shape[0] is not None:
+        return model
+
+    fixed_in = keras.Input(
+        batch_shape=(1, *input_shape[1:]),
+        dtype=model.inputs[0].dtype,
+        name=f"{model.name}_batch1_in",
+    )
+    fixed_out = model(fixed_in)
+    fixed_model = keras.Model(fixed_in, fixed_out, name=f"{model.name}_batch1")
+    fixed_model.set_weights(model.get_weights())
+    return fixed_model
+
+
 def _convert_and_export(
     model: keras.Model,
     *,
@@ -126,9 +143,12 @@ def export_decoder_tflite(
     Returns:
         Tuple of ``(tflite_path, header_path)``.
     """
+    export_decoder = _with_fixed_batch_one(decoder)
+    export_latents = rep_latents[:1] if export_decoder is not decoder else rep_latents
+
     paths = _convert_and_export(
-        decoder,
-        rep_dataset=rep_latents,
+        export_decoder,
+        rep_dataset=export_latents,
         output_dir=output_dir,
         tflite_name=tflite_name,
         header_name=header_name,

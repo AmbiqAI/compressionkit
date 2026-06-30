@@ -82,8 +82,11 @@ class RVQCodec:
         with open(manifest_path) as f:
             self._manifest = json.load(f)
 
+        self._spec = self._load_codec_spec()
+        runtime_spec = self._spec or self._manifest
+
         # Load encoder
-        enc_path = self._deploy_dir / self._manifest["encoder"]["tflite"]
+        enc_path = self._deploy_dir / runtime_spec["encoder"]["tflite"]
         self._encoder = _Interpreter(model_path=str(enc_path))
         self._encoder.allocate_tensors()
         self._enc_input = self._encoder.get_input_details()[0]
@@ -93,7 +96,7 @@ class RVQCodec:
         self._decoder = None
         self._dec_input = None
         self._dec_output = None
-        dec_info = self._manifest.get("decoder", {})
+        dec_info = runtime_spec.get("decoder", {})
         dec_f32 = dec_info.get("float32_tflite")
         dec_int8 = dec_info.get("int8_tflite") or dec_info.get("tflite")
 
@@ -119,7 +122,7 @@ class RVQCodec:
                 break
 
         # Load codebook
-        cb_path = self._deploy_dir / self._manifest["codebook"]["npz"]
+        cb_path = self._deploy_dir / runtime_spec["codebook"]["npz"]
         cb_data = np.load(cb_path)
         self._codebooks = [cb_data[k] for k in sorted(cb_data.files)]
         self._num_levels = len(self._codebooks)
@@ -133,6 +136,17 @@ class RVQCodec:
             self._num_embeddings,
             self._embedding_dim,
         )
+
+    def _load_codec_spec(self) -> dict:
+        spec_name = self._manifest.get("spec", "codec_spec.json")
+        if isinstance(spec_name, str):
+            spec_path = self._deploy_dir / spec_name
+            if spec_path.exists():
+                with spec_path.open() as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    return loaded
+        return {}
 
     @classmethod
     def from_pretrained(
@@ -190,6 +204,11 @@ class RVQCodec:
     def manifest(self) -> dict:
         """Return the deployment manifest dictionary."""
         return self._manifest
+
+    @property
+    def spec(self) -> dict:
+        """Return the canonical runtime hydration spec when present."""
+        return self._spec
 
     @property
     def num_levels(self) -> int:

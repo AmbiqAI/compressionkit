@@ -132,6 +132,11 @@ def dispatch(argv: list[str] | None = None) -> int:
     # `golden` forwards every remaining argument to the experiments CLI.
     golden = sub.add_parser("golden", help="Run v1 golden experiments (see 'compressionkit golden --help').")
     golden.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
+    # `playbook` forwards every remaining argument to the playbook CLI.
+    playbook = sub.add_parser(
+        "playbook", help="Browse and run the compression playbook (see 'compressionkit playbook --help')."
+    )
+    playbook.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     for spec in list_recipes():
         sp = sub.add_parser(spec.name, help=spec.description or None, description=spec.description or None)
         _build_config_parser(spec, sp)
@@ -145,6 +150,10 @@ def dispatch(argv: list[str] | None = None) -> int:
         from compressionkit.experiments.cli import main as golden_main
 
         return golden_main(args.args)
+    if args.recipe == "playbook":
+        from compressionkit.playbook.cli import main as playbook_main
+
+        return playbook_main(args.args)
     return _run_single(get_recipe(args.recipe), ["--config", str(args.config)])
 
 

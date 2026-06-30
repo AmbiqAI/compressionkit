@@ -3,16 +3,15 @@
 Single entry point that drives a registered golden experiment through:
 
 1. **Config load** — read the recipe's Pydantic config (for trainable
-   methods) or derive the codec parameters from the experiment fields
-   (for DSP-only methods such as SPIHT).
+    methods) or select the dedicated evaluator script for DSP-only SPIHT.
 2. **Build + evaluate + export** — for ``method == "rvq"`` this invokes
-   the registered training recipe; for ``method == "spiht"`` it
-   instantiates a :class:`SpihtCodec` with the modality defaults and
-   writes a weightless deploy package via
-   :func:`compressionkit.export.export_spiht_deploy`.
+    the registered training recipe; for ``method == "spiht"`` it shells
+    out to the modality-specific golden evaluator so SPIHT runs emit the
+    same run-level artifacts as RVQ (``summary.json``, ``sample_*.csv``,
+    ``quality_scorecard.json``, and ``deploy/``).
 3. **HuggingFace publish (optional)** — shell out to
-   :mod:`scripts.publish_to_huggingface` to upload the deploy package
-   to ``hf_repo_id``.
+    :mod:`scripts.publish_to_huggingface` to upload the deploy package
+    to ``hf_repo_id``.
 
 Dataset acquisition is currently a manual prerequisite. The contract
 that makes ingestion fully runner-driven is tracked in #26.
@@ -26,6 +25,7 @@ import sys
 from pathlib import Path
 
 from compressionkit.experiments.registry import GoldenExperiment, get_golden
+from compressionkit.experiments.repackage import repackage_rvq_golden
 from compressionkit.export.validate import DeployValidationResult, validate_deploy_package
 from compressionkit.recipes import get_recipe
 
@@ -58,59 +58,41 @@ def _resolve_run_dir(experiment: GoldenExperiment, results_root: Path) -> Path:
 
 
 def _build_spiht(experiment: GoldenExperiment, run_dir: Path) -> dict[str, object]:
-    """Build the SPIHT deploy package for a DSP-only golden."""
-    from compressionkit.export.spiht_deploy import export_spiht_deploy
-    from compressionkit.runtime.spiht import SpihtCodec
+    """Run the modality-specific SPIHT golden evaluator.
 
-    defaults = _SPIHT_DEFAULTS.get(experiment.modality)
-    if defaults is None:
-        raise ValueError(
-            f"No SPIHT defaults registered for modality {experiment.modality!r}; "
-            "extend _SPIHT_DEFAULTS in compressionkit.experiments.runner."
-        )
-
-    codec = SpihtCodec(
-        modality=experiment.modality,
-        sample_rate=experiment.sample_rate,
-        frame_size=defaults.frame_size,
-        target_cr=float(experiment.compression_ratio),
-        wavelet=defaults.wavelet,
-        levels=defaults.levels,
-        use_ac=defaults.use_ac,
-        name=experiment.experiment_id.replace("-", "_"),
-    )
-
-    deploy_dir = run_dir / "deploy"
-    model_card_info: dict[str, object] = {
-        "experiment_id": experiment.experiment_id,
-        "modality": experiment.modality,
-        "method": experiment.method,
-        "sample_rate": experiment.sample_rate,
-        "compression_ratio": experiment.compression_ratio,
-        "wavelet": codec.wavelet,
-        "levels": codec.levels,
-        "use_ac": codec.use_ac,
-        "frame_size": codec.frame_size,
-        "dataset_id": experiment.dataset_id,
-        "license": "Apache-2.0",
+    The evaluator scripts are the source of truth for DSP-only goldens because
+    they write the same run-level artifacts as RVQ goldens before exporting the
+    deploy package.
+    """
+    script_by_modality = {
+        "ppg": Path("scripts/run_spiht_golden_ppg.py"),
+        "ecg": Path("scripts/run_spiht_golden_ecg.py"),
     }
-    scorecard = dict(experiment.expected_metrics or {})
+    try:
+        script_path = script_by_modality[experiment.modality]
+    except KeyError as err:
+        raise ValueError(
+            f"No SPIHT golden evaluator registered for modality {experiment.modality!r}"
+        ) from err
 
-    logger.info(
-        "Building SPIHT deploy for %s (wavelet=%s, levels=%d, frame_size=%d, cr=%g)",
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--experiment-id",
         experiment.experiment_id,
-        codec.wavelet,
-        codec.levels,
-        codec.frame_size,
-        codec.target_cr,
-    )
-    arts = export_spiht_deploy(
-        codec,
-        output_dir=deploy_dir,
-        model_card_info=model_card_info,
-        scorecard_summary=scorecard,
-    )
-    return {"deploy_dir": str(deploy_dir), "artifacts": arts.as_dict()}
+        "--results-root",
+        str(run_dir.parent),
+    ]
+    logger.info("Running SPIHT golden evaluator for %s via %s", experiment.experiment_id, script_path)
+    result = subprocess.run(cmd, check=False)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"SPIHT golden evaluator failed for {experiment.experiment_id!r} with exit code {result.returncode}"
+        )
+    return {
+        "command": cmd,
+        "deploy_dir": str(run_dir / "deploy"),
+    }
 
 
 def _summarize_validation(result: DeployValidationResult) -> dict[str, object]:
@@ -305,4 +287,57 @@ def run_golden(
     return summary
 
 
-__all__ = ["run_golden"]
+def repackage_golden(
+    experiment_id: str,
+    *,
+    results_root: Path | str = Path("results"),
+    output_dir: Path | None = None,
+    num_stimulus: int = 10,
+    export_decoder_int8: bool = True,
+    scorecard_path: Path | None = None,
+    validate: bool = True,
+    strict_release_validation: bool = False,
+) -> dict[str, object]:
+    """Backfill a release-complete deploy package for an existing golden run."""
+    experiment = get_golden(experiment_id)
+    if experiment.method != "rvq":
+        raise ValueError(
+            f"repackage_golden currently supports only RVQ experiments; {experiment.experiment_id!r} uses {experiment.method!r}"
+        )
+
+    results_root = Path(results_root)
+    run_dir = _resolve_run_dir(experiment, results_root)
+    if not run_dir.is_dir():
+        raise FileNotFoundError(f"run directory missing for {experiment.experiment_id!r}: {run_dir}")
+
+    summary = repackage_rvq_golden(
+        experiment,
+        run_dir=run_dir,
+        output_dir=output_dir,
+        num_stimulus=num_stimulus,
+        export_decoder_int8=export_decoder_int8,
+        scorecard_path=scorecard_path,
+    )
+
+    validation: dict[str, object] | None = None
+    if validate:
+        validation_result = validate_deploy_package(
+            Path(summary["deploy_dir"]),
+            strict_release=strict_release_validation,
+        )
+        if validation_result.errors:
+            details = "; ".join(validation_result.errors)
+            raise RuntimeError(f"deploy validation failed for {experiment.experiment_id!r}: {details}")
+        if validation_result.warnings:
+            logger.warning(
+                "deploy validation warnings for %s: %s",
+                experiment.experiment_id,
+                "; ".join(validation_result.warnings),
+            )
+        validation = _summarize_validation(validation_result)
+
+    summary["validation"] = validation
+    return summary
+
+
+__all__ = ["repackage_golden", "run_golden"]

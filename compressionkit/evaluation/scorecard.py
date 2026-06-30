@@ -24,6 +24,7 @@ from compressionkit.evaluation.noise import (
     estimate_ecg_noise_floor,
     estimate_ppg_noise_floor,
 )
+from compressionkit.evaluation.robustness import summarize_robustness_for_scorecard
 from compressionkit.evaluation.ecg_morphology import evaluate_ecg_morphology
 from compressionkit.evaluation.ppg_morphology import evaluate_ppg_morphology
 from compressionkit.evaluation.spectral_metrics import (
@@ -37,6 +38,86 @@ from compressionkit.evaluation.spectral_metrics import (
     spectral_coherence,
     weighted_freq_prd,
 )
+
+
+def _match_run_record(blob: Any, run_dir: Path) -> Any:
+    """Extract the record for ``run_dir`` from a loose JSON artifact."""
+    run_name = run_dir.name
+    run_dir_str = str(run_dir)
+    if isinstance(blob, dict):
+        if run_name in blob:
+            return blob[run_name]
+        candidate_name = blob.get("run_name")
+        candidate_dir = blob.get("run_dir")
+        if candidate_name == run_name or candidate_dir == run_dir_str:
+            return blob
+        return None
+    if isinstance(blob, list):
+        if blob and all(isinstance(item, dict) and "test_name" in item for item in blob):
+            return blob
+        for item in blob:
+            if not isinstance(item, dict):
+                continue
+            candidate_name = item.get("run_name")
+            candidate_dir = item.get("run_dir")
+            if candidate_name == run_name or candidate_dir == run_dir_str:
+                return item
+    return None
+
+
+def _load_optional_json(path: Path | None) -> Any:
+    if path is None:
+        return None
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return json.loads(path.read_text())
+
+
+def _summarize_adversarial_record(record: Any, *, source_path: Path) -> dict[str, Any] | None:
+    if not isinstance(record, list):
+        return None
+    tests: dict[str, Any] = {}
+    for row in record:
+        if not isinstance(row, dict) or "test_name" not in row:
+            continue
+        tests[str(row["test_name"])] = row
+    if not tests:
+        return None
+    zero = tests.get("zero_input", {})
+    return {
+        "source": str(source_path),
+        "zero_input": {
+            "output_l2_when_input_zero": zero.get("output_l2_when_input_zero"),
+            "hallucinated_peaks": zero.get("hallucinated_peaks"),
+            "output_band_power": zero.get("output_band_power"),
+            "output_energy": zero.get("output_energy"),
+        },
+        "tests": tests,
+    }
+
+
+def _summarize_imprinting_record(record: Any, *, source_path: Path) -> dict[str, Any] | None:
+    if not isinstance(record, dict):
+        return None
+    metrics = record.get("metrics")
+    if not isinstance(metrics, dict):
+        return None
+    valid_samples = record.get("valid_samples")
+    normalized_metrics: dict[str, Any] = {}
+    for key, value in metrics.items():
+        if isinstance(value, dict) and "mean" in value and "n" not in value and valid_samples is not None:
+            normalized_metrics[key] = {"n": int(valid_samples), **value}
+        else:
+            normalized_metrics[key] = value
+    return {
+        "source": str(source_path),
+        "sample_rate": record.get("sample_rate"),
+        "valid_samples": valid_samples,
+        "occlusion_window_ms": record.get("occlusion_window_ms"),
+        "definition": record.get("definition", {}),
+        "metrics": normalized_metrics,
+    }
 
 
 def _aggregate(values: list[float]) -> dict[str, float]:
@@ -338,6 +419,46 @@ def _read_best_entropy(run_dir: Path) -> dict[str, Any]:
     return best or {}
 
 
+def _safe_round(value: Any, ndigits: int = 3) -> float | None:
+    """Round to ``ndigits`` while tolerating ``None``/non-numeric inputs."""
+    try:
+        if value is None:
+            return None
+        return round(float(value), ndigits)
+    except (TypeError, ValueError):
+        return None
+
+
+def _build_scorecard_headline(out: dict[str, Any]) -> dict[str, Any]:
+    """Consolidate the decision-relevant metrics into one top-level block.
+
+    Surfaces *both* faithfulness (PRD vs the recorded, still-noisy input) and
+    truth fidelity (PRD vs clean ground truth, taken from the robustness
+    fixture) so denoising lanes are not misjudged by faithfulness alone,
+    alongside the robust-SNR floor, the empirical-SNR anchors, and the
+    pure-noise imprint (hallucination) probe. All values are pulled from blocks
+    already computed elsewhere in the scorecard; this is a read-only summary.
+    """
+    td = out.get("time_domain", {}) or {}
+    bitrate = out.get("bitrate", {}) or {}
+    robustness = out.get("robustness", {}) or {}
+    rb_headline = robustness.get("headline", {}) if isinstance(robustness, dict) else {}
+    emp = rb_headline.get("empirical_snr", {}) if isinstance(rb_headline, dict) else {}
+    reference = robustness.get("reference", {}) if isinstance(robustness, dict) else {}
+
+    return {
+        "num_samples": out.get("num_samples"),
+        "compression_ratio": _safe_round(bitrate.get("codec_compression_ratio"), 3),
+        "faithful_prd_vs_input_pct": _safe_round(td.get("prd_percent", {}).get("mean")),
+        "truth_prd_vs_clean_pct": _safe_round(reference.get("clean")),
+        "truth_prd_at_native_noise_pct": _safe_round(reference.get("native")),
+        "prd_degradation_slope_per_db": _safe_round(emp.get("prd_slope_per_db")),
+        "prd_at_0db_pct": _safe_round(emp.get("prd_at_0db")),
+        "prd_at_-6db_pct": _safe_round(emp.get("prd_at_-6db")),
+        "imprint_output_autocorr": _safe_round(rb_headline.get("imprint_output_autocorr_max"), 4),
+    }
+
+
 def build_quality_scorecard(
     run_dir: Path,
     *,
@@ -351,6 +472,9 @@ def build_quality_scorecard(
     clean_reference_path: Path | None = None,
     clean_reference_key: str | None = None,
     clean_reference_label: str = "clean_truth",
+    adversarial_metrics_path: Path | None = None,
+    imprinting_metrics_path: Path | None = None,
+    robustness_metrics_path: Path | None = None,
 ) -> dict[str, Any]:
     """Compute the full scorecard for a single run directory.
 
@@ -377,6 +501,17 @@ def build_quality_scorecard(
         clean_reference_key: Optional array key when ``clean_reference_path``
             is a ``.npz``.
         clean_reference_label: Human-readable label stored in the output.
+        adversarial_metrics_path: Optional JSON artifact with adversarial or
+            hallucination metrics. Supports a dict keyed by run name or a list
+            of per-run dicts.
+        imprinting_metrics_path: Optional JSON artifact with localized
+            imprinting metrics. Supports a list of per-run dicts or a single
+            per-run dict.
+        robustness_metrics_path: Optional path to the ``robustness_metrics.json``
+            written by ``scripts/eval_golden_robustness``. When ``None``, the
+            ``robustness_metrics.json`` beside the run is auto-detected and, if
+            present, summarized into a ``robustness`` block (empirical-SNR
+            degradation curve, additive artifact families, imprint probe).
 
     Returns:
         Scorecard dict with sections ``bitrate``, ``time_domain``,
@@ -405,6 +540,14 @@ def build_quality_scorecard(
     summary = _read_summary(run_dir)
     stitching = _read_stitching(run_dir)
     entropy = _read_best_entropy(run_dir)
+    adversarial_blob = _load_optional_json(adversarial_metrics_path)
+    imprinting_blob = _load_optional_json(imprinting_metrics_path)
+    # Robustness: auto-detect the per-run artifact written by
+    # ``scripts/eval_golden_robustness`` unless an explicit path is given.
+    if robustness_metrics_path is None:
+        default_robustness = run_dir / "robustness_metrics.json"
+        robustness_metrics_path = default_robustness if default_robustness.exists() else None
+    robustness_blob = _load_optional_json(robustness_metrics_path)
 
     clean_reference_block: dict[str, Any] = {}
     if clean_reference_path is not None and loaded_pairs:
@@ -913,6 +1056,30 @@ def build_quality_scorecard(
     }
     if clean_reference_block:
         out["clean_reference"] = clean_reference_block
+    if adversarial_blob is not None:
+        adversarial_record = _match_run_record(adversarial_blob, run_dir)
+        hallucination = _summarize_adversarial_record(
+            adversarial_record,
+            source_path=Path(adversarial_metrics_path),
+        )
+        if hallucination:
+            out["hallucination"] = hallucination
+    if imprinting_blob is not None:
+        imprinting_record = _match_run_record(imprinting_blob, run_dir)
+        imprinting = _summarize_imprinting_record(
+            imprinting_record,
+            source_path=Path(imprinting_metrics_path),
+        )
+        if imprinting:
+            out["imprinting"] = imprinting
+    if robustness_blob is not None:
+        robustness = summarize_robustness_for_scorecard(robustness_blob)
+        if robustness:
+            out["robustness"] = robustness
+    # Lead with a consolidated, decision-relevant summary (read-only view over
+    # the blocks computed above): faithfulness + truth fidelity + robust-SNR
+    # floor + imprint safety, so denoisers are not judged on faithfulness alone.
+    out = {"headline": _build_scorecard_headline(out), **out}
     return out
 
 
