@@ -10,6 +10,8 @@ nav = [
     { "Home" = "index.md" },
     { "Use Cases" = "use-cases.md" },
     { "Getting Started" = "getting-started.md" },
+    { "Dataset Setup" = "datasets.md" },
+    { "Example Notebooks" = "examples.md" },
   ]},
   { "Models" = [
     { "Model Zoo" = "models/index.md" },

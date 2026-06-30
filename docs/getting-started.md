@@ -20,6 +20,11 @@ uv sync
 uv pip install -e .
 ```
 
+!!! tip "Try a codec first — no dataset needed"
+    To just load a published golden codec and round-trip a signal, jump to the
+    [Example Notebooks](examples.md). Training and real-data evaluation need the
+    datasets described in [Dataset Setup](datasets.md).
+
 ### Dependencies
 
 compressionKIT relies on:
@@ -64,7 +69,7 @@ Create a configuration file (or use an existing one):
 run_name: ppg_rvq_08x_ds8_l2
 
 data:
-  datasets_dir: /path/to/datasets
+  datasets_dir: datasets        # or set COMPRESSIONKIT_DATASETS_DIR
   dataset_glob: "mesa-commercial-use/polysomnography/edfs/*.edf"
   sampling_rate: 64
   frame_size: 320

@@ -58,6 +58,10 @@ recon = codec.decode(indices)
 See the [HuggingFace testing guide](https://ambiqai.github.io/compressionkit/huggingface/) for
 two-stage (codec + entropy prior) usage.
 
+> **Prefer a notebook?** [`examples/01_quickstart_golden_codec.ipynb`](examples/01_quickstart_golden_codec.ipynb)
+> and [`examples/02_evaluate_on_your_data.ipynb`](examples/02_evaluate_on_your_data.ipynb)
+> load a golden codec and round-trip real or synthetic signals — no dataset required.
+
 ---
 
 ## DSP-only (SPIHT) quickstart
@@ -119,6 +123,11 @@ uv run compressionkit golden run ppg-rvq-4x --publish
 
 Outputs land under `results/<run_name>/`, with the publishable deploy package in
 `results/<run_name>/deploy/`.
+
+Training and real-data evaluation read datasets from `./datasets` by default;
+override the root with `COMPRESSIONKIT_DATASETS_DIR`. See the
+[dataset setup guide](https://ambiqai.github.io/compressionkit/datasets/) for
+layout and licensing.
 
 ---
 
