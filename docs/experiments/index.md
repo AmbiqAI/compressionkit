@@ -23,6 +23,26 @@ For first-cut v1, ECG and PPG both carry a dual-family golden matrix: DSP SPIHT 
 at the chosen compression ratios. Use `compressionkit golden list --method rvq` or
 `compressionkit golden list --method spiht` to slice the registry by family.
 
+## Choose the lightest path that answers your question
+
+compressionKIT uses progressive disclosure for release workflows: start with the
+published artifact when you only need to try a codec, then move down toward full
+reproduction only when you need stronger evidence or a modified experiment.
+
+| Goal | Use this path | Dataset required? |
+|------|---------------|-------------------|
+| Try a published v1 codec | Load the HuggingFace bundle with `RVQCodec.from_pretrained(...)` | No |
+| Check a local deploy package | `compressionkit golden validate-deploy <deploy-dir>` | No |
+| Stage a package for review | `compressionkit golden run <id> --skip-train --publish --dry-run` | No, if `deploy/` already exists |
+| Reproduce metrics and artifacts | `compressionkit golden run <id>` | Yes |
+| Change the experiment | Copy a config or ready-made flow, then export and validate artifacts | Usually |
+| Promote a result to v1 golden status | Add registry entry, frozen config, scorecard, docs, and publication target | Yes |
+
+The registry is the release surface, not the experimentation surface. Custom work can
+start as a script, notebook, or copied recipe that calls reusable blocks directly. It
+only needs a golden registry entry when the output should become a supported release
+artifact.
+
 ## v1 Registry
 
 !!! info "Publication status"
@@ -101,6 +121,26 @@ Use `--skip-dataset-check` only when you intentionally bypass the pre-flight dat
 availability check, for example in a custom environment where the loader resolves data
 through another path. Training and evaluation still need the underlying data.
 
+## Extend an experiment
+
+For exploration, prefer copying a small working path over adding another framework hook.
+A typical extension flow is:
+
+1. Copy the closest config from `configs/` or the closest ready-made experiment.
+2. Change one decision at a time: compression ratio, augmentation, loss weighting,
+   architecture width, quantization target, or scorecard policy.
+3. Train and evaluate the modified experiment with the same dataset split policy.
+4. Export a deploy package with `export_for_deployment(...)` or the matching DSP export
+   helper.
+5. Validate the package with `validate_deploy_package(...)` or
+   `compressionkit golden validate-deploy <deploy-dir>`.
+6. Promote it to a golden only after the artifact contract, scorecard, docs, and
+   publication target are stable.
+
+This keeps defaults easy to run while leaving advanced work flexible. The golden runner
+is useful when you want release-grade repeatability; it is not required for every
+custom experiment.
+
 ## Reproduce every experiment in a modality
 
 ```bash
@@ -114,4 +154,5 @@ See also:
 
 - [HuggingFace testing guide](../huggingface.md) — load any AmbiqAI model in five minutes.
 - [Deployment guide](../deployment.md) — exporting the artifacts to an Ambiq-class device.
+- [Experiment architecture](../experiment-architecture.md) — how reusable blocks, recipes, and goldens fit together.
 - [Methods · RVQ Autoencoder](../methods/rvq.md) — the architecture every entry uses.
