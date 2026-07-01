@@ -19,6 +19,7 @@ import json
 import logging
 from pathlib import Path
 
+from compressionkit.export.artifact_contract import ArtifactFile
 from compressionkit.runtime.base import Codec  # used as return type annotation
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
         Local filesystem path to the deploy directory.
     """
     p = Path(str(repo_or_dir))
-    if p.is_dir() and ((p / "deploy_manifest.json").exists() or (p / "config.json").exists()):
+    if p.is_dir() and ((p / ArtifactFile.DEPLOY_MANIFEST).exists() or (p / ArtifactFile.HF_CONFIG).exists()):
         return p
 
     # Treat as HF repo id
@@ -55,14 +56,16 @@ def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
 
 
 def _read_manifest(deploy_dir: Path) -> dict:
-    manifest_path = deploy_dir / "deploy_manifest.json"
+    manifest_path = deploy_dir / ArtifactFile.DEPLOY_MANIFEST
     if not manifest_path.exists():
         # HF repos historically used config.json
-        alt = deploy_dir / "config.json"
+        alt = deploy_dir / ArtifactFile.HF_CONFIG
         if alt.exists():
             manifest_path = alt
         else:
-            raise FileNotFoundError(f"No deploy_manifest.json (or config.json) under {deploy_dir}")
+            raise FileNotFoundError(
+                f"No {ArtifactFile.DEPLOY_MANIFEST} (or {ArtifactFile.HF_CONFIG}) under {deploy_dir}"
+            )
     with manifest_path.open() as f:
         return json.load(f)
 
@@ -73,8 +76,8 @@ def _ensure_deploy_manifest(deploy_dir: Path) -> None:
     HuggingFace snapshots stage the manifest as ``config.json``; the
     family-specific codec constructors look for ``deploy_manifest.json``.
     """
-    manifest_path = deploy_dir / "deploy_manifest.json"
-    config_path = deploy_dir / "config.json"
+    manifest_path = deploy_dir / ArtifactFile.DEPLOY_MANIFEST
+    config_path = deploy_dir / ArtifactFile.HF_CONFIG
     if not manifest_path.exists() and config_path.exists():
         try:
             manifest_path.symlink_to(config_path.name)

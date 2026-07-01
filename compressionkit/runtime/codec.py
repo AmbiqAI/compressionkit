@@ -22,6 +22,8 @@ from pathlib import Path
 
 import numpy as np
 
+from compressionkit.export.artifact_contract import ArtifactFile
+
 logger = logging.getLogger(__name__)
 
 # Try ai-edge-litert first, then tflite-runtime, then tf.lite
@@ -75,7 +77,7 @@ class RVQCodec:
 
     def __init__(self, deploy_dir: str | Path) -> None:
         self._deploy_dir = Path(deploy_dir)
-        manifest_path = self._deploy_dir / "deploy_manifest.json"
+        manifest_path = self._deploy_dir / ArtifactFile.DEPLOY_MANIFEST
         if not manifest_path.exists():
             raise FileNotFoundError(f"Deploy manifest not found: {manifest_path}")
 
@@ -107,7 +109,7 @@ class RVQCodec:
         if dec_int8:
             dec_candidates.append(dec_int8)
         # Fallback: look for common filenames
-        for fallback in ("decoder_float32.tflite", "decoder.tflite"):
+        for fallback in (ArtifactFile.DECODER_FLOAT32_TFLITE, ArtifactFile.DECODER_TFLITE):
             if fallback not in dec_candidates:
                 dec_candidates.append(fallback)
 

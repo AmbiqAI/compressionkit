@@ -14,6 +14,7 @@ from typing import Any
 
 import numpy as np
 
+from compressionkit.export.artifact_contract import ArtifactFile, SampleArray
 from compressionkit.export.release import sha256_file
 from compressionkit.runtime import load_codec
 
@@ -85,19 +86,19 @@ def _validate_reference_vectors(
     *,
     max_vectors: int,
 ) -> None:
-    ref_path = deploy_dir / "reference_vectors.npz"
+    ref_path = deploy_dir / ArtifactFile.REFERENCE_VECTORS
     if not ref_path.exists():
-        warnings.append("reference_vectors.npz not present")
+        warnings.append(f"{ArtifactFile.REFERENCE_VECTORS} not present")
         return
 
     codec = load_codec(deploy_dir)
     blob = np.load(ref_path)
     if family == "spiht":
-        frames = np.asarray(blob["input_frames"], dtype=np.float32)
+        frames = np.asarray(blob[SampleArray.INPUT_FRAMES], dtype=np.float32)
         payloads = np.asarray(blob["bitstreams"], dtype=np.uint8)
         lengths = np.asarray(blob["bitstream_lengths_bytes"], dtype=np.int32)
         nbits = np.asarray(blob["nbits"], dtype=np.int32)
-        recon = np.asarray(blob["reconstructions"], dtype=np.float32)
+        recon = np.asarray(blob[SampleArray.RECONSTRUCTIONS], dtype=np.float32)
         for idx in range(min(max_vectors, frames.shape[0])):
             encoded = codec.compress(frames[idx])
             actual = np.frombuffer(bytes(encoded.payload), dtype=np.uint8)
@@ -112,9 +113,9 @@ def _validate_reference_vectors(
         return
 
     if family == "rvq":
-        frames = np.asarray(blob["input_frames"], dtype=np.float32)
-        indices = np.asarray(blob["indices"], dtype=np.int32)
-        recon = np.asarray(blob["reconstructions"], dtype=np.float32)
+        frames = np.asarray(blob[SampleArray.INPUT_FRAMES], dtype=np.float32)
+        indices = np.asarray(blob[SampleArray.INDICES], dtype=np.int32)
+        recon = np.asarray(blob[SampleArray.RECONSTRUCTIONS], dtype=np.float32)
         for idx in range(min(max_vectors, frames.shape[0])):
             sample = frames[idx : idx + 1]
             actual_indices = codec.encode(sample)
