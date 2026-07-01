@@ -104,11 +104,11 @@ noise-stratified rows, and reproduction links.
 
 ---
 
-## Evidence surfaces
+## How to read the evidence
 
-compressionKIT results are meant to be updated release after release without
-losing comparability. Officially supported codecs should be evaluated through
-the same scorecard shape, even when the underlying method changes.
+The headline numbers are a starting point, not the whole story. compressionKIT
+reports each supported codec through the same evidence surfaces so users can see
+what changed, what stayed comparable, and which signal conditions were tested.
 
 <div class="grid cards" markdown="1">
 
