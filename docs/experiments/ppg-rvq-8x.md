@@ -17,9 +17,9 @@ icon: lucide/heart-pulse
 
 ## Dataset & License
 
-- **Dataset**: [MESA (NSRR)](https://sleepdata.org/datasets/mesa) (`dataset_id: mesa`)
-- **License**: NSRR Data Use Agreement (restricted)
-- **Notes**: Requires an NSRR token. Set ``NSRR_TOKEN`` and call ``MesaDataset(...).download()``.
+- **Dataset**: Open unified PPG v1 (`dataset_id: ppg-unified-strict-sanitize-v1`)
+- **Sources**: BIDMC, BUT PPG, PPG-DaLiA, and WESAD
+- **Notes**: Published v1 PPG goldens are MESA-free. Build the open-source cache with `scripts/build_ppg_cache.py`.
 
 The lifecycle runner pre-flights dataset availability before training (see #26 and the
 [dataset contract](../api/datasets.md)).

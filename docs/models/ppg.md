@@ -4,7 +4,9 @@ icon: lucide/activity
 
 # PPG Models (v1.0)
 
-Golden reference models for PPG compression, trained on the MESA dataset at 64 Hz.
+PPG release artifacts and comparison lanes at 64 Hz. The published HuggingFace
+bundles are RVQ neural codecs; the local golden registry also includes SPIHT DSP
+and hybrid AI+DSP lanes for standardized comparison.
 
 !!! tip "Per-experiment reproduction pages"
     Each entry below has a dedicated [experiment page](../experiments/index.md) with the
@@ -17,7 +19,10 @@ Golden reference models for PPG compression, trained on the MESA dataset at 64 H
     Two-stage variants: [`ppg-rvq-4x-prior`](../experiments/ppg-rvq-4x-prior.md) ·
     [`ppg-rvq-8x-prior`](../experiments/ppg-rvq-8x-prior.md).
 
-## Results Summary
+## Published RVQ results
+
+The table below summarizes the published RVQ bundles. These are the v1 packages
+available through HuggingFace and the runtime loader.
 
 | Model | Config | CR | PRD (%) | MSE | Cosine | HR MAE (bpm) | SDNN MAE (ms) |
 |-------|--------|----|---------|-----|--------|--------------|---------------|
@@ -37,6 +42,40 @@ All metrics are on the validation set. HR/HRV metrics are from long-recording ov
 
 ![PPG Cosine Similarity vs compression ratio](../assets/plots/ppg_cos_light.png#only-light)
 ![PPG Cosine Similarity vs compression ratio](../assets/plots/ppg_cos_dark.png#only-dark)
+
+## Codec tradeoffs under noise and artifacts
+
+PPG has three release-facing comparison lanes:
+
+| Lane | Role | Current publication status |
+|------|------|----------------------------|
+| **SPIHT** | DSP faithfulness baseline; preserves clean/noisy inputs with minimal learned behavior | Registered and reproducible locally; HuggingFace publication pending |
+| **RVQ** | Published neural codec bundles; compact learned representation with physiological scorecards | Published for 2x, 4x, 8x, 16x, and 32x |
+| **Hybrid** | Learned denoising front end with a SPIHT backend; designed for wearable-noise regimes | Registered and reproducible locally; HuggingFace publication pending |
+
+The robustness sweep scores each lane against a filtered clean-truth proxy after
+injecting empirical noise or additive artifacts. Lower PRD is better. This is a
+different question from faithful reconstruction of a clean validation frame: it
+asks which codec best preserves the recoverable pulse waveform when the input is
+already corrupted.
+
+| Condition family | Current PPG crossover pattern |
+|------------------|-------------------------------|
+| **Clean input** | SPIHT wins at 2x-8x, while RVQ wins at 16x-32x in the current robustness fixture. |
+| **Native / empirical SNR ladder** | Hybrid wins most injected-noise cells from native through -12 dB. At 32x, RVQ remains strongest for native, 12 dB, and 8 dB before hybrid takes over at heavier noise. |
+| **Motion artifacts** | RVQ is the current winner across the measured CR ladder. |
+| **Baseline wander** | Hybrid is the current winner across the measured CR ladder. |
+
+![PPG robustness winners across SNR](../assets/plots/ppg_robustness_winners_snr.png)
+
+![PPG robustness winners across artifacts](../assets/plots/ppg_robustness_winners_artifacts.png)
+
+The practical read is that SPIHT is a strong low-noise baseline, RVQ is the
+published neural operating surface, and hybrid approaches become important when
+the input looks more like a wrist-worn signal with empirical noise or drift. See
+[PPG CR vs fidelity](../methods/cr_vs_fidelity_ppg.md) and
+[Validation Scorecard](../validation-scorecard.md) for the detailed scorecard
+definitions and noise-aware metrics.
 
 ## Model Details
 
@@ -84,38 +123,30 @@ Long-recording evaluation uses overlap-add reconstruction on 60 s continuous seg
 
 | Model | HR MAE (bpm) | HR Median AE | HR Bias | SDNN MAE (ms) | RMSSD MAE (ms) |
 |-------|-------------|-------------|---------|---------------|----------------|
-| 02x | 0.10 | 0.000 | +0.053 | 32.8 | 46.6 |
-| 04x | 0.09 | 0.015 | +0.016 | 27.2 | 41.0 |
-| 08x | 0.19 | 0.018 | +0.035 | 43.3 | 63.6 |
-| 16x | 0.20 | 0.026 | −0.062 | 51.2 | 77.2 |
-| 32x | 0.30 | 0.045 | −0.043 | 63.4 | 99.6 |
+| 02x | 0.06 | 0.000 | +0.046 | 9.6 | 13.8 |
+| 04x | 0.05 | 0.000 | +0.021 | 12.9 | 18.7 |
+| 08x | 0.10 | 0.018 | +0.041 | 32.4 | 48.5 |
+| 16x | 0.19 | 0.032 | +0.016 | 58.2 | 90.8 |
+| 32x | 0.36 | 0.076 | +0.180 | 110.2 | 171.3 |
 
-## Dataset: MESA
+## Dataset: Open unified PPG v1
 
-The [Multi-Ethnic Study of Atherosclerosis (MESA)](https://sleepdata.org/datasets/mesa) contains overnight PPG recordings at 256 Hz from ~1,900 subjects. **This is a restricted-access dataset.**
+The published v1 PPG goldens use `ppg-unified-strict-sanitize-v1`: a unified
+mixture of BIDMC, BUT PPG, PPG-DaLiA, and WESAD. The release-facing PPG goldens
+are MESA-free so users can reproduce the published artifacts without restricted
+NSRR data.
 
-### Getting Access
+MESA remains a supported restricted source for internal or custom experiments,
+but it is not used in the published v1 PPG goldens. See [Dataset Setup](../datasets.md)
+for source-specific licensing and cache-building commands.
 
-1. Create an account at [sleepdata.org](https://sleepdata.org)
-2. Apply for access to the [MESA dataset](https://sleepdata.org/datasets/mesa)
-3. Wait for approval (may take several days)
-4. Once approved, get your API token from your NSRR profile page
-
-### Downloading
+### Build the cache
 
 ```bash
-# Set your NSRR token
-export NSRR_TOKEN="your-token-here"
+# Build the open sources used by the v1 PPG goldens.
+uv run python scripts/build_ppg_cache.py \
+    --sources bidmc butppg ppg_dalia wesad
 ```
-
-```python
-from compressionkit.datasets.mesa import MesaDataset
-
-ds = MesaDataset(path="./datasets/mesa")
-ds.download()  # uses NSRR_TOKEN env var
-```
-
-Or download manually from the NSRR website and place EDF files under `datasets/mesa-commercial-use/`.
 
 ## Training
 

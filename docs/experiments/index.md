@@ -107,7 +107,7 @@ metrics or weights.
 ## Reproduce one experiment
 
 ```bash
-# 1. Fetch or mount the dataset first (MESA requires NSRR_TOKEN; PTB-XL is open).
+# 1. Fetch or mount the dataset first (PPG uses the open unified cache; PTB-XL is open).
 uv run compressionkit golden run ppg-rvq-4x
 
 # DSP goldens use the same lifecycle entry point.
