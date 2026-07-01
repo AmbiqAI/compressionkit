@@ -54,9 +54,10 @@ def _load_parent_compressor(parent_exp: Any, run_dir: Path) -> tuple[keras.Model
     if not cfg_path.is_file():
         raise FileNotFoundError(f"Parent config.json missing in {run_dir}")
     cfg = ParentConfig.model_validate_json(cfg_path.read_text())
+    num_channels = max(1, int(getattr(cfg.data, "num_leads", 1) or 1))
     with tf.device("/CPU:0"):
         model = build_model(cfg)
-        dummy = np.zeros((1, 1, cfg.data.frame_size, max(1, cfg.data.num_leads or 1)), dtype=np.float32)
+        dummy = np.zeros((1, 1, cfg.data.frame_size, num_channels), dtype=np.float32)
         model(dummy, training=False)
     for name in ("best_model.weights.h5", "model.weights.h5"):
         p = run_dir / name
@@ -83,7 +84,7 @@ def _load_token_signals(modality: str, parent_cfg: Any, num_files: int) -> tuple
         train_files, _, _ = load_ppg_file_splits(Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed)
         train_files = train_files[:num_files]
         target_label = getattr(data, "target_label", "Pleth")
-        target_rate = data.effective_sample_rate
+        target_rate = int(getattr(data, "effective_sample_rate", data.sampling_rate))
         signals = [load_ppg_signal(p, target_rate=target_rate, target_label=target_label) for p in train_files]
     return signals, {"num_files": len(signals)}
 
@@ -111,7 +112,7 @@ def _export_prior_tflite(prior: keras.Model, output_dir: Path, vocab_size: int, 
         header_name="prior_int8.h",
         c_array_name="prior",
         quantization="INT8",
-        io_type="int32",
+        io_type="int8",
     )
     return tflite_path
 
@@ -135,6 +136,7 @@ def train_prior_from_config(cfg: RvqPriorConfig) -> dict[str, Any]:
     compressor, parent_cfg = _load_parent_compressor(parent_exp, parent_run_dir)
     data = parent_cfg.data
     mcfg = parent_cfg.model
+    num_channels = max(1, int(getattr(data, "num_leads", 1) or 1))
     vocab_size = int(mcfg.latent_width)
     frame_size = int(data.frame_size)
     tokens_per_frame = frame_size // (2**mcfg.num_stages)
@@ -146,7 +148,7 @@ def train_prior_from_config(cfg: RvqPriorConfig) -> dict[str, Any]:
         compressor,
         signals,
         frame_size=frame_size,
-        num_leads=data.num_leads or 1,
+        num_leads=num_channels,
         epsilon=data.epsilon,
         batch_size=64,
     )
@@ -194,6 +196,8 @@ def train_prior_from_config(cfg: RvqPriorConfig) -> dict[str, Any]:
     deploy_dir = parent_run_dir / "deploy"
     tflite_path: Path | None = None
     if cfg.export_tflite:
+        from compressionkit.export.release import write_checksums
+
         deploy_dir.mkdir(parents=True, exist_ok=True)
         tflite_path = _export_prior_tflite(prior, deploy_dir, vocab_size, context_length)
         manifest = {
@@ -205,6 +209,7 @@ def train_prior_from_config(cfg: RvqPriorConfig) -> dict[str, Any]:
             "training": cfg.training.model_dump(),
         }
         (deploy_dir / "prior_manifest.json").write_text(json.dumps(manifest, indent=2))
+        write_checksums(deploy_dir)
 
     return {
         "parent_run_dir": str(parent_run_dir),

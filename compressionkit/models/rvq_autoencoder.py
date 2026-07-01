@@ -18,6 +18,7 @@ from helia_edge.layers import ResidualVectorQuantizer
 from helia_edge.trainers import VQAutoencoder
 
 from compressionkit.layers import EmaResidualVectorQuantizer, FiniteScalarQuantizer
+from compressionkit.layers.significance_quantizer import SignificanceQuantizer
 
 # Re-export building blocks and builders for backwards compatibility
 from compressionkit.models.blocks import (  # noqa: F401
@@ -43,10 +44,20 @@ from compressionkit.models.decoder import (
     build_hierarchical_adaptor_decoder_2d,
     build_hierarchical_decoder_2d,
 )
+from compressionkit.models.dwt_learned import (
+    build_mlp_decoder,
+    build_mlp_encoder,
+    build_transformer_decoder,
+    build_transformer_encoder,
+)
 from compressionkit.models.encoder import (
     build_encoder_2d,
     build_encoder_2d_invres,
     build_encoder_2d_spatial,
+)
+from compressionkit.models.soundstream import (
+    build_soundstream_decoder,
+    build_soundstream_encoder,
 )
 
 # ---------------------------------------------------------------------------
@@ -239,11 +250,42 @@ def build_rvq_autoencoder(
             raise ValueError("bottleneck_type='fsq' requires non-empty fsq_levels list")
         if embedding_dim != len(fsq_levels):
             embedding_dim = len(fsq_levels)
-    elif bottleneck_type != "rvq":
+    elif bottleneck_type not in ("rvq", "significance"):
         raise ValueError(f"Unknown bottleneck_type: {bottleneck_type!r}")
 
     # --- Encoder ---
-    if encoder_type == "inverted_residual":
+    if encoder_type == "soundstream":
+        encoder = build_soundstream_encoder(
+            input_len=frame_size,
+            in_ch=in_ch,
+            embedding_dim=embedding_dim,
+            base_filters=base_filters,
+            multiplier=multiplier,
+            num_stages=num_stages,
+            norm=encoder_block_norm,
+            head_norm=encoder_head_norm,
+        )
+    elif encoder_type == "mlp":
+        encoder = build_mlp_encoder(
+            input_len=frame_size,
+            in_ch=in_ch,
+            embedding_dim=embedding_dim,
+            num_stages=num_stages,
+            hidden_dim=int(base_filters * multiplier),
+            num_layers=encoder_blocks_per_stage,
+        )
+    elif encoder_type == "transformer":
+        encoder = build_transformer_encoder(
+            input_len=frame_size,
+            in_ch=in_ch,
+            embedding_dim=embedding_dim,
+            num_stages=num_stages,
+            d_model=int(base_filters * multiplier),
+            num_heads=4,
+            num_layers=encoder_blocks_per_stage,
+            ff_dim=int(base_filters * multiplier * 2),
+        )
+    elif encoder_type == "inverted_residual":
         encoder = build_encoder_2d_invres(
             input_len=frame_size,
             in_ch=in_ch,
@@ -272,7 +314,37 @@ def build_rvq_autoencoder(
         )
 
     # --- Decoder ---
-    if decoder_type == "ssm":
+    if decoder_type == "soundstream":
+        decoder = build_soundstream_decoder(
+            output_len=frame_size,
+            out_ch=out_ch,
+            embedding_dim=embedding_dim,
+            base_filters=base_filters,
+            multiplier=multiplier,
+            num_stages=num_stages,
+            norm=decoder_block_norm,
+        )
+    elif decoder_type == "mlp":
+        decoder = build_mlp_decoder(
+            output_len=frame_size,
+            out_ch=out_ch,
+            embedding_dim=embedding_dim,
+            num_stages=num_stages,
+            hidden_dim=int(base_filters * multiplier),
+            num_layers=encoder_blocks_per_stage,
+        )
+    elif decoder_type == "transformer":
+        decoder = build_transformer_decoder(
+            output_len=frame_size,
+            out_ch=out_ch,
+            embedding_dim=embedding_dim,
+            num_stages=num_stages,
+            d_model=int(base_filters * multiplier),
+            num_heads=4,
+            num_layers=encoder_blocks_per_stage,
+            ff_dim=int(base_filters * multiplier * 2),
+        )
+    elif decoder_type == "ssm":
         decoder = build_decoder_2d_ssm(
             output_len=frame_size,
             out_ch=out_ch,
@@ -337,6 +409,34 @@ def build_rvq_autoencoder(
             vq=bottleneck,
             decoder=decoder,
             name=f"FSQAE_2D_ds{downsample_factor}",
+        )
+        return encoder, bottleneck, decoder, model
+
+    if bottleneck_type == "significance":
+        latent_len = frame_size // downsample_factor
+        num_latents = latent_len * embedding_dim
+        # keep_ratio: what fraction of latent values to keep.
+        # Compute from bit budget: at input_bits/CR target, each kept value costs ~quant_bits
+        # Default: keep half (can be tuned via beta repurposed as keep_ratio if >1, else rate_lambda)
+        # We use num_levels to encode quant_bits, and beta as rate_lambda
+        quant_bits = max(4, min(16, num_levels * 8 if num_levels >= 1 else 8))
+        # Approximate keep_ratio for target CR:
+        # budget_bits = frame_size * 16 / CR, where CR = frame_size / (latent_len * embedding_dim * keep_ratio * quant_bits / 16)
+        # For simplicity: keep_ratio = budget_bits / (num_latents * quant_bits)
+        # At 4× CR: budget = 320*16/4 = 1280, num_latents=160, qbits=8 → keep_ratio = 1280/(160*8) = 1.0
+        # At 4× CR: budget = 320*16/4 = 1280, num_latents=320, qbits=8 → keep_ratio = 1280/(320*8) = 0.5
+        keep_ratio = min(1.0, (frame_size * 16.0 / 4.0) / (num_latents * quant_bits))
+        bottleneck = SignificanceQuantizer(
+            keep_ratio=keep_ratio,
+            quant_bits=quant_bits,
+            rate_lambda=beta,
+            temperature=0.1,
+        )
+        model = VQAutoencoder(
+            encoder=encoder,
+            vq=bottleneck,
+            decoder=decoder,
+            name=f"SigAE_2D_ds{downsample_factor}",
         )
         return encoder, bottleneck, decoder, model
 

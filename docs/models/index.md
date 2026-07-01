@@ -4,72 +4,75 @@ icon: lucide/layers
 
 # Model Zoo
 
-compressionKIT ships golden reference models for both PPG and ECG signals. Each model is defined by a source-controlled YAML config and trained with the same architecture — an RVQ autoencoder with EMA codebook updates.
+The model zoo is the release-facing view of compressionKIT artifacts. It shows
+which codec packages are currently supported, what signal surfaces they cover,
+and where to find the measured scorecards. It is not meant to imply that these
+are the only codec families compressionKIT can support.
 
-<div class="grid cards" markdown>
+## Current release surface
 
--   :material-heart-pulse:{ .lg .middle } **PPG Models (v1.0)**
+| Signal | Current release status | Published bundles | Deeper results |
+|--------|------------------------|-------------------|----------------|
+| **PPG** | v1 neural codec goldens at 64 Hz | 2x, 4x, 8x, 16x, 32x | [PPG models](ppg.md), [PPG CR vs fidelity](../methods/cr_vs_fidelity_ppg.md) |
+| **ECG** | v1 neural codec goldens at 256 Hz | 2x, 4x, 8x, 16x, 32x, 64x | [ECG models](ecg.md), [ECG CR vs fidelity](../methods/cr_vs_fidelity_ecg.md) |
+| **IMU** | Extension target | Not published in v1 | Define preservation metrics first: event timing, activity-band energy, orientation/motion features |
 
-    ---
+DSP, hybrid, and entropy-prior lanes are registered and locally reproducible for
+comparison and release packaging work. Their HuggingFace publication status is
+tracked in the [golden experiments](../experiments/index.md) registry.
 
-    Five operating points from 2× to 32× compression at 64 Hz.
-    Trained on the MESA dataset with HR/HRV preservation metrics.
+## Evidence router
 
-    [:octicons-arrow-right-24: Browse PPG models](ppg.md)
+Start from the customer question, then move to the page that carries the right
+context. The model zoo index intentionally avoids embedding every metric plot;
+plots belong beside their scorecard tables, sample counts, noise buckets, and
+reproduction commands.
 
--   :material-heart-flash:{ .lg .middle } **ECG Models (v1.0)**
+| Question | First page to open | What to look for |
+|----------|--------------------|------------------|
+| Which compression ratios are published? | [Customer evidence](../customer-evidence.md) | CR ladder, frame duration, edge payload, recommended operating bands |
+| How does PPG behave across CR? | [PPG models](ppg.md) | HR/HRV preservation, pulse-band error, waveform fidelity, robustness links |
+| How does ECG behave across CR? | [ECG models](ecg.md) | R-peak timing, QRS-band error, morphology behavior, robustness links |
+| What happens in clean vs noisy regimes? | [PPG CR vs fidelity](../methods/cr_vs_fidelity_ppg.md), [ECG CR vs fidelity](../methods/cr_vs_fidelity_ecg.md) | truth PRD, faithful PRD, PRDN-noise, clean/median/noisy tertiles |
+| Is the package deployable? | [Deployment](../deployment.md), [V1 release contract](../release-contract.md) | manifests, checksums, TFLite models, C headers, reference vectors |
 
-    ---
+## What each model page should answer
 
-    Five operating points from 2× to 32× compression at 256 Hz.
-    Trained on PTB-XL Lead II with QRS-preserving derivative loss.
+| Question | Where it appears |
+|----------|------------------|
+| What package can I download? | HuggingFace links on the PPG/ECG model pages |
+| What compression ratios are supported? | Per-modality result tables |
+| What happens to physiological observables? | HR/HRV, QRS-band, coherence, morphology, and bucketed scorecard rows |
+| How does performance change under noise or artifact regimes? | CR-vs-fidelity and validation-scorecard pages |
+| Can I reproduce or validate the package? | Golden experiment pages and deploy validation commands |
 
-    [:octicons-arrow-right-24: Browse ECG models](ecg.md)
+## Standard comparison rule
 
-</div>
+New candidates should be compared against currently supported goldens through the
+same generated surfaces:
 
-## At a Glance
+1. same dataset split or documented fixture
+2. same compression-ratio accounting
+3. same waveform and physiology metrics
+4. same clean/median/noisy or SNR/artifact buckets
+5. same deploy-package validation contract
 
-| Signal | Rate | Frame | Compression Ratios | Dataset | Access |
-|--------|------|-------|--------------------|---------|--------|
-| **PPG** | 64 Hz | 5 s (320 samples) | 2× / 4× / 8× / 16× / 32× | MESA | Restricted |
-| **ECG** | 256 Hz | 2 s (512 samples) | 2× / 4× / 8× / 16× / 32× | PTB-XL | Open |
+That structure allows newer releases to be compared against older still-supported
+versions without relying on hand-written claims that drift over time.
 
-!!! note "How the compression ratio is computed"
-    The `NNx` label is the **true end-to-end compression ratio**:
+## Deployment artifacts
 
-    \[ \text{CR} = \frac{T \cdot B}{(T/D) \cdot L \cdot \log_2 K} \]
+Every release-grade package is expected to carry enough information to be loaded,
+validated, and compared without the original training environment:
 
-    With $B = 16$-bit input, $K = 256$ codebook entries ($\log_2 K = 8$ bits/index), and $L = 2$ RVQ levels, each latent position costs $2 \times 8 = 16$ bits — exactly the raw sample width. The CR therefore equals the encoder downsample factor $D$. The 32× tier uses $L = 1$ to double the ratio at $D = 16$.
+| Artifact | Purpose |
+|----------|---------|
+| `deploy_manifest.json` / `codec_spec.json` | Runtime hydration and package identity |
+| LiteRT/TFLite models and C headers | Edge and host deployment |
+| Codebooks or DSP operating-point files | Codec state needed for encode/decode |
+| `reference_vectors.npz` | Known-good conformance vectors |
+| `scorecard.json` | Frozen release metric summary |
+| `checksums.json` | Integrity validation |
 
-## Versioning
-
-Models follow a `v{major}.{minor}` scheme:
-
-- **v1.0** — Current golden models. RVQ autoencoder with EMA codebook, UpSampling2D decoder, derivative loss, 200 epochs.
-
-New model versions will be published when architecture changes, training recipe improvements, or dataset updates produce meaningfully different results.
-
-## Deployment Artifacts
-
-Every golden config produces these artifacts:
-
-| Artifact | Format | Deployment Target |
-|----------|--------|-------------------|
-| Encoder | INT8 TFLite (`.tflite`) + C header (`.h`) | On-device (MCU) |
-| RVQ codebook | C header (`.h`) + NumPy (`.npz`) | On-device (MCU) |
-| Decoder | Keras model (`.keras`) | Server-side |
-| Sample data | NumPy (`.npz`) with 50 input/target/reconstruction pairs | Validation |
-| Manifest | `deploy_manifest.json` | Metadata |
-
-## Training a Model
-
-```bash
-# PPG example (8x compression)
-python -m compressionkit.recipes.train_ppg_rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
-
-# ECG example (8x compression)
-python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
-```
-
-Results are written to `results/<run_name>/` including weights, metrics, plots, and the `deploy/` directory with all deployment artifacts.
+See [Deployment](../deployment.md) and [V1 Release Contract](../release-contract.md)
+for the full artifact contract.

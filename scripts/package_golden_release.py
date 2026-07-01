@@ -20,8 +20,6 @@ import logging
 import sys
 from pathlib import Path
 
-import numpy as np
-
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -36,9 +34,17 @@ def main() -> None:
         "--output-dir", type=Path, default=None, help="Override output dir (default: golden-dir/deploy)."
     )
     parser.add_argument("--num-stimulus", type=int, default=10, help="Number of synthetic stimulus samples.")
-    parser.add_argument("--export-decoder-int8", action="store_true", help="Also export INT8 decoder TFLite.")
     parser.add_argument(
-        "--scorecard", type=Path, default=None, help="Path to quality_scorecard.json to embed in model card."
+        "--export-decoder-int8",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Export INT8 decoder TFLite alongside the float32 decoder.",
+    )
+    parser.add_argument(
+        "--scorecard",
+        type=Path,
+        default=None,
+        help="Path to quality_scorecard.json. Defaults to <golden-dir>/quality_scorecard.json when present.",
     )
     args = parser.parse_args()
 
@@ -48,106 +54,33 @@ def main() -> None:
         sys.exit(1)
 
     output_dir = args.output_dir or golden_dir / "deploy"
+    from compressionkit.experiments.registry import GoldenExperiment
+    from compressionkit.experiments.repackage import repackage_rvq_golden
 
-    # Load the trained model
-    import keras
-
-    from compressionkit.export.deploy import export_for_deployment
-    from compressionkit.export.stimulus import export_stimulus_npz
-
-    # Load encoder, decoder, and RVQ weights from golden artifacts.
-    # Golden runs store components individually (encoder.keras, decoder.keras,
-    # rvq_weights.npz) rather than a single model.keras.
-    encoder_path = golden_dir / "encoder.keras"
-    decoder_path = golden_dir / "decoder.keras"
-    rvq_weights_path = golden_dir / "rvq_weights.npz"
-
-    missing = [p for p in [encoder_path, decoder_path, rvq_weights_path] if not p.exists()]
-    if missing:
-        logger.error("Missing golden artifacts: %s", [str(p) for p in missing])
-        sys.exit(1)
-
-    logger.info("Loading encoder from %s", encoder_path)
-    encoder = keras.models.load_model(encoder_path)
-    logger.info("Loading decoder from %s", decoder_path)
-    decoder = keras.models.load_model(decoder_path)
-
-    logger.info("Loading RVQ weights from %s", rvq_weights_path)
-    rvq_npz = np.load(rvq_weights_path)
-    rvq_weights = [rvq_npz[k] for k in sorted(rvq_npz.files)]
-
-    # Generate representative dataset from synthetic data.
-    # Encoder input_shape is typically (None, 1, T, C) — frame_size is
-    # the temporal axis (index -2 for 4D, -1 for 2D/3D).
-    from compressionkit.export.stimulus import generate_stimulus
-
-    input_shape = encoder.input_shape  # e.g. (None, 1, 320, 1)
-    if len(input_shape) == 4 or len(input_shape) == 3:
-        frame_size = input_shape[-2]
-    else:
-        frame_size = input_shape[-1]
-    rep_dataset = generate_stimulus(
+    experiment = GoldenExperiment(
+        experiment_id=f"{args.modality}-rvq-{args.compression_ratio}x",
         modality=args.modality,
-        num_samples=100,
-        frame_size=frame_size,
+        family="codec",
+        method="rvq",
+        recipe=None,
+        config_path=None,
+        run_name=golden_dir.name,
         sample_rate=args.sample_rate,
-        seed=42,
+        compression_ratio=args.compression_ratio,
+        hf_repo_id=f"Ambiq/compressionkit-{args.modality}-{args.compression_ratio}x",
+        dataset_id="manual",
     )
-    # Reshape synthetic data to match encoder input: (B, 1, T, C) or (B, T, C)
-    if len(input_shape) == 4:
-        rep_dataset = rep_dataset.reshape(-1, 1, frame_size, 1)
-    elif len(input_shape) == 3:
-        rep_dataset = rep_dataset[..., np.newaxis]
-
-    # Build model card info
-    model_card_info = {
-        "modality": args.modality,
-        "sample_rate": args.sample_rate,
-        "compression_ratio": args.compression_ratio,
-        "license": "other",
-    }
-    if args.scorecard and args.scorecard.exists():
-        with open(args.scorecard) as f:
-            scorecard = json.load(f)
-        model_card_info["scorecard_summary"] = {
-            k: scorecard.get(k) for k in ["time_domain", "spectral"] if k in scorecard
-        }
-
-    # Generate sample inputs/reconstructions via encoder → decoder
-    sample_inputs = rep_dataset[:10]
-    latents = encoder.predict(sample_inputs, verbose=0)
-    sample_reconstructions = decoder.predict(latents, verbose=0)
-    if isinstance(sample_reconstructions, dict):
-        sample_reconstructions = sample_reconstructions.get("reconstruction", sample_reconstructions.get("output"))
-
-    # Export
-    model_name = f"{args.modality}_rvq_{args.sample_rate}hz_{args.compression_ratio}x"
-    artifacts = export_for_deployment(
-        encoder=encoder,
-        decoder=decoder,
-        rvq_weights=rvq_weights,
-        rep_dataset=rep_dataset,
+    summary = repackage_rvq_golden(
+        experiment,
+        run_dir=golden_dir,
         output_dir=output_dir,
-        sample_inputs=sample_inputs,
-        sample_targets=sample_inputs,
-        sample_reconstructions=np.asarray(sample_reconstructions, dtype=np.float32),
-        model_name=model_name,
-        export_decoder_float32=True,
+        num_stimulus=args.num_stimulus,
         export_decoder_int8=args.export_decoder_int8,
-        model_card_info=model_card_info,
-    )
-
-    # Export synthetic stimulus separately
-    export_stimulus_npz(
-        modality=args.modality,
-        output_path=output_dir / "sample_stimulus.npz",
-        num_samples=args.num_stimulus,
-        frame_size=frame_size,
-        sample_rate=args.sample_rate,
+        scorecard_path=args.scorecard,
     )
 
     logger.info("Package complete: %s", output_dir)
-    logger.info("Artifacts: %s", json.dumps(artifacts.as_dict(), indent=2))
+    logger.info("Artifacts: %s", json.dumps(summary["artifacts"], indent=2))
 
 
 if __name__ == "__main__":

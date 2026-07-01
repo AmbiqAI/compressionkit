@@ -4,7 +4,7 @@ icon: lucide/heart-pulse
 
 # PPG (Photoplethysmography)
 
-PPG is the most complete signal path in compressionKIT today. The toolkit includes a documented training flow, golden operating points, export artifacts, and a customer-ready live demo centered on this signal type.
+PPG is the most complete signal path in compressionKIT today. The toolkit includes published RVQ bundles, SPIHT/RVQ/hybrid comparison lanes, export artifacts, and a browser demo centered on this signal type.
 
 ## What is PPG?
 
@@ -28,22 +28,17 @@ A PPG signal captures the pulsatile component of blood flow, producing a charact
 
 ## PPG in compressionKIT
 
-For a workflow-level view of what is supported today, see [PPG Workflow](ppg-workflow.md). For the shipped 2×, 4×, 8×, and 16× examples, see [PPG 2x-16x Examples](ppg-v1-examples.md).
+For a workflow-level view of what is supported today, see [PPG Workflow](ppg-workflow.md). For measured 2x-32x RVQ metrics and SPIHT/RVQ/hybrid robustness tradeoffs, see [PPG Models](../models/ppg.md).
 
 ### Data Source
 
-compressionKIT loads PPG data from **EDF files** (European Data Format), specifically targeting the `Pleth` channel commonly found in polysomnography recordings such as the [MESA dataset](https://sleepdata.org/datasets/mesa).
+The published v1 PPG goldens use the open unified PPG v1 cache built from BIDMC,
+BUT PPG, PPG-DaLiA, and WESAD. MESA remains a supported restricted source for
+custom experiments, but it is not used in the published v1 PPG goldens.
 
-```python
-from compressionkit.datasets.ppg import load_ppg_signal
-
-signal = load_ppg_signal(
-    edf_file,
-    target_rate=64,
-    target_label="Pleth",
-    offset_samples=192,   # skip first 3 seconds
-    num_samples=7680,      # 2 minutes at 64 Hz
-)
+```bash
+uv run python scripts/build_ppg_cache.py \
+  --sources bidmc butppg ppg_dalia wesad
 ```
 
 ### Preprocessing Pipeline

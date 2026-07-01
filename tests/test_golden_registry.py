@@ -100,7 +100,7 @@ def test_two_stage_requires_parent() -> None:
             sample_rate=64,
             compression_ratio=4,
             hf_repo_id="Ambiq/compressionkit-ppg-4x",
-            dataset_id="mesa",
+            dataset_id="ppg-unified-strict-sanitize-v1",
         )
 
 
@@ -117,5 +117,5 @@ def test_codec_rejects_parent() -> None:
             sample_rate=64,
             compression_ratio=4,
             hf_repo_id="Ambiq/compressionkit-ppg-4x",
-            dataset_id="mesa",
+            dataset_id="ppg-unified-strict-sanitize-v1",
         )

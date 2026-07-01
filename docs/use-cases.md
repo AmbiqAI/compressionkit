@@ -2,9 +2,12 @@
 icon: lucide/target
 ---
 
-# Use Cases & Customer Value
+# Use Cases & Value
 
-compressionKIT exists for one reason: **help our customers ship continuous‑sensing products that were previously impossible on a wearable power and memory budget.** This page summarizes where the toolkit adds concrete value and quantifies the savings a typical integration delivers.
+compressionKIT helps wearable teams keep more waveform data without paying the
+full memory, radio, and cloud-ingestion cost of raw sampling. This page summarizes
+where compression usually creates value and gives order-of-magnitude sizing
+examples for product planning.
 
 ---
 
@@ -56,7 +59,7 @@ compressionKIT exists for one reason: **help our customers ship continuous‑sen
 
 <div class="grid cards" markdown>
 
--   :material-compress:{ .lg .middle } **2× – 32×**
+-   :material-compress:{ .lg .middle } **2× – 64×**
 
     Compression operating points, one codec
 
@@ -66,11 +69,11 @@ compressionKIT exists for one reason: **help our customers ship continuous‑sen
 
 -   :material-vector-line:{ .lg .middle } **≥ 0.96 cosine**
 
-    Waveform fidelity at 32×
+    Waveform fidelity through aggressive ECG/PPG operating points
 
 -   :material-heart-pulse:{ .lg .middle } **< 1 bpm**
 
-    Heart-rate error (PPG, all ratios)
+    PPG HR error across the published RVQ CR ladder
 
 </div>
 
@@ -81,7 +84,7 @@ compressionKIT exists for one reason: **help our customers ship continuous‑sen
 
 ## Benefit 1 — On‑device memory
 
-compressionKIT lets customers keep **much more continuous waveform** in the same MCU flash partition or PSRAM region.
+compressionKIT lets devices keep **much more continuous waveform** in the same MCU flash partition or PSRAM region.
 
 ### PPG — continuous recording capacity
 
@@ -142,20 +145,24 @@ Per‑patient, per‑year waveform retention — and what that scales to at flee
 
 ## Benefit 4 — Fidelity that survives downstream algorithms
 
-Unlike naive downsampling or bit‑depth truncation, compressionKIT learns the signal manifold with a **derivative‑aware loss** that preserves slopes and peak morphology.
+Unlike naive downsampling or bit-depth truncation, compressionKIT evaluates codecs
+against waveform and physiology-aware scorecards. The published RVQ bundles are
+the easiest packages to load today; SPIHT and hybrid lanes provide standardized
+comparison points for clean, noisy, and artifact-heavy regimes.
 
-- **Cosine similarity ≥ 0.96** even at 32× on both PPG and ECG
-- **HR error grows gracefully** with compression (≤ 0.22 bpm MAE up through 32× on PPG)
-- **HRV error stays in wellness range** up through 16× — suitable for HRV‑driven dashboards
-- ECG **QRS morphology** is visually indistinguishable at 8× — see the [reconstruction gallery](signals/ppg-v1-examples.md)
+- PPG and ECG RVQ bundles include measured PRD, MSE, cosine, and modality-specific physiological metrics.
+- Noise-aware scorecards separate clean-frame faithfulness from recoverable signal quality under empirical noise and artifacts.
+- SPIHT is a strong clean-signal baseline; hybrid lanes are important when wearable noise or contact artifacts dominate.
+- ECG and PPG model pages now include the current crossover heatmaps and links to CR-vs-fidelity tables.
 
-→ Existing HR detectors, SpO₂ estimators, and arrhythmia classifiers keep working on reconstructed data with minimal re‑tuning.
+→ The practical question becomes which operating point preserves the observables
+your product needs, not which single aggregate metric is smallest.
 
 ---
 
 ## Choosing an operating point
 
-Every product has a different tradeoff. These are the default recommendations we make to customers:
+Every product has a different tradeoff. These are the default recommendations for each operating point:
 
 | Goal | PPG | ECG |
 |------|-----|-----|
@@ -163,17 +170,20 @@ Every product has a different tradeoff. These are the default recommendations we
 | **Clinical‑grade HR / HRV / rhythm** | 4× – 8× | 4× – 8× |
 | **Wellness / ambulatory monitoring** | 8× – 16× | 8× – 16× |
 | **Event logging / screening / triage** | 16× – 32× | 16× – 32× |
-| **Ultra‑low bandwidth telemetry** | 32× | 32× |
+| **Ultra‑low bandwidth telemetry** | 32× | 32× – 64× |
 
-All five operating points ship as golden configs. See the [PPG Model Zoo](models/ppg.md) and [ECG Model Zoo](models/ecg.md) for measured metrics at each ratio.
+All PPG (2x-32x) and ECG (2x-64x) RVQ operating points ship as published bundles,
+with DSP/hybrid comparison lanes registered for local reproduction. See the
+[PPG Model Zoo](models/ppg.md) and [ECG Model Zoo](models/ecg.md) for measured
+metrics and noise/artifact tradeoffs at each ratio.
 
 ---
 
-## Getting started as a customer
+## Getting started
 
-1. **Evaluate** — pull the v1.0 golden models and run them on your own data ([Getting Started](getting-started.md))
-2. **Retrain** — use the YAML config system to fine‑tune on your sensor / front‑end characteristics
-3. **Deploy** — drop the `encoder.tflite` + `encoder.h` + `codebook.h` bundle into an Apollo reference project
-4. **Integrate** — use the Keras decoder on the cloud side or ship it with the companion mobile app
+1. **Try** — load a published HuggingFace bundle and round-trip a synthetic frame ([Getting Started](getting-started.md))
+2. **Compare** — inspect RVQ, SPIHT, and hybrid tradeoffs on the model pages
+3. **Evaluate** — run the codec on your own waveform and score the observables you care about
+4. **Deploy** — validate the `deploy/` package before integrating encoder/codebook artifacts into firmware
 
-Your Ambiq FAE can walk through the bring‑up in a single session. See the [CLI reference](cli.md) for the full workflow.
+See the [Deployment Guide](deployment.md) and [CLI reference](cli.md) for the full workflow.

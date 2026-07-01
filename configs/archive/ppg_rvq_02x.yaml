@@ -2,7 +2,7 @@
 run_name: ppg_rvq_02x_ds2_l2
 
 data:
-  datasets_dir: /home/vscode/datasets
+  datasets_dir: datasets
   dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
   sampling_rate: 64
   frame_size: 320

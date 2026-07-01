@@ -11,6 +11,13 @@ stand apart from the learned RVQ autoencoder stack. They are used to:
 All modules are CPU-only numpy and safe to import without TensorFlow.
 """
 
+from compressionkit.dsp.filters import (
+    ECG_PROXY_BAND,
+    PPG_PROXY_BAND,
+    bandpass,
+    butter_bandpass_sos,
+    clean_proxy,
+)
 from compressionkit.dsp.spiht import BitReader, BitWriter, spiht_decode, spiht_encode
 from compressionkit.dsp.transforms import (
     DwtConfig,
@@ -46,6 +53,9 @@ from compressionkit.dsp.wavelet import (
 )
 
 __all__ = [
+    # filters
+    "ECG_PROXY_BAND",
+    "PPG_PROXY_BAND",
     # spiht
     "BitReader",
     "BitWriter",
@@ -57,6 +67,9 @@ __all__ = [
     "WaveletCompressed",
     "WaveletFilters",
     "apply_threshold",
+    "bandpass",
+    "butter_bandpass_sos",
+    "clean_proxy",
     "compress_signal",
     "compute_prd",
     "compute_step_sizes",

@@ -252,8 +252,9 @@ class SpihtCodec:
         """Hydrate a SPIHT codec from a deploy directory.
 
         Reads ``deploy_manifest.json`` and constructs the codec with
-        the parameters stored under ``manifest["codec"]``. The codec
-        section is validated via :class:`SpihtCodecConfig`.
+        the parameters stored under ``codec_spec.json`` when present,
+        falling back to ``manifest["codec"]`` for older packages. The
+        codec section is validated via :class:`SpihtCodecConfig`.
         """
         deploy_dir = Path(deploy_dir)
         manifest_path = deploy_dir / "deploy_manifest.json"
@@ -265,7 +266,19 @@ class SpihtCodec:
         if manifest.get("family") != "spiht":
             raise ValueError(f"Expected family='spiht' in manifest, got {manifest.get('family')!r}")
 
-        codec_section = manifest.get("codec")
+        codec_section = None
+        spec_name = manifest.get("spec", "codec_spec.json")
+        if isinstance(spec_name, str):
+            spec_path = deploy_dir / spec_name
+            if spec_path.exists():
+                with spec_path.open() as f:
+                    spec = json.load(f)
+                if isinstance(spec, dict):
+                    nested_codec = spec.get("codec")
+                    codec_section = nested_codec if isinstance(nested_codec, dict) else spec
+
+        if codec_section is None:
+            codec_section = manifest.get("codec")
         if not isinstance(codec_section, dict):
             raise ValueError(f"manifest['codec'] must be a dict, got {type(codec_section).__name__}")
         # Drop unknown keys (forward-compat) before strict pydantic parse.

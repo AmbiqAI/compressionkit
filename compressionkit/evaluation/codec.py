@@ -29,12 +29,15 @@ from typing import Any, Protocol, runtime_checkable
 import numpy as np
 
 from compressionkit.dsp.spiht import spiht_decode, spiht_encode
-from compressionkit.dsp.wavelet import WaveletCoeffs, dwt_forward, dwt_inverse
+from compressionkit.dsp.wavelet import WaveletCoeffs, bayes_shrink_signal, dwt_forward, dwt_inverse
 
 __all__ = [
+    "BayesShrinkSpihtCodec",
     "Codec",
     "EncodedFrame",
+    "FilterSpihtCodec",
     "IdentityCodec",
+    "LearnedShrinkSpihtCodec",
     "SpihtAcCodec",
     "compression_ratio",
 ]
@@ -160,7 +163,7 @@ class SpihtAcCodec:
         max_bits = floor(frame_size * bits_per_sample / target_cr)
 
     Single-channel only. For multi-channel inputs, use a per-channel wrapper
-    (the comparison code in :mod:`scripts.compare_12lead` shows the pattern).
+    (the comparison code in :mod:`experiments.scripts.compare_12lead` shows the pattern).
     """
 
     name: str = "spiht_ac"
@@ -213,3 +216,195 @@ class SpihtAcCodec:
             wavelet=self.wavelet,
         )
         return recon[: self.frame_size].astype(np.float32)
+
+
+@dataclass
+class BayesShrinkSpihtCodec:
+    """Hybrid baseline: BayesShrink denoise in DWT domain, then SPIHT encode."""
+
+    name: str = "bayes_shrink_spiht"
+    modality: str = "ppg"
+    sample_rate: int = 64
+    frame_size: int = 320
+    target_cr: float = 8.0
+    wavelet: str = "bior4.4"
+    levels: int = 6
+    use_ac: bool = True
+    bits_per_sample: int = 16
+
+    def __post_init__(self) -> None:
+        self._spiht = SpihtAcCodec(
+            name=self.name,
+            modality=self.modality,
+            sample_rate=self.sample_rate,
+            frame_size=self.frame_size,
+            target_cr=self.target_cr,
+            wavelet=self.wavelet,
+            levels=self.levels,
+            use_ac=self.use_ac,
+            bits_per_sample=self.bits_per_sample,
+        )
+        self.max_bits = self._spiht.max_bits
+
+    def encode(self, frame: np.ndarray) -> EncodedFrame:
+        arr = np.asarray(frame, dtype=np.float32)
+        if arr.ndim != 1:
+            raise ValueError(f"BayesShrinkSpihtCodec expects 1-D input, got shape {arr.shape}")
+        denoised = bayes_shrink_signal(arr, levels=self.levels, wavelet=self.wavelet)[: self.frame_size]
+        encoded = self._spiht.encode(denoised)
+        encoded.side["pre_denoised"] = True
+        return encoded
+
+    def decode(self, encoded: EncodedFrame) -> np.ndarray:
+        return self._spiht.decode(encoded)
+
+
+# ---------------------------------------------------------------------------
+# LearnedShrinkSpihtCodec — learned wavelet-domain gain + SPIHT (+ AC)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class LearnedShrinkSpihtCodec:
+    """Hybrid: learned wavelet-domain gain denoise, then SPIHT encode.
+
+    ``coeff_denoiser`` maps a packed DWT coefficient vector to a denoised
+    coefficient vector (e.g. a gain-only network adapted via
+    :func:`compressionkit.models.wavelet_denoiser.as_coeff_denoiser`). When
+    ``None`` the codec is an exact passthrough and reduces to plain SPIHT,
+    which makes it a clean baseline anchor.
+
+    The denoise runs in the DWT domain; the result is inverted back to the
+    signal and handed to the unchanged SPIHT encoder. On-device the two DWTs
+    would be fused, but for evaluation correctness this mirrors
+    :class:`BayesShrinkSpihtCodec`.
+    """
+
+    name: str = "learned_shrink_spiht"
+    modality: str = "ppg"
+    sample_rate: int = 64
+    frame_size: int = 320
+    target_cr: float = 8.0
+    wavelet: str = "bior4.4"
+    levels: int = 6
+    use_ac: bool = True
+    bits_per_sample: int = 16
+    coeff_denoiser: Any = None
+
+    def __post_init__(self) -> None:
+        self._spiht = SpihtAcCodec(
+            name=self.name,
+            modality=self.modality,
+            sample_rate=self.sample_rate,
+            frame_size=self.frame_size,
+            target_cr=self.target_cr,
+            wavelet=self.wavelet,
+            levels=self.levels,
+            use_ac=self.use_ac,
+            bits_per_sample=self.bits_per_sample,
+        )
+        self.max_bits = self._spiht.max_bits
+
+    def _denoise_signal(self, arr: np.ndarray) -> np.ndarray:
+        if self.coeff_denoiser is None:
+            return arr
+        coeffs = dwt_forward(arr, levels=self.levels, wavelet=self.wavelet)
+        sizes = [len(coeffs.approx)] + [len(d) for d in coeffs.details]
+        packed = np.concatenate([coeffs.approx, *coeffs.details]).astype(np.float32)
+        denoised_packed = np.asarray(self.coeff_denoiser(packed), dtype=np.float32)
+        if denoised_packed.shape != packed.shape:
+            raise ValueError(f"coeff_denoiser must preserve length {packed.shape}, got {denoised_packed.shape}")
+        offsets = np.cumsum(sizes)
+        approx_d = denoised_packed[: offsets[0]]
+        details_d = [denoised_packed[offsets[i - 1] : offsets[i]] for i in range(1, len(sizes))]
+        recon = dwt_inverse(WaveletCoeffs(approx=approx_d, details=details_d), wavelet=self.wavelet)
+        return recon[: self.frame_size].astype(np.float32)
+
+    def encode(self, frame: np.ndarray) -> EncodedFrame:
+        arr = np.asarray(frame, dtype=np.float32)
+        if arr.ndim != 1:
+            raise ValueError(f"LearnedShrinkSpihtCodec expects 1-D input, got shape {arr.shape}")
+        denoised = self._denoise_signal(arr)
+        encoded = self._spiht.encode(denoised)
+        encoded.side["pre_denoised"] = self.coeff_denoiser is not None
+        return encoded
+
+    def decode(self, encoded: EncodedFrame) -> np.ndarray:
+        return self._spiht.decode(encoded)
+
+
+# ---------------------------------------------------------------------------
+# FilterSpihtCodec — classical bandpass denoise + SPIHT
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FilterSpihtCodec:
+    """Classical baseline: zero-phase Butterworth bandpass denoise, then SPIHT.
+
+    This is the fully classical control for the learned
+    :class:`LearnedShrinkSpihtCodec` ("Hybrid"). It uses the *same* architecture
+    -- pre-denoise the signal, then hand it to the unchanged SPIHT encoder -- but
+    swaps the trained wavelet-gain network for a fixed IIR bandpass. Butterworth
+    second-order sections are embedded-portable (fixed coefficients, no dynamic
+    allocation), so this baseline is realizable on-device.
+
+    Note on evaluation: when ``low_hz``/``high_hz`` match the clean-truth proxy
+    band used by a sweep, this codec measures the *ceiling* of linear denoising
+    against that proxy and is partly favoured by construction. Use a deliberately
+    different band to estimate realistic deployment behaviour.
+    """
+
+    name: str = "filter_spiht"
+    modality: str = "ecg"
+    sample_rate: int = 256
+    frame_size: int = 512
+    target_cr: float = 8.0
+    wavelet: str = "bior4.4"
+    levels: int = 6
+    use_ac: bool = True
+    bits_per_sample: int = 16
+    low_hz: float = 0.5
+    high_hz: float = 40.0
+    order: int = 3
+    forward_backward: bool = True
+
+    def __post_init__(self) -> None:
+        from scipy import signal as scipy_signal
+
+        self._spiht = SpihtAcCodec(
+            name=self.name,
+            modality=self.modality,
+            sample_rate=self.sample_rate,
+            frame_size=self.frame_size,
+            target_cr=self.target_cr,
+            wavelet=self.wavelet,
+            levels=self.levels,
+            use_ac=self.use_ac,
+            bits_per_sample=self.bits_per_sample,
+        )
+        self.max_bits = self._spiht.max_bits
+        nyq = self.sample_rate / 2.0
+        high = min(self.high_hz, nyq * 0.95)
+        if not 0.0 < self.low_hz < high:
+            raise ValueError(f"Invalid bandpass cutoffs: low_hz={self.low_hz}, high_hz={self.high_hz} (nyquist={nyq})")
+        self._sos = scipy_signal.butter(self.order, [self.low_hz / nyq, high / nyq], btype="bandpass", output="sos")
+
+    def _denoise_signal(self, arr: np.ndarray) -> np.ndarray:
+        from scipy import signal as scipy_signal
+
+        if self.forward_backward:
+            return scipy_signal.sosfiltfilt(self._sos, arr).astype(np.float32)
+        return scipy_signal.sosfilt(self._sos, arr).astype(np.float32)
+
+    def encode(self, frame: np.ndarray) -> EncodedFrame:
+        arr = np.asarray(frame, dtype=np.float32)
+        if arr.ndim != 1:
+            raise ValueError(f"FilterSpihtCodec expects 1-D input, got shape {arr.shape}")
+        denoised = self._denoise_signal(arr)
+        encoded = self._spiht.encode(denoised)
+        encoded.side["pre_filtered"] = True
+        return encoded
+
+    def decode(self, encoded: EncodedFrame) -> np.ndarray:
+        return self._spiht.decode(encoded)

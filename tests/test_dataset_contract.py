@@ -26,7 +26,7 @@ def test_license_tier_is_set_for_shipped_datasets() -> None:
 
 
 def test_registry_keys_match_known_dataset_ids() -> None:
-    assert set(DATASET_REGISTRY) == {"mesa", "ptb-xl"}
+    assert set(DATASET_REGISTRY) == {"mesa", "ptb-xl", "ppg-unified-strict-sanitize-v1"}
 
 
 def test_every_golden_experiment_resolves_through_registry(tmp_path: Path) -> None:
@@ -71,3 +71,15 @@ def test_ensure_available_mesa_present(tmp_path: Path) -> None:
 def test_ensure_dataset_available_helper(tmp_path: Path) -> None:
     with pytest.raises(DatasetNotAvailableError):
         ensure_dataset_available("ptb-xl", root=tmp_path)
+
+
+def test_ensure_available_ppg_unified_strict_sanitize_present(tmp_path: Path) -> None:
+    root = tmp_path / "ppg_cache_strict_sanitize"
+    for slug in ("bidmc", "butppg", "ppg_dalia", "wesad"):
+        source_dir = root / slug
+        source_dir.mkdir(parents=True)
+        (source_dir / "train.tfrecord").write_bytes(b"")
+        (source_dir / "val.tfrecord").write_bytes(b"")
+        (source_dir / "metadata.json").write_text("{}")
+
+    ensure_dataset_available("ppg-unified-strict-sanitize-v1", root=tmp_path)

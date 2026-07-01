@@ -7,7 +7,7 @@
 #   - Derivative loss for waveform fidelity
 #   - Cosine-restart LR schedule
 #   - TFRecord caching
-# Best result: val_mse=0.003833, PRD=6.42%, cos=0.9979 (epoch 192)
+# Promoted long-budget result: val_mse=0.003760, PRD=5.57%, cos=0.9979 (epoch 249)
 run_name: ecg_rvq_256hz_08x_golden
 
 data:
@@ -19,10 +19,10 @@ data:
   frame_size: 512
   segment_samples: 768
   lead_index: 1
-  batch_size: 64
+  batch_size: 256
   buffer_size: 20000
-  steps_per_epoch: 200
-  epochs: 300
+  steps_per_epoch: 800
+  epochs: 250
   epsilon: 0.001
   gaussian_noise: [0.01, 0.1]
   shuffle_seed: 42
@@ -53,11 +53,11 @@ training:
   lr_schedule:
     enabled: true
     type: cosine_decay
-    first_decay_steps: 60000
+    first_decay_steps: 200000
     alpha: 0.001
   val_metric: mse
   val_mode: min
-  early_stop_patience: 100
+  early_stop_patience: 120
   reduce_lr_on_plateau: false
   selection_metric: val_mse
   validation_steps: 160

@@ -19,6 +19,11 @@ import physiokit as pk
 import pyedflib
 import tensorflow as tf
 
+from compressionkit.datasets.null_augmentation import (
+    PairedNullAugmentationConfig,
+    apply_paired_null_augmentation_batch,
+)
+
 # ---------------------------------------------------------------------------
 # Single-file loading
 # ---------------------------------------------------------------------------
@@ -454,6 +459,7 @@ def make_ppg_inmemory_dataset(
     preprocessor: keras.layers.Layer | None,
     augmenter: keras.layers.Layer | None,
     target_data: np.ndarray | None = None,
+    null_aug_cfg: PairedNullAugmentationConfig | None = None,
     shuffle: bool = True,
 ) -> tf.data.Dataset:
     """Build a tf.data pipeline from in-memory numpy arrays.
@@ -472,15 +478,20 @@ def make_ppg_inmemory_dataset(
             return preprocessor(x, training=True) if preprocessor is not None else x
 
         def _apply_aug(x: tf.Tensor) -> tf.Tensor:
-            return augmenter(x, training=True) if augmenter is not None else x
+            if augmenter is None:
+                return x
+            x = tf.ensure_shape(x, [batch_size, frame_size, 1])
+            return augmenter(x, training=True)
 
         dataset = dataset.map(lambda x: _apply_prep(x), num_parallel_calls=tf.data.AUTOTUNE)
 
         reshape = keras.layers.Reshape((1, frame_size, 1))
-        dataset = dataset.map(
-            lambda x: (reshape(_apply_aug(x)), reshape(x)),
-            num_parallel_calls=tf.data.AUTOTUNE,
-        )
+
+        def _make_pair(x: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
+            x_aug, x_tgt = apply_paired_null_augmentation_batch(_apply_aug(x), x, null_aug_cfg)
+            return reshape(x_aug), reshape(x_tgt)
+
+        dataset = dataset.map(_make_pair, num_parallel_calls=tf.data.AUTOTUNE)
         return dataset.prefetch(tf.data.AUTOTUNE)
 
     # Paired input / target path (for filtered targets)
@@ -517,17 +528,22 @@ def make_ppg_inmemory_dataset(
         return (x - mean) / tf.sqrt(var + epsilon)
 
     def _apply_aug(x: tf.Tensor) -> tf.Tensor:
-        return augmenter(x, training=True) if augmenter is not None else x
+        if augmenter is None:
+            return x
+        x = tf.ensure_shape(x, [batch_size, frame_size, 1])
+        return augmenter(x, training=True)
 
     dataset = dataset.map(_rand_crop_pair, num_parallel_calls=tf.data.AUTOTUNE)
     dataset = dataset.map(
         lambda x_in, x_tgt: (_layer_norm_batch(x_in), _layer_norm_batch(x_tgt)),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
-    dataset = dataset.map(
-        lambda x_in, x_tgt: (reshape(_apply_aug(x_in)), reshape(x_tgt)),
-        num_parallel_calls=tf.data.AUTOTUNE,
-    )
+
+    def _augment_pair(x_in: tf.Tensor, x_tgt: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
+        x_aug, x_tgt = apply_paired_null_augmentation_batch(_apply_aug(x_in), x_tgt, null_aug_cfg)
+        return reshape(x_aug), reshape(x_tgt)
+
+    dataset = dataset.map(_augment_pair, num_parallel_calls=tf.data.AUTOTUNE)
     return dataset.prefetch(tf.data.AUTOTUNE)
 
 
@@ -545,6 +561,7 @@ def make_ppg_tfrecord_dataset(
     sample_rate: int,
     shuffle: bool,
     seed: int = 42,
+    null_aug_cfg: PairedNullAugmentationConfig | None = None,
 ) -> tf.data.Dataset:
     """Build dataset from TFRecord windows compatible with RVQ trainer."""
     if not tfrecord_paths:
@@ -621,6 +638,7 @@ def make_ppg_tfrecord_dataset(
     def _apply_aug(x: tf.Tensor) -> tf.Tensor:
         if augmenter is None:
             return x
+        x = tf.ensure_shape(x, [batch_size, frame_size, 1])
         return augmenter(x, training=True)
 
     ds = ds.map(_parse, num_parallel_calls=tf.data.AUTOTUNE)
@@ -631,10 +649,12 @@ def make_ppg_tfrecord_dataset(
         lambda x_in, x_tgt: (_layer_norm_batch(x_in), _layer_norm_batch(x_tgt)),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
-    ds = ds.map(
-        lambda x_in, x_tgt: (reshape(_apply_aug(x_in)), reshape(x_tgt)),
-        num_parallel_calls=tf.data.AUTOTUNE,
-    )
+
+    def _augment_pair(x_in: tf.Tensor, x_tgt: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
+        x_aug, x_tgt = apply_paired_null_augmentation_batch(_apply_aug(x_in), x_tgt, null_aug_cfg)
+        return reshape(x_aug), reshape(x_tgt)
+
+    ds = ds.map(_augment_pair, num_parallel_calls=tf.data.AUTOTUNE)
     return ds.prefetch(tf.data.AUTOTUNE)
 
 
@@ -657,6 +677,7 @@ def make_ppg_stream_dataset(
     target_filter_cfg: dict[str, Any] | None,
     shuffle: bool,
     seed: int = 42,
+    null_aug_cfg: PairedNullAugmentationConfig | None = None,
 ) -> tf.data.Dataset:
     """Build a streaming tf.data dataset that samples random windows per subject."""
     if not file_paths:
@@ -742,6 +763,7 @@ def make_ppg_stream_dataset(
     def _apply_aug(x: tf.Tensor) -> tf.Tensor:
         if augmenter is None:
             return x
+        x = tf.ensure_shape(x, [batch_size, frame_size, 1])
         return augmenter(x, training=True)
 
     ds = ds.map(_rand_crop_pair, num_parallel_calls=tf.data.AUTOTUNE)
@@ -749,10 +771,12 @@ def make_ppg_stream_dataset(
         lambda x_in, x_tgt: (_layer_norm_batch(x_in), _layer_norm_batch(x_tgt)),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
-    ds = ds.map(
-        lambda x_in, x_tgt: (reshape(_apply_aug(x_in)), reshape(x_tgt)),
-        num_parallel_calls=tf.data.AUTOTUNE,
-    )
+
+    def _augment_pair(x_in: tf.Tensor, x_tgt: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
+        x_aug, x_tgt = apply_paired_null_augmentation_batch(_apply_aug(x_in), x_tgt, null_aug_cfg)
+        return reshape(x_aug), reshape(x_tgt)
+
+    ds = ds.map(_augment_pair, num_parallel_calls=tf.data.AUTOTUNE)
     return ds.prefetch(tf.data.AUTOTUNE)
 
 

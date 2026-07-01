@@ -4,7 +4,9 @@ icon: lucide/heart-pulse
 
 # ECG Models (v1.0)
 
-Golden reference models for ECG compression, trained on the PTB-XL dataset at 256 Hz (Lead II).
+ECG release artifacts and comparison lanes at 256 Hz using PTB-XL Lead II. The
+published HuggingFace bundles are RVQ neural codecs; the local golden registry
+also includes SPIHT DSP and hybrid AI+DSP lanes for standardized comparison.
 
 !!! tip "Per-experiment reproduction pages"
     Each entry has a dedicated [experiment page](../experiments/index.md):
@@ -17,15 +19,19 @@ Golden reference models for ECG compression, trained on the PTB-XL dataset at 25
     Two-stage variants: [`ecg-rvq-4x-prior`](../experiments/ecg-rvq-4x-prior.md) ·
     [`ecg-rvq-8x-prior`](../experiments/ecg-rvq-8x-prior.md).
 
-## Results Summary
+## Published RVQ results
+
+The table below summarizes the published RVQ bundles. These are the v1 packages
+available through HuggingFace and the runtime loader.
 
 | Model | Config | CR | PRD (%) | MSE | Cosine |
 |-------|--------|----|---------|-----|--------|
-| `ecg-rvq-02x` | [`ecg_rvq_256hz_02x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_02x_golden.yaml) | 2.00× | 2.59 | 0.000623 | 0.9997 |
-| `ecg-rvq-04x` | [`ecg_rvq_256hz_04x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden.yaml) | 4.00× | 3.68 | 0.001259 | 0.9993 |
-| `ecg-rvq-08x` | [`ecg_rvq_256hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden.yaml) | 8.00× | 6.66 | 0.004123 | 0.9978 |
-| `ecg-rvq-16x` | [`ecg_rvq_256hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml) | 16.00× | 11.02 | 0.011278 | 0.9938 |
-| `ecg-rvq-32x` | [`ecg_rvq_256hz_32x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_32x_golden.yaml) | 32.00× | 15.53 | 0.022405 | 0.9878 |
+| `ecg-rvq-02x` | [`ecg_rvq_256hz_02x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_02x_golden.yaml) | 2.00× | 2.50 | 0.000580 | 0.9997 |
+| `ecg-rvq-04x` | [`ecg_rvq_256hz_04x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden.yaml) | 4.00× | 4.09 | 0.001550 | 0.9992 |
+| `ecg-rvq-08x` | [`ecg_rvq_256hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden.yaml) | 8.00× | 7.48 | 0.005187 | 0.9972 |
+| `ecg-rvq-16x` | [`ecg_rvq_256hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml) | 16.00× | 11.18 | 0.011581 | 0.9936 |
+| `ecg-rvq-32x` | [`ecg_rvq_256hz_32x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_32x_golden.yaml) | 32.00× | 16.04 | 0.023812 | 0.9868 |
+| `ecg-rvq-64x` | [`ecg_rvq_256hz_64x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_64x_golden.yaml) | 64.00× | 22.35 | 0.046250 | 0.9742 |
 
 All metrics are on the validation set.
 
@@ -37,6 +43,39 @@ All metrics are on the validation set.
 
 ![ECG Cosine Similarity vs compression ratio](../assets/plots/ecg_cos_light.png#only-light)
 ![ECG Cosine Similarity vs compression ratio](../assets/plots/ecg_cos_dark.png#only-dark)
+
+## Codec tradeoffs under noise and artifacts
+
+ECG has three release-facing comparison lanes:
+
+| Lane | Role | Current publication status |
+|------|------|----------------------------|
+| **SPIHT** | DSP faithfulness baseline; very strong on clean low-CR ECG morphology | Registered and reproducible locally; not in v1 HuggingFace bundles |
+| **RVQ** | Published neural codec bundles; compact learned representation with ECG morphology scorecards | Published for 2x, 4x, 8x, 16x, 32x, and 64x |
+| **Hybrid** | Learned denoising front end with a SPIHT backend; designed for empirical-noise and artifact regimes | Registered and reproducible locally; not in v1 HuggingFace bundles |
+
+The robustness sweep scores each lane against a filtered clean-truth proxy after
+injecting empirical noise or additive ECG artifact families. Lower PRD is better.
+This complements the validation-set RVQ table above: clean-frame faithfulness and
+recoverable morphology under noisy wearable conditions are different questions.
+
+| Condition family | Current ECG crossover pattern |
+|------------------|-------------------------------|
+| **Clean input** | SPIHT wins at 2x-16x; RVQ wins at 32x-64x in the current robustness fixture. |
+| **Native / empirical SNR ladder** | Hybrid wins native conditions through 32x. RVQ is strongest at high-SNR injected noise; hybrid takes over as SNR falls, with the crossover moving by CR. |
+| **Additive artifacts** | Hybrid wins most colored, lead-off, motion, and weak-leak cells. RVQ wins mains interference at 16x-64x and motion at 64x in the current fixture. |
+| **Morphology checks** | SPIHT is strongest on clean 2x-8x morphology probes; RVQ remains close but is the published neural deployment surface. |
+
+![ECG robustness winners across SNR](../assets/plots/ecg_robustness_winners_snr.png)
+
+![ECG robustness winners across artifacts](../assets/plots/ecg_robustness_winners_artifacts.png)
+
+The practical read is that SPIHT is a strong clean ECG baseline, RVQ gives the
+published neural CR ladder, and hybrid lanes are most useful when the input is
+closer to wearable ECG with empirical noise or contact artifacts. See
+[ECG CR vs fidelity](../methods/cr_vs_fidelity_ecg.md) and
+[Validation Scorecard](../validation-scorecard.md) for the detailed scorecard
+definitions and noise-aware metrics.
 
 ## Model Details
 
@@ -58,6 +97,7 @@ All ECG models share the same architecture as PPG models:
 | 08x | 3 | 8× | 64 | 2 | 1024 | 8.00× |
 | 16x | 4 | 16× | 32 | 2 | 512 | 16.00× |
 | 32x | 4 | 16× | 32 | 1 | 256 | 32.00× |
+| 64x | 5 | 32× | 16 | 1 | 128 | 64.00× |
 
 Frame size = 512 samples (2 s at 256 Hz). Raw frame = 8192 bits (16-bit). Codebook size K = 256 (8 bits/index).
 
@@ -97,10 +137,10 @@ Or point the config `data.data_dir` to your existing PTB-XL HDF5 directory.
 
 ```bash
 # Train a specific compression ratio
-python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
+uv run compressionkit golden run ecg-rvq-8x
 
-# Train all five golden configs
-bash run_ecg_golden.sh
+# Train all six golden configs
+uv run compressionkit golden run-all --modality ecg --method rvq
 ```
 
 ### Output Structure
@@ -164,5 +204,5 @@ To create a new ECG model variant:
 
 1. Copy an existing golden config: `cp configs/ecg_rvq_256hz_08x_golden.yaml configs/ecg_rvq_256hz_08x_v2.yaml`
 2. Modify parameters (e.g. `base_filters`, `num_levels`, `learning_rate`)
-3. Train: `python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_v2.yaml`
+3. Train: `uv run train-ecg-rvq --config configs/ecg_rvq_256hz_08x_v2.yaml`
 4. Compare results against the golden baseline

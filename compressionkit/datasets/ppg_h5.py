@@ -26,6 +26,7 @@ import numpy as np
 import tensorflow as tf
 from scipy.signal import resample_poly
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.preprocessing.sanitize import (
     SanitizeConfig,
     is_clean_window,
@@ -33,7 +34,7 @@ from compressionkit.preprocessing.sanitize import (
 )
 
 # Canonical roots — adjust via :class:`PpgH5Source` if your layout differs.
-DEFAULT_DATASET_ROOT = Path("/home/vscode/datasets")
+DEFAULT_DATASET_ROOT = Path(default_datasets_dir())
 
 
 @dataclass(frozen=True)

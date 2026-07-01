@@ -24,12 +24,14 @@ Example::
 
 from compressionkit.runtime.base import Codec, EncodedFrame
 from compressionkit.runtime.codec import RVQCodec
+from compressionkit.runtime.hybrid import HybridSpihtCodec
 from compressionkit.runtime.loader import load_codec, resolve_deploy_dir
 from compressionkit.runtime.spiht import SpihtCodec
 
 __all__ = [
     "Codec",
     "EncodedFrame",
+    "HybridSpihtCodec",
     "RVQCodec",
     "SpihtCodec",
     "load_codec",

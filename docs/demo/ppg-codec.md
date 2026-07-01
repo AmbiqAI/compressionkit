@@ -32,7 +32,7 @@ The compressionKIT PPG Codec Demo shows what the codec looks like when it is use
 
 ## Overview
 
-The demo presents a real-time PPG compression and reconstruction workflow designed for customer evaluation, partner discussions, and internal product tradeoff analysis. It highlights how compressionKIT-trained RVQ models can be paired with Ambiq hardware and browser tools to make efficiency gains visible.
+The demo presents a real-time PPG compression and reconstruction workflow designed for evaluation, partner discussions, and product tradeoff analysis. It highlights how compressionKIT-trained RVQ models can be paired with Ambiq hardware and browser tools to make efficiency gains visible.
 
 Users can work from prerecorded signals in the browser or stream from a connected evaluation board. The app processes the signal in 4 second windows, reconstructs the waveform, and updates waveform, delta, and metrics views live.
 
@@ -40,7 +40,7 @@ Users can work from prerecorded signals in the browser or stream from a connecte
 
 The demo is designed to answer a practical product question: how much memory, bandwidth, and energy can be saved without losing the signal structure a team cares about?
 
-Customers can use it to:
+Users can use it to:
 
 - Compare original and reconstructed PPG waveforms side by side.
 - Switch between 2×, 4×, 8×, and 16× model variants.
@@ -59,7 +59,7 @@ The demo pipeline follows the same major stages used in the production workflow:
 5. Stitch the reconstructed windows back into a continuous stream.
 6. Update waveform, delta, spectrogram, and quality-efficiency views.
 
-This gives customers a concrete picture of how the codec behaves in a real product path rather than in an isolated notebook or offline script.
+This gives users a concrete picture of how the codec behaves in a real product path rather than in an isolated notebook or offline script.
 
 ![PPG demo overview](../assets/compressionkit-ppg-overview.jpeg)
 
@@ -89,7 +89,7 @@ That combination helps technical and product stakeholders have the same conversa
 
 ## Live Noise Controls
 
-The demo supports baseline wander, transient injection, and Gaussian noise controls. This is useful because customers rarely care only about clean-signal compression. They want to understand whether the operating point remains useful when the source signal is imperfect.
+The demo supports baseline wander, transient injection, and Gaussian noise controls. This is useful because real deployments rarely care only about clean-signal compression. Teams want to understand whether the operating point remains useful when the source signal is imperfect.
 
 In practice, this means the demo can illustrate both compression and robustness in the same session.
 
@@ -103,7 +103,7 @@ This is useful for showing that the codec is not only trainable offline, but can
 
 ## Recordings Experience
 
-The recordings dialog is the library and import surface for offline data. It provides built-in records plus support for user-added CSV recordings so customers can evaluate the codec on representative signals without needing to start from live hardware.
+The recordings dialog is the library and import surface for offline data. It provides built-in records plus support for user-added CSV recordings so teams can evaluate the codec on representative signals without needing to start from live hardware.
 
 ![Recordings dialog](../assets/compressionkit-ppg-recordings.jpeg)
 
@@ -140,11 +140,11 @@ If the EVB is new or needs a refresh, flash the latest demo firmware before star
 4. Start playback or connect live streaming.
 5. Review waveform fidelity, PRD, and system savings as settings change.
 
-## Why This Matters To Customers
+## Why This Matters
 
 The demo is valuable because it turns compression from an abstract model metric into a product decision surface.
 
-Customers can use it to discuss:
+Teams can use it to discuss:
 
 - How much radio traffic can be reduced.
 - Whether a higher compression point is acceptable for the intended workload.
@@ -153,4 +153,4 @@ Customers can use it to discuss:
 
 ## Positioning Summary
 
-compressionKIT is currently in beta. The demo is intended to help customers and partners evaluate how AI-based compression can extend battery life, reduce data handling cost, and preserve the signal information needed for downstream analytics.
+compressionKIT is currently in beta. The demo is intended to help users and partners evaluate how AI-based compression can extend battery life, reduce data handling cost, and preserve the signal information needed for downstream analytics.

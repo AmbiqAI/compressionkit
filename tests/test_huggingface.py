@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -122,7 +124,7 @@ class TestModelCardGeneration:
 
         card = generate_model_card(mock_deploy, scorecard_path=mock_scorecard)
         assert "Quality Metrics" in card
-        assert "PRD (%)" in card
+        assert "PRD vs input — faithfulness (%)" in card
         assert "Cosine Similarity" in card
         assert "4.0x" in card  # CR uniform
         assert "4.50x" in card  # CR learned
@@ -198,6 +200,46 @@ class TestPublishStaging:
         with pytest.raises(FileNotFoundError):
             publish(deploy_dir=tmp_path, repo_id="test/test", dry_run=True)
 
+    def test_dry_run_hybrid_stages_denoiser(self, tmp_path):
+        """A hybrid deploy (DSP backend + learned denoiser) must publish the denoiser.
+
+        The backend reports ``family='spiht'`` in its manifest; the presence of
+        ``hybrid_manifest.json`` is what marks the package as hybrid. The learned
+        ``denoiser_gain_model.keras`` would be silently dropped if it were staged
+        with the plain SPIHT file map.
+        """
+        deploy = tmp_path / "deploy"
+        deploy.mkdir()
+        manifest = {
+            "family": "spiht",
+            "method": "dsp",
+            "compression_ratio": 16.0,
+            "codec": {"modality": "ecg", "sample_rate": 256, "frame_size": 512, "target_cr": 16.0},
+        }
+        (deploy / "deploy_manifest.json").write_text(json.dumps(manifest))
+        (deploy / "hybrid_manifest.json").write_text(json.dumps({"pipeline": ["denoise", "spiht"]}))
+        (deploy / "spiht_config.json").write_text("{}")
+        (deploy / "denoiser_gain_model.keras").write_bytes(b"\x00" * 64)
+        (deploy / "denoiser_train_config.json").write_text("{}")
+        (deploy / "spiht_app_config.h").write_text("// header")
+        (deploy / "checksums.json").write_text("{}")
+
+        from scripts.publish_to_huggingface import publish
+
+        staging_dir = publish(deploy_dir=deploy, repo_id="test-org/ecg-hybrid-16x", dry_run=True)
+        assert staging_dir is not None
+        try:
+            # The AI denoiser and hybrid pipeline manifest must be staged.
+            assert (staging_dir / "denoiser_gain_model.keras").exists()
+            assert (staging_dir / "denoiser_train_config.json").exists()
+            assert (staging_dir / "hybrid_manifest.json").exists()
+            # Backend (SPIHT) contract is still present.
+            assert (staging_dir / "config.json").exists()  # renamed deploy_manifest.json
+            assert (staging_dir / "spiht_app_config.h").exists()
+            assert (staging_dir / "README.md").exists()
+        finally:
+            shutil.rmtree(staging_dir)
+
 
 # ── from_pretrained symlink logic ──────────────────────────────────
 
@@ -228,6 +270,118 @@ class TestFromPretrainedSymlinks:
 
         _ensure_symlink(tmp_path, "nonexistent.tflite", "encoder.tflite")
         assert not (tmp_path / "encoder.tflite").exists()
+
+
+class TestFamilyAgnosticLoader:
+    """Test HF compatibility aliases on the family-agnostic load_codec path."""
+
+    def test_load_codec_creates_rvq_hf_aliases(self, tmp_path, monkeypatch):
+        (tmp_path / "config.json").write_text(json.dumps({"family": "rvq", "spec": "codec_spec.json"}))
+        (tmp_path / "codec_spec.json").write_text(
+            json.dumps(
+                {
+                    "family": "rvq",
+                    "encoder": {"tflite": "encoder.tflite"},
+                    "decoder": {"int8_tflite": "decoder.tflite"},
+                    "codebook": {"npz": "codebook.npz"},
+                }
+            )
+        )
+        (tmp_path / "encoder_int8.tflite").write_bytes(b"encoder")
+        (tmp_path / "decoder_int8.tflite").write_bytes(b"decoder")
+        (tmp_path / "sample_stimulus.npz").write_bytes(b"samples")
+        (tmp_path / "codebook.npz").write_bytes(b"codebook")
+
+        class FakeRVQCodec:
+            def __init__(self, deploy_dir):
+                deploy_path = Path(deploy_dir)
+                assert (deploy_path / "deploy_manifest.json").exists()
+                assert (deploy_path / "encoder.tflite").exists()
+                assert (deploy_path / "decoder.tflite").exists()
+                assert (deploy_path / "sample_data.npz").exists()
+
+        fake_module = types.ModuleType("compressionkit.runtime.codec")
+        fake_module.RVQCodec = FakeRVQCodec
+        monkeypatch.setitem(sys.modules, "compressionkit.runtime.codec", fake_module)
+
+        from compressionkit.runtime import load_codec
+
+        assert isinstance(load_codec(tmp_path), FakeRVQCodec)
+
+    def test_load_codec_dispatches_hybrid_runtime(self, tmp_path, monkeypatch):
+        (tmp_path / "deploy_manifest.json").write_text(
+            json.dumps(
+                {
+                    "family": "hybrid",
+                    "method": "hybrid",
+                    "model_name": "ppg_hybrid_test",
+                    "spec": "codec_spec.json",
+                    "codec": {
+                        "modality": "ppg",
+                        "sample_rate": 64,
+                        "frame_size": 320,
+                        "target_cr": 8.0,
+                        "wavelet": "bior4.4",
+                        "levels": 6,
+                        "use_ac": True,
+                        "bits_per_sample": 16,
+                    },
+                }
+            )
+        )
+        (tmp_path / "codec_spec.json").write_text(
+            json.dumps(
+                {
+                    "family": "hybrid",
+                    "method": "hybrid",
+                    "codec": {
+                        "modality": "ppg",
+                        "sample_rate": 64,
+                        "frame_size": 320,
+                        "target_cr": 8.0,
+                        "wavelet": "bior4.4",
+                        "levels": 6,
+                        "use_ac": True,
+                        "bits_per_sample": 16,
+                    },
+                }
+            )
+        )
+        (tmp_path / "hybrid_manifest.json").write_text(
+            json.dumps(
+                {
+                    "pipeline": "hybrid",
+                    "stages": [
+                        {
+                            "stage": "denoise",
+                            "type": "wavelet_gain_spiht",
+                            "artifact": "denoiser_gain_model.keras",
+                            "wavelet": "bior4.4",
+                            "levels": 6,
+                            "frame_size": 320,
+                        },
+                        {"stage": "codec", "type": "spiht"},
+                    ],
+                }
+            )
+        )
+        (tmp_path / "denoiser_gain_model.keras").write_bytes(b"fake")
+
+        class FakeDenoiser:
+            def forward(self, frame):
+                return frame, {}
+
+        import compressionkit.runtime.hybrid as hybrid_runtime
+
+        monkeypatch.setattr(hybrid_runtime, "load_wavelet_gain_preprocessor", lambda *args, **kwargs: FakeDenoiser())
+
+        from compressionkit.runtime import HybridSpihtCodec, load_codec
+
+        codec = load_codec(tmp_path)
+
+        assert isinstance(codec, HybridSpihtCodec)
+        assert codec.name == "ppg_hybrid_test"
+        assert codec.frame_size == 320
 
 
 # ── Golden deploy model card (integration) ────────────────────────

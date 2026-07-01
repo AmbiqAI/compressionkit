@@ -15,8 +15,8 @@ compressionKIT is designed for **physiological signal compression** — signals 
 
 | Signal | Module | Sampling Rate | Frame Size | Status |
 |--------|--------|---------------|------------|--------|
-| [PPG](ppg.md) | `compressionkit.datasets.mesa` | 64 Hz | 320 (5 s) | Production — [golden models](../models/ppg.md) |
-| [ECG](ecg.md) | `compressionkit.datasets.ptbxl` | 256 Hz | 512 (2 s) | Production — [golden models](../models/ecg.md) |
+| [PPG](ppg.md) | `compressionkit.datasets.ppg` | 64 Hz | 320 (5 s) | RVQ published; SPIHT/hybrid local comparisons — [models](../models/ppg.md) |
+| [ECG](ecg.md) | `compressionkit.datasets.ptbxl` | 256 Hz | 512 (2 s) | RVQ published; SPIHT/hybrid local comparisons — [models](../models/ecg.md) |
 
 ## PPG Section
 
@@ -25,14 +25,14 @@ These pages cover the PPG signal path:
 1. [PPG](ppg.md) for signal context and preprocessing details.
 2. [PPG Workflow](ppg-workflow.md) for the end-to-end supported task.
 3. [PPG Models (v1.0)](../models/ppg.md) for the five golden reference operating points.
-4. [PPG Codec Demo](../demo/ppg-codec.md) for the customer-facing browser and hardware experience.
+4. [PPG Codec Demo](../demo/ppg-codec.md) for the browser and hardware evaluation experience.
 
 ## ECG Section
 
 These pages cover the ECG signal path:
 
 1. [ECG](ecg.md) for signal context and preprocessing details.
-2. [ECG Models (v1.0)](../models/ecg.md) for the five golden reference operating points.
+2. [ECG Models (v1.0)](../models/ecg.md) for the six golden reference operating points.
 
 ## Signal Properties Comparison
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from compressionkit.configs.paths import default_datasets_dir, default_ppg_cache_dir
 from compressionkit.configs.ppg_rvq import (
     DerivativeLossConfig,
     LrScheduleConfig,
@@ -79,7 +80,7 @@ class PulsatileModelConfig(BaseModel):
 class TwoStreamDataConfig(BaseModel):
     """Data loading configuration for the two-stream pipeline."""
 
-    datasets_dir: str = "/home/vscode/datasets"
+    datasets_dir: str = Field(default_factory=default_datasets_dir)
     dataset_glob: str = "mesa-commercial-use/polysomnography/edfs/*.edf"
     sampling_rate: int = 64
     frame_size: int = 320
@@ -104,7 +105,7 @@ class TwoStreamDataConfig(BaseModel):
 
     # Unified per-source cache (overrides cache_enabled when set)
     unified_cache_enabled: bool = False
-    unified_cache_root: str = "/home/vscode/datasets/ppg_cache"
+    unified_cache_root: str = Field(default_factory=default_ppg_cache_dir)
     unified_sources: list[UnifiedSourceConfig] = Field(default_factory=list)
     max_train_windows: int | None = None
     max_val_windows: int | None = None

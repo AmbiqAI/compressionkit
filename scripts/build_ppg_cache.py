@@ -26,6 +26,8 @@ import logging
 import sys
 import time
 
+from compressionkit.configs.paths import default_datasets_dir
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
@@ -47,7 +49,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--datasets-root",
-        default="/home/vscode/datasets",
+        default=default_datasets_dir(),
         help="Root directory containing raw dataset folders",
     )
     parser.add_argument(

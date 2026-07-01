@@ -32,46 +32,36 @@ import sys
 import tempfile
 from pathlib import Path
 
+from compressionkit.export.artifact_contract import (
+    HYBRID_HF_FILE_RENAMES,
+    RVQ_HF_FILE_RENAMES,
+    SPIHT_HF_FILE_RENAMES,
+    ArtifactFile,
+)
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 # Files from an RVQ deploy directory to upload, mapped to their HF repo names.
 # If a file doesn't exist, it is silently skipped.
-_DEPLOY_FILE_MAP: dict[str, str] = {
-    "encoder.tflite": "encoder_int8.tflite",
-    "encoder.h": "encoder.h",
-    "decoder_float32.tflite": "decoder_float32.tflite",
-    "decoder.tflite": "decoder_int8.tflite",
-    "decoder_int8.tflite": "decoder_int8.tflite",
-    "decoder.h": "decoder.h",
-    "codebook.npz": "codebook.npz",
-    "codebook.h": "codebook.h",
-    "sample_data.npz": "sample_stimulus.npz",
-    "sample_stimulus.npz": "sample_stimulus.npz",
-    "deploy_manifest.json": "config.json",
-    "model_card.json": "model_card.json",
-    # Two-stage prior artifacts (only present for two_stage golden runs, #27).
-    "prior_int8.tflite": "prior_int8.tflite",
-    "prior_int8.h": "prior_int8.h",
-    "prior_manifest.json": "prior_manifest.json",
-}
+_DEPLOY_FILE_MAP = RVQ_HF_FILE_RENAMES
 
 # Files from a SPIHT (DSP-only) deploy directory. The vendored C sources
 # live in a ``c_sources/`` subdirectory and are uploaded recursively.
-_SPIHT_FILE_MAP: dict[str, str] = {
-    "deploy_manifest.json": "config.json",
-    "spiht_config.json": "spiht_config.json",
-    "sample_stimulus.npz": "sample_stimulus.npz",
-    "reference_vectors.npz": "reference_vectors.npz",
-    "model_card.json": "model_card.json",
-    "scorecard.json": "scorecard.json",
-}
+_SPIHT_FILE_MAP = SPIHT_HF_FILE_RENAMES
+
+# Files from a hybrid (DSP + learned denoiser) deploy directory. A hybrid
+# package uses a DSP backend (SPIHT today) for the bitstream, so it carries
+# the full SPIHT contract *plus* the learned denoiser stage and the hybrid
+# pipeline manifest. Without these extra entries the denoiser — the AI half
+# of the codec — would be silently dropped from the published repo.
+_HYBRID_FILE_MAP = HYBRID_HF_FILE_RENAMES
 
 
 def _detect_family(deploy_dir: Path) -> str:
-    manifest_path = deploy_dir / "deploy_manifest.json"
+    manifest_path = deploy_dir / ArtifactFile.DEPLOY_MANIFEST
     if not manifest_path.exists():
-        raise FileNotFoundError(f"deploy_manifest.json not found in {deploy_dir}")
+        raise FileNotFoundError(f"{ArtifactFile.DEPLOY_MANIFEST} not found in {deploy_dir}")
     with manifest_path.open() as f:
         manifest = json.load(f)
     # Legacy RVQ manifests didn't carry a family field.
@@ -82,12 +72,12 @@ def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | Non
     """Copy RVQ deploy artifacts to a staging directory with HF naming."""
     staged: list[str] = []
 
-    for src_name, dst_name in _DEPLOY_FILE_MAP.items():
+    for src_name, dst_name in _DEPLOY_FILE_MAP:
         src = deploy_dir / src_name
         dst = staging_dir / dst_name
         if src.exists() and not dst.exists():
             shutil.copy2(src, dst)
-            staged.append(dst_name)
+            staged.append(str(dst_name))
             logger.info("Staged: %s → %s", src_name, dst_name)
 
     # Copy scorecard if provided
@@ -108,20 +98,27 @@ def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | Non
     return staged
 
 
-def _stage_files_spiht(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None) -> list[str]:
-    """Copy SPIHT (DSP-only) deploy artifacts to a staging directory.
+def _stage_files_spiht(
+    deploy_dir: Path,
+    staging_dir: Path,
+    scorecard_path: Path | None,
+    file_map: tuple[tuple[ArtifactFile, ArtifactFile], ...] | None = None,
+) -> list[str]:
+    """Copy SPIHT (or hybrid) deploy artifacts to a staging directory.
 
     Includes the ``c_sources/`` subtree verbatim so consumers get the
-    portable C99 reference plus the generated ``spiht_app_config.h``.
+    portable C99 reference plus the generated ``spiht_app_config.h``. Pass
+    ``file_map=_HYBRID_FILE_MAP`` to additionally stage the learned denoiser
+    and hybrid pipeline manifest for hybrid deploy packages.
     """
     staged: list[str] = []
 
-    for src_name, dst_name in _SPIHT_FILE_MAP.items():
+    for src_name, dst_name in file_map or _SPIHT_FILE_MAP:
         src = deploy_dir / src_name
         dst = staging_dir / dst_name
         if src.exists() and not dst.exists():
             shutil.copy2(src, dst)
-            staged.append(dst_name)
+            staged.append(str(dst_name))
             logger.info("Staged: %s → %s", src_name, dst_name)
 
     # Copy the c_sources/ subtree if present.
@@ -172,14 +169,18 @@ def publish(
         ValueError: If no files are found to stage.
     """
     deploy_dir = Path(deploy_dir)
-    if not (deploy_dir / "deploy_manifest.json").exists():
-        raise FileNotFoundError(f"deploy_manifest.json not found in {deploy_dir}")
+    if not (deploy_dir / ArtifactFile.DEPLOY_MANIFEST).exists():
+        raise FileNotFoundError(f"{ArtifactFile.DEPLOY_MANIFEST} not found in {deploy_dir}")
 
     family = _detect_family(deploy_dir)
     _KNOWN_FAMILIES = ("rvq", "spiht")
     if family not in _KNOWN_FAMILIES:
         raise ValueError(f"Unknown deploy family {family!r}; expected one of {_KNOWN_FAMILIES!r}")
-    logger.info("Detected deploy family: %s", family)
+    # A hybrid package (learned denoiser + DSP backend) reports the backend
+    # family in its manifest (``spiht`` today) but additionally carries a
+    # ``hybrid_manifest.json`` and the denoiser artifacts.
+    is_hybrid = (deploy_dir / ArtifactFile.HYBRID_MANIFEST).exists()
+    logger.info("Detected deploy family: %s%s", family, " (hybrid)" if is_hybrid else "")
 
     # Validate HuggingFace availability before allocating any resources (skip for dry runs)
     if not dry_run:
@@ -193,10 +194,19 @@ def publish(
     logger.info("Staging directory: %s", staging_dir)
 
     sc_path = Path(scorecard_path) if scorecard_path else None
-
+    if sc_path is None:
+        # Point the release at the corrected scorecard (carries the v1 headline
+        # block with the paired clean-truth / noise-regime view) rather than any
+        # frozen deploy-time copy.
+        candidate = deploy_dir.parent / "quality_scorecard.json"
+        if candidate.exists():
+            sc_path = candidate
+            logger.info("Using corrected scorecard: %s", sc_path)
     # Stage and generate card; clean up on any error
     try:
-        if family == "spiht":
+        if is_hybrid:
+            staged = _stage_files_spiht(deploy_dir, staging_dir, sc_path, file_map=_HYBRID_FILE_MAP)
+        elif family == "spiht":
             staged = _stage_files_spiht(deploy_dir, staging_dir, sc_path)
         else:
             staged = _stage_files(deploy_dir, staging_dir, sc_path)

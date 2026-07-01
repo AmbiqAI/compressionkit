@@ -55,27 +55,27 @@ def _encode_frames(
     if num_leads > 1:
         batched_in = np.repeat(batched_in, num_leads, axis=-1)
 
-    z_chunks: list[np.ndarray] = []
+    token_chunks: list[np.ndarray] = []
     for start in range(0, batched_in.shape[0], batch_size):
         chunk = batched_in[start : start + batch_size]
         with tf.device("/CPU:0"):
             z = encoder(chunk, training=False)
-        z_chunks.append(np.asarray(z))
-    z_all = np.concatenate(z_chunks, axis=0)
+        z_np = np.asarray(z)
+        latent_shape = z_np.shape
+        with tf.device("/CPU:0"):
+            indices_list = vq.encode(z_np)
+        tokens_per_frame = int(np.prod(latent_shape[:-1])) // latent_shape[0]
 
-    latent_shape = z_all.shape
-    with tf.device("/CPU:0"):
-        indices_list = vq.encode(z_all)
-    tokens_per_frame = int(np.prod(latent_shape[:-1])) // latent_shape[0]
+        chunk_tokens = np.zeros(
+            (latent_shape[0], tokens_per_frame, len(indices_list)),
+            dtype=np.int16,
+        )
+        for level, idx in enumerate(indices_list):
+            idx_np = np.asarray(idx).reshape(latent_shape[0], tokens_per_frame).astype(np.int16)
+            chunk_tokens[..., level] = idx_np
+        token_chunks.append(chunk_tokens)
 
-    out = np.zeros(
-        (latent_shape[0], tokens_per_frame, len(indices_list)),
-        dtype=np.int16,
-    )
-    for level, idx in enumerate(indices_list):
-        idx_np = np.asarray(idx).reshape(latent_shape[0], tokens_per_frame).astype(np.int16)
-        out[..., level] = idx_np
-    return out
+    return np.concatenate(token_chunks, axis=0)
 
 
 def extract_rvq_tokens(

@@ -255,6 +255,18 @@ class AdversarialResult:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class ZeroInputGateResult:
+    """Thresholded pass/fail summary for zero-input abstention."""
+
+    passed: bool
+    output_l2_when_input_zero: float | None
+    hallucinated_peaks: float
+    max_output_l2: float
+    max_hallucinated_peaks: float
+    failures: list[str]
+
+
 def _peak_count_in_band(
     signal_1d: np.ndarray,
     *,
@@ -502,3 +514,35 @@ def run_adversarial_battery(
         )
 
     return results
+
+
+def evaluate_zero_input_gate(
+    results: list[AdversarialResult],
+    *,
+    max_output_l2: float = 1.0e-3,
+    max_hallucinated_peaks: float = 0.0,
+) -> ZeroInputGateResult:
+    """Evaluate whether a codec abstains on zero input.
+
+    Args:
+        results: Full adversarial battery results containing a ``zero_input`` row.
+        max_output_l2: Maximum acceptable mean output L2 norm on zero input.
+        max_hallucinated_peaks: Maximum acceptable mean hallucinated peaks on zero input.
+    """
+    zero = next((row for row in results if row.test_name == "zero_input"), None)
+    if zero is None:
+        raise ValueError("results must contain a zero_input adversarial row")
+
+    failures: list[str] = []
+    if zero.output_l2_when_input_zero is None or zero.output_l2_when_input_zero > max_output_l2:
+        failures.append("output_l2_when_input_zero")
+    if zero.hallucinated_peaks > max_hallucinated_peaks:
+        failures.append("hallucinated_peaks")
+    return ZeroInputGateResult(
+        passed=not failures,
+        output_l2_when_input_zero=zero.output_l2_when_input_zero,
+        hallucinated_peaks=zero.hallucinated_peaks,
+        max_output_l2=max_output_l2,
+        max_hallucinated_peaks=max_hallucinated_peaks,
+        failures=failures,
+    )

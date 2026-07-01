@@ -1,203 +1,148 @@
 # compressionKIT
 
-**Edge-grade compression for physiological signals (PPG, ECG).** Three flavors,
-one runtime contract:
+**Neural codecs for wearable and physiological signals.**
 
-- **DSP-only** — wavelet + SPIHT + arithmetic coding. No trained weights,
-  Apache-licensed C99 reference, ideal for the most constrained MCUs at
-  modest CRs.
-- **AI-only** — Residual Vector Quantization (RVQ) autoencoders, INT8
-  TFLite, the deepest CRs at the best quality.
-- **DSP+AI hybrid** — DSP front-end + small neural prior, sweet spot for
-  low-CR / low-energy deployments.
+compressionKIT helps teams compress continuous sensor waveforms for edge and wearable systems: PPG, ECG, IMU, and other time-series signals where raw data movement dominates memory, radio energy, and cloud cost.
+
+The toolkit is built around reusable codec blocks rather than one fixed architecture. A codec can combine learned encoders, quantizers, entropy models, DSP stages, runtime loaders, deploy exporters, and validation scorecards. The current v1 release artifacts focus on PPG and ECG, but the package is intended to be extended to new wearable modalities and codec families.
 
 [![Docs](https://img.shields.io/badge/docs-ambiqai.github.io-blue)](https://ambiqai.github.io/compressionkit/)
 [![HuggingFace](https://img.shields.io/badge/HF-Ambiq%2Fcompressionkit--*-yellow)](https://huggingface.co/Ambiq)
-[![License](https://img.shields.io/badge/license-Ambiq%20Silicon%20Only-green)](LICENSE-MODEL-WEIGHTS.md)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 
-Every release ships a registry of [golden experiments](https://ambiqai.github.io/compressionkit/experiments/),
-each reproducible with a single command and published to HuggingFace.
+> **Pre-v1.** APIs, configs, and release conventions may shift on major versions until v1.
 
-> **Pre-v1.** APIs and configs may shift on major versions until v1.
+---
+
+## What compressionKIT provides
+
+- **Codec building blocks** for wearable time-series compression: models, quantizers, losses, preprocessing, evaluation, scorecards, export, and runtime loading.
+- **Edge deploy artifacts** such as LiteRT/TFLite models, C headers, codebooks, manifests, checksums, reference vectors, and HuggingFace bundles.
+- **Release-grade validation** at the artifact boundary, so a codec can be checked without re-running training.
+- **Physiology-aware evaluation** for PPG and ECG, with room to add modality-specific metrics for IMU and future signals.
+- **Progressive workflows**: try a published codec first, validate an existing deploy package next, then reproduce or extend experiments when needed.
+
+compressionKIT is not meant to force every experiment into one framework. Start with the blocks you need, then opt into the golden release workflow only when a result should become a supported artifact.
 
 ---
 
 ## Quickstart
 
+Install the runtime and HuggingFace helper:
+
 ```bash
-uv pip install compressionkit                # runtime
-# or, working from this repo:
-uv sync
+uv pip install "compressionkit[hf]"
+
+# Or, working from this repository:
+uv sync --extra hf
 ```
 
-Load any golden codec from HuggingFace and round-trip a sample frame — the
-loader dispatches on the deploy manifest's `family` field, so the same code
-works for DSP-only SPIHT, AI-only RVQ, and hybrid packages:
+Load a published v1 codec and round-trip a frame. No training dataset is required for this path.
 
 ```python
-from compressionkit.runtime import load_codec
 import numpy as np
+from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-4x")          # AI-only RVQ
-# codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x")  # DSP-only SPIHT
+codec = load_codec("Ambiq/compressionkit-ppg-4x")
 
-frame = ...  # (frame_size,) float32
-enc = codec.compress(frame)
-recon = codec.decompress(enc)
+frame = np.zeros(codec.frame_size, dtype=np.float32)  # replace with your signal frame
+encoded = codec.compress(frame)
+reconstructed = codec.decompress(encoded)
+
+print(codec.modality, codec.sample_rate, encoded.nbits, reconstructed.shape)
 ```
 
-The legacy RVQ-native API is still available for code that wants raw indices:
+For RVQ-specific workflows that need raw token indices:
 
 ```python
 from compressionkit.runtime import RVQCodec
-codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x")
+
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x")
 indices = codec.encode(signal)
-recon = codec.decode(indices)
+reconstructed = codec.decode(indices)
 ```
 
-See the [HuggingFace testing guide](https://ambiqai.github.io/compressionkit/huggingface/) for
-two-stage (codec + entropy prior) usage.
+Prefer notebooks? Start with:
+
+- [`examples/01_quickstart_golden_codec.ipynb`](examples/01_quickstart_golden_codec.ipynb)
+- [`examples/02_evaluate_on_your_data.ipynb`](examples/02_evaluate_on_your_data.ipynb)
 
 ---
 
-## DSP-only (SPIHT) quickstart
+## Current v1 release surface
 
-DSP-only SPIHT codecs ship as **weightless** deploy packages: a deploy
-manifest, codec parameters, license-safe synthetic stimulus, reference
-encode/decode vectors, and the portable C99 reference under
-`c_sources/` with a generated `spiht_app_config.h`.
+The v1 golden packages are the supported examples of the broader toolkit:
 
-```bash
-# Build the weightless deploy package locally (no dataset required).
-uv run compressionkit golden run ppg-spiht-4x
+- **Published neural codec bundles** for PPG and ECG at multiple compression ratios.
+- **Local reproducible DSP and hybrid baselines** used for comparison, packaging, and deployment experiments.
+- **Deploy manifests and validation artifacts** that make packages self-describing and testable.
+- **Scorecards** that report signal fidelity, physiological metric preservation, and robustness behavior.
 
-# Optional: publish to HuggingFace (Apache-2.0, no proprietary weights).
-uv run compressionkit golden run ppg-spiht-4x --publish
-```
+The currently shipped methods include RVQ neural autoencoders, SPIHT-style DSP packages, and hybrid experiments. They are not the only intended options; they are the first release-grade lanes built on the common codec and artifact contract.
 
-Python:
+For details, see:
 
-```python
-from compressionkit.runtime import load_codec
-
-codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x")
-enc = codec.compress(frame)   # frame: (frame_size,) float32
-recon = codec.decompress(enc)
-```
-
-C (embedded integration):
-
-```c
-#include "spiht_app_config.h"
-
-float frame[APP_SPIHT_FRAME_SIZE];
-uint8_t bitstream[APP_SPIHT_MAX_BYTES];
-/* ... fill frame from sensor ... */
-size_t nbits = spiht_encode_frame(&enc, bitstream, APP_SPIHT_MAX_BITS);
-```
+- [Golden experiments](https://ambiqai.github.io/compressionkit/experiments/) for reproducible release runs.
+- [Model zoo](https://ambiqai.github.io/compressionkit/models/) for published PPG and ECG bundles.
+- [Experiment architecture](https://ambiqai.github.io/compressionkit/experiment-architecture/) for the block-first extension model.
+- [Validation scorecard](https://ambiqai.github.io/compressionkit/validation-scorecard/) for metric rationale.
+- [Deployment guide](https://ambiqai.github.io/compressionkit/deployment/) for package contents and runtime integration.
 
 ---
 
-## Reproduce a golden experiment
+## Reproducibility ladder
 
-The lifecycle runner dispatches on the experiment's `method` field:
+Choose the lightest path that answers your question:
 
-- `method == "rvq"`: dataset pre-flight → training → evaluation → export → optional publish.
-- `method == "spiht"`: build codec → write weightless deploy package → optional publish.
+| Goal | Command or API | Dataset required? |
+|------|----------------|-------------------|
+| Try a published codec | `load_codec("Ambiq/compressionkit-ppg-4x")` | No |
+| Validate a local deploy package | `uv run compressionkit golden validate-deploy results/.../deploy` | No |
+| Stage a HuggingFace package | `uv run compressionkit golden run <id> --skip-train --publish --dry-run` | No, if `deploy/` exists |
+| Reproduce a golden run | `uv run compressionkit golden run <id>` | Yes |
+| Extend an experiment | Copy a config or script, change one decision, export, validate | Usually |
+| Promote to golden | Add registry entry, frozen config, scorecard, docs, and publication target | Yes |
 
-```bash
-# Single experiment.
-uv run compressionkit golden run ppg-rvq-4x
-uv run compressionkit golden run ppg-spiht-4x
-
-# Whole modality.
-uv run compressionkit golden run-all --modality ppg
-
-# Train + publish to HuggingFace (requires HF_TOKEN).
-uv run compressionkit golden run ppg-rvq-4x --publish
-```
-
-Outputs land under `results/<run_name>/`, with the publishable deploy package in
-`results/<run_name>/deploy/`.
+Training and real-data evaluation read datasets from `./datasets` by default. Override the root with `COMPRESSIONKIT_DATASETS_DIR`. See the [dataset setup guide](https://ambiqai.github.io/compressionkit/datasets/) for layout and licensing.
 
 ---
 
-## Model Zoo
+## Extend compressionKIT
 
-### PPG · MESA · 64 Hz
+A custom codec does not need to start in the golden registry. Typical extension work looks like this:
 
-| Experiment | CR | PRD (%) | Cosine | HR MAE (bpm) | HuggingFace |
-|------------|----|---------|--------|--------------|-------------|
-| [`ppg-rvq-2x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-2x/)  | 2×  | 2.99 | 0.9921 | 0.10 | [`Ambiq/compressionkit-ppg-2x`](https://huggingface.co/Ambiq/compressionkit-ppg-2x) |
-| [`ppg-rvq-4x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-4x/)  | 4×  | 3.96 | 0.9887 | 0.09 | [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x) |
-| [`ppg-rvq-8x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-8x/)  | 8×  | 6.95 | 0.9688 | 0.19 | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
-| [`ppg-rvq-16x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-16x/) | 16× | 8.60 | 0.9688 | 0.20 | [`Ambiq/compressionkit-ppg-16x`](https://huggingface.co/Ambiq/compressionkit-ppg-16x) |
-| [`ppg-rvq-32x`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-32x/) | 32× | 11.26 | 0.9606 | 0.30 | [`Ambiq/compressionkit-ppg-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-32x) |
+1. Reuse dataset, preprocessing, model, loss, export, or validation blocks directly.
+2. Copy the closest config or ready-made recipe.
+3. Change one decision at a time: modality, frame size, encoder, quantizer, entropy model, loss, scorecard, or deployment target.
+4. Export a deploy package.
+5. Validate the artifact contract.
+6. Promote the result to a golden only after the artifact, scorecard, and docs are stable.
 
-### ECG · PTB-XL · 256 Hz (Lead II)
-
-| Experiment | CR | PRD (%) | Cosine | HuggingFace |
-|------------|----|---------|--------|-------------|
-| [`ecg-rvq-2x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-2x/)  | 2×  | 2.59  | 0.9997 | [`Ambiq/compressionkit-ecg-2x`](https://huggingface.co/Ambiq/compressionkit-ecg-2x) |
-| [`ecg-rvq-4x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-4x/)  | 4×  | 3.68  | 0.9993 | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
-| [`ecg-rvq-8x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-8x/)  | 8×  | 6.66  | 0.9978 | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
-| [`ecg-rvq-16x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-16x/) | 16× | 11.02 | 0.9938 | [`Ambiq/compressionkit-ecg-16x`](https://huggingface.co/Ambiq/compressionkit-ecg-16x) |
-| [`ecg-rvq-32x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-32x/) | 32× | 15.53 | 0.9878 | [`Ambiq/compressionkit-ecg-32x`](https://huggingface.co/Ambiq/compressionkit-ecg-32x) |
-| [`ecg-rvq-64x`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-64x/) | 64× | —     | —      | [`Ambiq/compressionkit-ecg-64x`](https://huggingface.co/Ambiq/compressionkit-ecg-64x) |
-
-### Two-stage (codec + entropy prior)
-
-Selected tiers ship a small causal-transformer entropy prior that lossless-codes the codec's
-token stream for additional CR uplift. The prior bundles alongside the codec in the same
-HuggingFace repo (`prior_int8.tflite`).
-
-- [`ppg-rvq-4x-prior`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-4x-prior/) ·
-  [`ppg-rvq-8x-prior`](https://ambiqai.github.io/compressionkit/experiments/ppg-rvq-8x-prior/)
-- [`ecg-rvq-4x-prior`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-4x-prior/) ·
-  [`ecg-rvq-8x-prior`](https://ambiqai.github.io/compressionkit/experiments/ecg-rvq-8x-prior/)
-
-### DSP-only (SPIHT)
-
-Weightless codec packages built from wavelet (`coif5` for PPG, `bior4.4` for
-ECG, both L=6) + SPIHT + arithmetic coding. No trained weights, Apache-2.0
-licensed, distributed with portable C99 source for direct MCU integration.
-
-- `ppg-spiht-2x` · `ppg-spiht-4x` · `ppg-spiht-8x` → `Ambiq/compressionkit-ppg-spiht-{2,4,8}x`
-- `ecg-spiht-2x` · `ecg-spiht-4x` · `ecg-spiht-8x` → `Ambiq/compressionkit-ecg-spiht-{2,4,8}x`
+This keeps simple paths simple while leaving room for new neural codecs, new sensor modalities, and new deployment targets.
 
 ---
 
-## When to use which tier
+## Repository layout
 
-| Use case | Recommendation |
-|----------|----------------|
-| Real-time streaming over BLE | 2×–4× (best fidelity, lowest decoder cost) |
-| On-device store-and-forward  | 8×–16× (CR-fidelity sweet spot) |
-| Long-term archival / cold storage | 32×–64× or two-stage variants |
-
-Full evaluation methodology lives in the
-[evaluation reference](https://ambiqai.github.io/compressionkit/api/evaluation/).
-
----
-
-## Repository Layout
-
-```
+```text
 compressionkit/         # Importable Python package
-├── cli/                # Console entry points (compressionkit, train-*-rvq, golden subcommand)
-├── configs/            # Pydantic run-config schemas
-├── datasets/           # MESA (PPG), PTB-XL (ECG), dataset contract
-├── evaluation/         # Metrics, overlap-add eval, scorecards
-├── experiments/        # Golden registry + lifecycle runner
-├── export/             # TFLite, C-header, codebook, deploy packager
-├── layers/             # VQ / RVQ / EMA-RVQ Keras layers
-├── models/             # RVQ autoencoder + entropy prior
-├── recipes/            # Golden training recipes
-└── runtime/            # Inference runtime (RVQCodec, EntropyPrior, TwoStageCodec)
+├── configs/            # Pydantic config schemas and path helpers
+├── datasets/           # Dataset contracts and loaders
+├── dsp/                # DSP primitives and reference codecs
+├── evaluation/         # Metrics, robustness checks, scorecards
+├── experiments/        # Golden registry and lifecycle CLI
+├── export/             # Deploy packaging, validation, model cards
+├── layers/             # Keras layers for codec models
+├── models/             # Neural codec architectures
+├── pipeline/           # Composable codec stages
+├── recipes/            # Ready-made training flows
+├── runtime/            # Runtime loaders and codec interfaces
+└── synthetic/          # Synthetic signal and artifact generation
 
-configs/                # Versioned YAML configs for every golden experiment
-scripts/                # Utilities (HF publish, doc rendering, etc.)
-docs/                   # Zensical documentation site
+configs/                # Versioned YAML configs
+docs/                   # Documentation site
+examples/               # Notebook quickstarts
+scripts/                # Release, evaluation, and plotting utilities
 tests/                  # pytest suite
 ```
 
@@ -206,16 +151,15 @@ tests/                  # pytest suite
 ## Development
 
 ```bash
-uv run pytest -q
-uv run ruff check
-uv run ruff format compressionkit tests scripts
-uv run --group docs zensical build
+uv sync --group dev --extra hf
+uv run ruff check compressionkit/ tests/ scripts/
+uv run ruff format compressionkit/ tests/ scripts/
+uv run pytest tests/ -ra
+./.venv/bin/python -m zensical build
 ```
-
-The dev container ships Python 3.12, CUDA, `uv`, and all tooling preinstalled.
 
 ---
 
 ## License
 
-Apache 2.0. Copyright © 2026 Ambiq AI.
+Source code is licensed under the [BSD 3-Clause License](LICENSE). Model weights, codebooks, and published deployment artifacts may carry additional Ambiq model-weight terms; see [LICENSE-MODEL-WEIGHTS.md](LICENSE-MODEL-WEIGHTS.md).

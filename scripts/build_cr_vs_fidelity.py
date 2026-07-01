@@ -79,9 +79,17 @@ def build_headline_row(scorecard: dict, run_name: str, modality: str) -> dict[st
     bitrate = scorecard.get("bitrate", {})
     td = scorecard.get("time_domain", {})
     sp = scorecard.get("spectral", {})
+    headline = scorecard.get("headline", {}) or {}
     phys = scorecard.get("physiology", {}).get("vs_raw_original", {}) or scorecard.get("physiology", {})
     long_rec = scorecard.get("long_recording", {}) or {}
     band_key, _ = _band_key_for(modality)
+
+    # Truth PRD vs clean ground truth (robustness fixture). Pulled from the
+    # read-only headline block, falling back to the raw robustness reference so
+    # the faithfulness PRD is never the only fidelity number shown (issue B4).
+    truth_prd_clean = headline.get("truth_prd_vs_clean_pct")
+    if truth_prd_clean is None:
+        truth_prd_clean = _safe_get(scorecard, "robustness", "reference", "clean")
 
     return {
         "run_name": run_name,
@@ -91,6 +99,7 @@ def build_headline_row(scorecard: dict, run_name: str, modality: str) -> dict[st
         "bits_per_token": bitrate.get("val_bits_per_token"),
         "n": scorecard.get("num_samples"),
         "prd_percent": _safe_get(td, "prd_percent", "mean"),
+        "truth_prd_clean": truth_prd_clean,
         "prdn_noise_percent": _safe_get(td, "prdn_noise_percent", "mean"),
         "qrs_band_err": _safe_get(sp, "per_band_rel_error", band_key, "mean"),
         "coherence": _safe_get(sp, "coherence", "mean"),
@@ -131,10 +140,10 @@ def build_tertile_rows(scorecard: dict, run_name: str, modality: str) -> list[di
 def render_headline_table(rows: list[dict[str, Any]], modality: str) -> str:
     _, band_label = _band_key_for(modality)
     header = (
-        "| CR | Codec CR | Effective CR | bits/tok | N | PRD% | PRDN-noise% | "
-        f"HR MAE (bpm) | {band_label} | Coherence | Seam ratio |"
+        "| CR | Codec CR | Effective CR | bits/tok | N | Faithful PRD% | Truth PRD% (clean) | "
+        f"PRDN-noise% | HR MAE (bpm) | {band_label} | Coherence | Seam ratio |"
     )
-    sep = "|" + "|".join(["---"] * 11) + "|"
+    sep = "|" + "|".join(["---"] * 12) + "|"
     lines = [header, sep]
     for r in rows:
         lines.append(
@@ -147,6 +156,7 @@ def render_headline_table(rows: list[dict[str, Any]], modality: str) -> str:
                     _fmt(r["bits_per_token"], 2),
                     str(r["n"]) if r["n"] is not None else "—",
                     _fmt(r["prd_percent"]),
+                    _fmt(r["truth_prd_clean"]),
                     _fmt(r["prdn_noise_percent"]),
                     _fmt(r["hr_mae_bpm"]),
                     _fmt(r["qrs_band_err"], 4),
@@ -226,15 +236,22 @@ def build_document(
     )
     notes = (
         "## How to read this table\n\n"
-        "- **PRD%** rises with CR by design; the codec is allocating bits to the *physiological* "
-        "  bands, not to broadband noise.\n"
+        "- **Faithful PRD%** is PRD against the recorded (still-noisy) input. It rises with CR "
+        "  by design; the codec is allocating bits to the *physiological* bands, not to broadband "
+        "  noise. Read it together with Truth PRD% — never on its own.\n"
+        "- **Truth PRD% (clean)** is PRD against the clean ground-truth reference (robustness "
+        "  fixture). This is the fair fidelity number for denoising lanes, which a faithfulness-only "
+        "  view would unfairly penalize.\n"
         "- **PRDN-noise%** stays low across CRs, evidencing that the codec is removing noise "
         "  rather than corrupting clean signal — this is the headline customer claim.\n"
         "- **HR MAE** and the band-power error track physiological fidelity directly; both "
         "  stay well within clinical tolerance at the recommended operating CRs.\n"
         "- **Seam ratio** (when available) reports the long-recording stitching seam energy "
         "  relative to the centre window — values near 1.0 indicate seamless continuous "
-        "  reconstruction."
+        "  reconstruction.\n\n"
+        "The noise-stratified detail section above complements these all-sample numbers with the "
+        "clean/median/noisy regime breakdown, so both the clean-truth and noise-regime surfaces "
+        "are always presented together."
     )
     return "\n\n".join([title, intro, headline_section, tertile_section, notes]) + "\n"
 

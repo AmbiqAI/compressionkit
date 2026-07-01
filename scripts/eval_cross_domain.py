@@ -19,6 +19,7 @@ import tensorflow as tf
 with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
     summarize_physiokit_alignment,
@@ -29,21 +30,23 @@ from compressionkit.models.rvq_autoencoder import build_rvq_autoencoder
 # Data loading from h5 datasets
 # ---------------------------------------------------------------------------
 
+_DATASETS_ROOT = default_datasets_dir()
+
 H5_SOURCES = {
     "bidmc": {
-        "root": "/home/vscode/datasets/bidmc",
+        "root": f"{_DATASETS_ROOT}/bidmc",
         "glob": "*.h5",
         "native_fs": 125,
         "signal_key": "data",
     },
     "ppg_dalia": {
-        "root": "/home/vscode/datasets/ppg_dalia",
+        "root": f"{_DATASETS_ROOT}/ppg_dalia",
         "glob": "*.h5",
         "native_fs": 64,
         "signal_key": "data",
     },
     "wesad": {
-        "root": "/home/vscode/datasets/wesad",
+        "root": f"{_DATASETS_ROOT}/wesad",
         "glob": "*.h5",
         "native_fs": 64,
         "signal_key": "data",

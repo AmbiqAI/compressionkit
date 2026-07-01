@@ -33,12 +33,14 @@ import hashlib
 import json
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import tensorflow as tf
+
+from compressionkit.configs.paths import default_datasets_dir
 
 logger = logging.getLogger("ppg-cache")
 
@@ -70,7 +72,7 @@ class CacheBuildConfig:
     """Parameters for building one source cache."""
 
     slug: str
-    datasets_root: str = "/home/vscode/datasets"
+    datasets_root: str = field(default_factory=lambda: default_datasets_dir())
     cache_root: str = "datasets/ppg_cache"
     target_fs: int = 64
     frame_size: int = 320
@@ -529,6 +531,7 @@ def make_cached_ppg_dataset(
     epsilon: float = 1e-3,
     split: str = "train",
     seed: int = 42,
+    normalize: bool = True,
 ) -> tuple[tf.data.Dataset, dict[str, Any]]:
     """Build a tf.data pipeline from any combination of cached PPG sources.
 
@@ -544,6 +547,10 @@ def make_cached_ppg_dataset(
         epsilon: Layer-norm epsilon.
         split: ``"train"`` or ``"val"``.
         seed: Random seed for shuffling and sampling.
+        normalize: When ``True`` (default), windows are layer-normalized before
+            being returned. Set ``False`` to return raw (unnormalized) pairs so a
+            downstream augmenter can corrupt the raw signal and normalize itself
+            (apply-before-norm policy).
 
     Returns:
         ``(dataset, info_dict)`` where dataset yields ``(x, x)`` tuples
@@ -636,7 +643,13 @@ def make_cached_ppg_dataset(
         x = tf.reshape(x, [-1, 1, frame_size, 1])  # (B, 1, frame_size, 1)
         return x, x
 
-    combined = combined.map(_normalize_and_reshape, num_parallel_calls=tf.data.AUTOTUNE)
+    def _reshape_only(x: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
+        # Raw pairs for apply-before-norm augmentation downstream.
+        x = tf.reshape(x, [-1, 1, frame_size, 1])
+        return x, x
+
+    map_fn = _normalize_and_reshape if normalize else _reshape_only
+    combined = combined.map(map_fn, num_parallel_calls=tf.data.AUTOTUNE)
     combined = combined.prefetch(tf.data.AUTOTUNE)
 
     return combined, info

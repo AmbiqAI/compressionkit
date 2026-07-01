@@ -13,6 +13,7 @@ See also issue #26.
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -53,10 +54,58 @@ def _mesa_factory(root: Path | None = None) -> _DatasetLike:
     return MesaDataset(path=path)
 
 
+_PPG_UNIFIED_STRICT_SANITIZE_INFO = DatasetInfo(
+    name="ppg-unified-strict-sanitize-v1",
+    sampling_rate=64,
+    num_leads=1,
+    description=(
+        "Strict-sanitized unified 64 Hz PPG cache used by the faithful v1 PPG goldens "
+        "(bidmc, butppg, ppg_dalia, wesad)."
+    ),
+    license="mixed/open-source terms",
+    license_tier="open",
+    requires_agreement=False,
+)
+
+
+@dataclass(frozen=True)
+class UnifiedPpgCacheDataset:
+    """Cache-backed PPG dataset contract for unified strict-sanitized goldens."""
+
+    path: Path
+    required_sources: tuple[str, ...] = ("bidmc", "butppg", "ppg_dalia", "wesad")
+    required_splits: tuple[str, ...] = ("train.tfrecord", "val.tfrecord", "metadata.json")
+    info: DatasetInfo = field(default_factory=lambda: _PPG_UNIFIED_STRICT_SANITIZE_INFO)
+
+    def ensure_available(self) -> None:
+        missing: list[str] = []
+        for slug in self.required_sources:
+            for rel in self.required_splits:
+                candidate = self.path / slug / rel
+                if not candidate.exists():
+                    missing.append(str(candidate))
+        if missing:
+            remediation = (
+                "uv run python scripts/build_ppg_cache.py --sources bidmc butppg ppg_dalia wesad "
+                "--cache-root datasets/ppg_cache_strict_sanitize"
+            )
+            raise DatasetNotAvailableError(
+                "ppg-unified-strict-sanitize-v1",
+                self.path,
+                remediation,
+            )
+
+
+def _ppg_unified_strict_sanitize_factory(root: Path | None = None) -> _DatasetLike:
+    path = root / "ppg_cache_strict_sanitize" if root is not None else Path("datasets/ppg_cache_strict_sanitize")
+    return UnifiedPpgCacheDataset(path=path)
+
+
 # dataset_id → factory returning a dataset instance.
 DATASET_REGISTRY: dict[str, Callable[[Path | None], _DatasetLike]] = {
     "ptb-xl": _ptbxl_factory,
     "mesa": _mesa_factory,
+    "ppg-unified-strict-sanitize-v1": _ppg_unified_strict_sanitize_factory,
 }
 
 

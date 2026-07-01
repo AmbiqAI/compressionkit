@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from compressionkit.configs.paths import default_datasets_dir
+
 
 class StreamingConfig(BaseModel):
     """Config for subject-level streaming dataset mode."""
@@ -41,14 +43,34 @@ class FilterConfig(BaseModel):
 
 
 class AugmentationConfig(BaseModel):
-    """Configurable augmentation layers applied to model input."""
+    """Configurable augmentation and abstention regimes applied in training."""
 
     gaussian_noise: list[float] = Field(default_factory=lambda: [0.01, 0.1])
+    empirical_noise_prob: float = 0.0
+    empirical_snr_range: list[float] = Field(default_factory=lambda: [10.0, 25.0])
+    noise_bank_max_segments: int = 20_000
+    noise_bank_threshold_std: float = 2.0
     amplitude_warp: bool = False
     amplitude_warp_amplitude: list[float] = Field(default_factory=lambda: [0.05, 0.2])
     amplitude_warp_frequency: list[float] = Field(default_factory=lambda: [1.0, 5.0])
     random_cutout: bool = False
     cutout_factor: list[float] = Field(default_factory=lambda: [0.01, 0.05])
+    long_cutout_prob: float = 0.0
+    long_cutout_factor: list[float] = Field(default_factory=lambda: [0.3, 0.9])
+    null_frame_prob: float = 0.0
+
+    # Wide contact-artifact augmentation (continuous severity, non-bimodal).
+    # When enabled, every window is mixed with a sampled artifact at a Beta-drawn
+    # power fraction (plus a continuous near-clean tail), spanning the full
+    # contact-artifact family set. See RandomArtifactNoise1D.
+    artifact_noise_enabled: bool = False
+    artifact_severity_beta: list[float] = Field(default_factory=lambda: [0.9, 1.3])
+    artifact_clean_prob: float = 0.08
+    artifact_clean_severity_max: float = 0.05
+    artifact_families: list[str] = Field(
+        default_factory=lambda: ["colored", "mains", "motion", "lead_off", "weak_leak"]
+    )
+    artifact_bank_size: int = 2000
 
 
 class SyntheticMixConfig(BaseModel):
@@ -144,7 +166,7 @@ class DataConfig(BaseModel):
         default=None,
         description="Identifier registered in compressionkit.datasets.contract (see #26).",
     )
-    datasets_dir: str = "datasets"
+    datasets_dir: str = Field(default_factory=default_datasets_dir)
     dataset_glob: str = "ptbxl/*.h5"
     sampling_rate: int = 500
     target_sample_rate: int | None = None
@@ -180,6 +202,22 @@ class DataConfig(BaseModel):
 
 class ModelConfig(BaseModel):
     """RVQ autoencoder model architecture configuration."""
+
+    model_type: str = Field(
+        default="default",
+        description=(
+            "Model architecture family: 'default' (standard RVQ autoencoder) "
+            "or 'dwt_rvq' (DWT front-end + learned codec + iDWT back-end)."
+        ),
+    )
+    dwt_wavelet: str = Field(
+        default="bior4.4",
+        description="Wavelet name for DWT codec model_type='dwt_rvq'.",
+    )
+    dwt_levels: int = Field(
+        default=6,
+        description="DWT decomposition levels for model_type='dwt_rvq'.",
+    )
 
     embedding_dim: int = 16
     latent_width: int = 128
@@ -358,6 +396,27 @@ class RvqPrefixLossConfig(BaseModel):
     )
 
 
+class LabelTrustConfig(BaseModel):
+    """Reference-free label-trust loss weighting (``n0``-aware strong/weak labels).
+
+    Estimates the inherent corruption already present in each *target* window
+    and down-weights the reconstruction loss where the target is unreliable, so
+    the model applies higher scrutiny to clean (low-``n0``) targets. This is a
+    training-time-only signal applied via ``sample_weight``; it does not affect
+    the exported model. Only supported for raw-domain training.
+    """
+
+    enabled: bool = False
+    granularity: str = "window"
+    w_min: float = 0.25
+    gamma: float = 1.0
+    half_sat_ratio: float = 0.25
+    hf_window_ms: float = 40.0
+    baseline_window_ms: float = 900.0
+    smooth_ms: float = 300.0
+    normalize: bool = True
+
+
 class TrainingConfig(BaseModel):
     """Training hyperparameters and schedule configuration."""
 
@@ -378,6 +437,7 @@ class TrainingConfig(BaseModel):
     dwt_loss: DwtLossConfig = Field(default_factory=DwtLossConfig)
     beta_anneal: BetaAnnealConfig = Field(default_factory=BetaAnnealConfig)
     rvq_prefix_loss: RvqPrefixLossConfig = Field(default_factory=RvqPrefixLossConfig)
+    label_trust: LabelTrustConfig = Field(default_factory=LabelTrustConfig)
 
 
 class BandMetricsConfig(BaseModel):

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.configs.ppg_rvq import (
     EvaluationConfig,
     ModelConfig,
@@ -59,7 +60,7 @@ class SplitFractions(BaseModel):
 class H5DataConfig(BaseModel):
     """Data-loader configuration for the canonical-h5 PPG pipeline."""
 
-    root: str = "/home/vscode/datasets"
+    root: str = Field(default_factory=default_datasets_dir)
     sources: list[SourceConfig] = Field(
         default_factory=lambda: [
             SourceConfig(slug="bidmc"),

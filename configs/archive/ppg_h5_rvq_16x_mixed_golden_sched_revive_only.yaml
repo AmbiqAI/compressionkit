@@ -4,7 +4,7 @@
 run_name: ppg_h5_rvq_16x_mixed_golden_sched_revive_only
 
 data:
-  root: /home/vscode/datasets
+  root: datasets
   sources:
     - slug: bidmc
     - slug: butppg

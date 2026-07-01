@@ -69,6 +69,8 @@ class TestDeploymentArtifactsDataclass:
         assert hasattr(arts, "decoder_int8_tflite")
         assert hasattr(arts, "decoder_int8_header")
         assert hasattr(arts, "model_card")
+        assert hasattr(arts, "scorecard")
+        assert hasattr(arts, "readme")
 
     def test_as_dict_includes_new_fields(self):
         from compressionkit.export.deploy import DeploymentArtifacts
@@ -77,6 +79,8 @@ class TestDeploymentArtifactsDataclass:
         d = arts.as_dict()
         assert "decoder_float32_tflite" in d
         assert "model_card" in d
+        assert "scorecard" in d
+        assert "readme" in d
 
 
 class TestModelCardGeneration:

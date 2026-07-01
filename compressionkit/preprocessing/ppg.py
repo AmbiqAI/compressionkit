@@ -12,6 +12,8 @@ import keras
 import numpy as np
 import physiokit as pk
 
+from compressionkit.configs.ppg_rvq import AugmentationConfig
+
 
 def build_preprocessor(frame_size: int, epsilon: float = 1e-3) -> keras.layers.Layer:
     """Create preprocessing pipeline: random crop + layer normalization.
@@ -28,17 +30,28 @@ def build_preprocessor(frame_size: int, epsilon: float = 1e-3) -> keras.layers.L
     )
 
 
-def build_augmenter(noise_factor: tuple[float, float] = (0.01, 0.1)) -> keras.layers.Layer:
-    """Create augmentation pipeline: Gaussian noise injection.
+def build_augmenter(
+    noise_factor: tuple[float, float] = (0.01, 0.1),
+    *,
+    aug_cfg: AugmentationConfig | None = None,
+) -> keras.layers.Layer:
+    """Create augmentation pipeline.
+
+    Always includes Gaussian noise injection. Paired null augmentation is not
+    applied here; it is handled at the dataset layer so both input and target
+    are zeroed together, which trains abstention rather than inpainting.
 
     Args:
-        noise_factor: Range ``(min_std, max_std)`` for random noise amplitude.
+        noise_factor: Range ``(min_std, max_std)`` for Gaussian noise.
+        aug_cfg: Optional PPG augmentation config. The paired null-augmentation
+            knobs are consumed by dataset builders, not the Keras augmenter.
     """
-    return helia.layers.preprocessing.AugmentationPipeline(
-        layers=[
-            helia.layers.preprocessing.RandomGaussianNoise1D(factor=noise_factor, name="GaussianNoise"),
-        ]
-    )
+    layers: list[keras.layers.Layer] = [
+        helia.layers.preprocessing.RandomGaussianNoise1D(factor=tuple(noise_factor), name="GaussianNoise"),
+    ]
+    # Paired null augmentation is handled at the dataset layer so both input
+    # and target are zeroed under the same mask.
+    return helia.layers.preprocessing.AugmentationPipeline(layers=layers)
 
 
 def _sample_uniform_range(

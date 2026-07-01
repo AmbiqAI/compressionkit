@@ -53,7 +53,7 @@ data:
     empirical_snr_range: [10.0, 25.0]
     noise_bank_sources: [ppg_dalia, wesad]
     noise_bank_max_segments: 2000
-    noise_bank_root: /home/vscode/datasets
+    noise_bank_root: datasets
 
 model:
   embedding_dim: 16

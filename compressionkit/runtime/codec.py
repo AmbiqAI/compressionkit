@@ -22,6 +22,8 @@ from pathlib import Path
 
 import numpy as np
 
+from compressionkit.export.artifact_contract import ArtifactFile
+
 logger = logging.getLogger(__name__)
 
 # Try ai-edge-litert first, then tflite-runtime, then tf.lite
@@ -75,15 +77,18 @@ class RVQCodec:
 
     def __init__(self, deploy_dir: str | Path) -> None:
         self._deploy_dir = Path(deploy_dir)
-        manifest_path = self._deploy_dir / "deploy_manifest.json"
+        manifest_path = self._deploy_dir / ArtifactFile.DEPLOY_MANIFEST
         if not manifest_path.exists():
             raise FileNotFoundError(f"Deploy manifest not found: {manifest_path}")
 
         with open(manifest_path) as f:
             self._manifest = json.load(f)
 
+        self._spec = self._load_codec_spec()
+        runtime_spec = self._spec or self._manifest
+
         # Load encoder
-        enc_path = self._deploy_dir / self._manifest["encoder"]["tflite"]
+        enc_path = self._deploy_dir / runtime_spec["encoder"]["tflite"]
         self._encoder = _Interpreter(model_path=str(enc_path))
         self._encoder.allocate_tensors()
         self._enc_input = self._encoder.get_input_details()[0]
@@ -93,7 +98,7 @@ class RVQCodec:
         self._decoder = None
         self._dec_input = None
         self._dec_output = None
-        dec_info = self._manifest.get("decoder", {})
+        dec_info = runtime_spec.get("decoder", {})
         dec_f32 = dec_info.get("float32_tflite")
         dec_int8 = dec_info.get("int8_tflite") or dec_info.get("tflite")
 
@@ -104,7 +109,7 @@ class RVQCodec:
         if dec_int8:
             dec_candidates.append(dec_int8)
         # Fallback: look for common filenames
-        for fallback in ("decoder_float32.tflite", "decoder.tflite"):
+        for fallback in (ArtifactFile.DECODER_FLOAT32_TFLITE, ArtifactFile.DECODER_TFLITE):
             if fallback not in dec_candidates:
                 dec_candidates.append(fallback)
 
@@ -119,7 +124,7 @@ class RVQCodec:
                 break
 
         # Load codebook
-        cb_path = self._deploy_dir / self._manifest["codebook"]["npz"]
+        cb_path = self._deploy_dir / runtime_spec["codebook"]["npz"]
         cb_data = np.load(cb_path)
         self._codebooks = [cb_data[k] for k in sorted(cb_data.files)]
         self._num_levels = len(self._codebooks)
@@ -133,6 +138,17 @@ class RVQCodec:
             self._num_embeddings,
             self._embedding_dim,
         )
+
+    def _load_codec_spec(self) -> dict:
+        spec_name = self._manifest.get("spec", "codec_spec.json")
+        if isinstance(spec_name, str):
+            spec_path = self._deploy_dir / spec_name
+            if spec_path.exists():
+                with spec_path.open() as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    return loaded
+        return {}
 
     @classmethod
     def from_pretrained(
@@ -190,6 +206,11 @@ class RVQCodec:
     def manifest(self) -> dict:
         """Return the deployment manifest dictionary."""
         return self._manifest
+
+    @property
+    def spec(self) -> dict:
+        """Return the canonical runtime hydration spec when present."""
+        return self._spec
 
     @property
     def num_levels(self) -> int:
@@ -370,19 +391,17 @@ class RVQCodec:
     @property
     def name(self) -> str:
         """Codec name (from manifest, falls back to ``"rvq"``)."""
-        return str(self._manifest.get("model_name", "rvq"))
+        return str(self._manifest.get("model_name") or self._spec.get("run_name") or "rvq")
 
     @property
     def modality(self) -> str:
-        """``"ppg"`` or ``"ecg"`` if recorded in the model card."""
-        card = self._manifest.get("model_card", {})
-        return str(card.get("modality", "unknown"))
+        """``"ppg"`` or ``"ecg"`` (from codec spec / manifest)."""
+        return str(self._spec.get("modality") or self._manifest.get("modality") or "unknown")
 
     @property
     def sample_rate(self) -> int:
-        """Sample rate in Hz (from model card; ``0`` if unknown)."""
-        card = self._manifest.get("model_card", {})
-        return int(card.get("sample_rate", 0) or 0)
+        """Sample rate in Hz (from codec spec / manifest; ``0`` if unknown)."""
+        return int(self._spec.get("sample_rate") or self._manifest.get("sample_rate", 0) or 0)
 
     @property
     def frame_size(self) -> int:
@@ -395,9 +414,8 @@ class RVQCodec:
 
     @property
     def target_cr(self) -> float:
-        """Target compression ratio from the model card."""
-        card = self._manifest.get("model_card", {})
-        return float(card.get("compression_ratio", 0.0) or 0.0)
+        """Target compression ratio (from codec spec / manifest)."""
+        return float(self._spec.get("compression_ratio") or self._manifest.get("compression_ratio", 0.0) or 0.0)
 
     def compress(self, frame):
         """Encode a frame for the uniform :class:`Codec` protocol.

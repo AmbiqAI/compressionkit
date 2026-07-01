@@ -43,14 +43,31 @@ class PpgRVQTrainer(BaseRVQTrainer[PpgRvqConfig]):
         return build_preprocessor(frame_size=data.frame_size, epsilon=data.epsilon)
 
     def build_augmenter(self) -> keras.layers.Layer:
-        return build_augmenter(tuple(self.cfg.data.gaussian_noise))
+        return build_augmenter(
+            tuple(self.cfg.data.gaussian_noise),
+            aug_cfg=self.cfg.data.augmentation,
+        )
 
     def build_datasets(
         self,
         preprocessor: keras.layers.Layer,
         augmenter: keras.layers.Layer,
     ) -> tuple[Any, Any, int | None, dict[str, Any]]:
-        return build_datasets(self.cfg, preprocessor, augmenter)
+        train_ds, val_ds, validation_steps, ds_info = build_datasets(self.cfg, preprocessor, augmenter)
+        # Stash the artifact-suite augmenter (if any) so the curriculum callback
+        # can ramp its severity scale during training.
+        self._artifact_suite_augmenter = ds_info.get("artifact_suite_augmenter")
+        return train_ds, val_ds, validation_steps, ds_info
+
+    def build_extra_callbacks(self, model: keras.Model) -> list[keras.callbacks.Callback]:
+        """Append the artifact-suite curriculum callback when configured."""
+        from compressionkit.preprocessing.artifact_suite import make_curriculum_callback
+
+        augmenter = getattr(self, "_artifact_suite_augmenter", None)
+        if augmenter is None:
+            return []
+        callback = make_curriculum_callback(augmenter)
+        return [callback] if callback is not None else []
 
     def build_model(self) -> keras.Model:
         return build_model(self.cfg)

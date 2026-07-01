@@ -24,6 +24,7 @@ import tensorflow as tf
 with contextlib.suppress(RuntimeError):
     tf.config.set_visible_devices([], "GPU")
 
+from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.metrics import compute_signal_metrics
 from compressionkit.preprocessing.augmentations import (
     add_baseline_wander,
@@ -247,8 +248,8 @@ def main():
     # Build noise bank
     import glob
 
-    dalia_files = sorted(glob.glob("/home/vscode/datasets/ppg_dalia/*.h5"))
-    wesad_files = sorted(glob.glob("/home/vscode/datasets/wesad/*.h5"))
+    dalia_files = sorted(glob.glob(f"{default_datasets_dir()}/ppg_dalia/*.h5"))
+    wesad_files = sorted(glob.glob(f"{default_datasets_dir()}/wesad/*.h5"))
     noise_bank = build_noise_bank_from_h5(
         dalia_files + wesad_files,
         window_size=frame_size,

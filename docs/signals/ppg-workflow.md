@@ -4,27 +4,30 @@ icon: lucide/activity
 
 # PPG Workflow
 
-This page describes the current production-oriented workflow in compressionKIT. Today, the most complete path in the toolkit is a **PPG compression and reconstruction pipeline** built around a residual vector quantization autoencoder.
+This page describes the current production-oriented PPG path in compressionKIT:
+published RVQ bundles for immediate use, plus reproducible RVQ, SPIHT, and hybrid
+golden lanes for deeper evaluation.
 
 ## What Is Supported Today
 
 The current supported task is:
 
-- Input: 64 Hz PPG signals, typically sourced from EDF recordings with a `Pleth` channel.
-- Training objective: reconstruct the waveform after neural compression while preserving useful physiological structure.
-- Deployment path: export the encoder as INT8 LiteRT plus a C header for embedded integration.
-- Evaluation path: compare original versus reconstructed signals with waveform, reconstruction, and compression metrics.
+- Input: 64 Hz PPG windows from the open unified PPG v1 cache or from your own signal.
+- Published runtime path: load `Ambiq/compressionkit-ppg-{2,4,8,16,32}x` bundles.
+- Golden comparison lanes: RVQ, SPIHT, and hybrid runs evaluated through the same scorecard shape.
+- Deployment path: export encoder/codebook artifacts plus manifests, checksums, and reference vectors.
+- Evaluation path: compare waveform metrics, HR/HRV preservation, noise buckets, and artifact sweeps.
 
-In practice, this gives teams a path from offline dataset preparation to embedded export and browser-based inspection without changing toolchains midway through the project.
+In practice, this gives teams a path from a quick bundle test to a reproducible
+release package without changing toolchains midway through the project.
 
 ## End-To-End Flow
 
-1. Load PPG segments from EDF data and resample to 64 Hz.
-2. Build deterministic training or validation windows with cache-backed dataset support.
-3. Normalize and optionally augment the input with noise and synthetic mixing.
-4. Compress the signal through an RVQ autoencoder configured for a target operating point.
-5. Track validation metrics and keep the best-performing checkpoint weights.
-6. Export encoder artifacts for deployment and save summaries, plots, and reconstruction samples.
+1. Try a published RVQ bundle on a synthetic or customer-provided waveform.
+2. Inspect the PPG model page for CR, HR/HRV, SPIHT, RVQ, hybrid, noise, and artifact tradeoffs.
+3. Build the open PPG cache only when you need to reproduce or train.
+4. Run a golden experiment through `compressionkit golden run <id>`.
+5. Validate the generated `deploy/` package before integrating encoder/codebook artifacts.
 
 ## Core Design Choices
 
@@ -44,37 +47,42 @@ The workflow does not stop at training. It produces deployment artifacts, evalua
 
 | Stage | Input | Output |
 |------|------|------|
-| Data loading | EDF PPG recordings | Windowed training and validation datasets |
-| Preprocessing | Raw or cached windows | Normalized model-ready tensors |
-| Codec model | PPG frames | Quantized latent representation and reconstructed waveform |
-| Evaluation | Original and reconstructed signals | MSE, PRD, cosine, plots, summary JSON |
-| Export | Best encoder weights | LiteRT encoder and C header |
+| Runtime test | Published HuggingFace bundle or local deploy package | Encoded tokens and reconstructed waveform |
+| Data loading | Open PPG cache or customer waveform | Windowed training/evaluation frames |
+| Codec model | PPG frames | RVQ tokens, SPIHT bitstream, or hybrid output depending on lane |
+| Evaluation | Original/noisy/reconstructed signals | PRD, cosine, HR/HRV, noise buckets, artifact scorecards |
+| Export | Golden run output | LiteRT/TFLite, C headers, manifests, checksums, reference vectors |
 
 ## Recommended Entry Points
 
-Use the CLI when you want reproducible runs from config files:
+Use the golden runner when you want a release-grade reproduction:
 
 ```bash
-train-ppg-rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
+uv run compressionkit golden run ppg-rvq-8x
 ```
 
-Or call the module directly:
+Use the published runtime path when you only need to try a codec:
 
-```bash
-python -m compressionkit.recipes.train_ppg_rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
+```python
+from compressionkit.runtime import load_codec
+
+codec = load_codec("Ambiq/compressionkit-ppg-8x")
 ```
 
-## Four Reference Operating Points
+## Reference Operating Points
 
-compressionKIT currently documents four reference PPG variants for the v1 flow:
+compressionKIT currently publishes five PPG RVQ bundles and keeps DSP/hybrid
+comparison lanes reproducible locally:
 
-- 2× for highest fidelity.
-- 4× for balanced quality and savings.
-- 8× for aggressive compression with strong signal preservation.
-- 16× for maximum reduction when system efficiency matters most.
+- 2x for highest fidelity.
+- 4x for balanced quality and savings.
+- 8x for an aggressive but broadly useful operating point.
+- 16x for high compression with more visible HRV tradeoff.
+- 32x for storage/radio-constrained telemetry.
 
-The detailed walkthrough is in [PPG 2x-16x Examples](ppg-v1-examples.md).
+The measured RVQ metrics and SPIHT/RVQ/hybrid noise-artifact tradeoffs are in
+[PPG Models](../models/ppg.md).
 
 ## Related Demo
 
-The workflow is also exposed through a customer-facing browser demo that shows reconstruction quality, compression tradeoffs, and live controls in a more visual format. See [PPG Codec Demo](../demo/ppg-codec.md).
+The workflow is also exposed through a browser demo that shows reconstruction quality, compression tradeoffs, and live controls in a more visual format. See [PPG Codec Demo](../demo/ppg-codec.md).

@@ -25,6 +25,7 @@ from compressionkit.datasets.ecg import (
     make_ecg_stream_dataset,
     make_ecg_tfrecord_dataset,
 )
+from compressionkit.datasets.null_augmentation import PairedNullAugmentationConfig
 from compressionkit.dsp import (
     DwtConfig,
     StftConfig,
@@ -314,6 +315,22 @@ def build_datasets(
         "cache_dir": None,
     }
 
+    # Derive paired null-augmentation config from augmentation config.
+    aug_cfg = data.augmentation
+    null_aug_cfg: PairedNullAugmentationConfig | None = None
+    if aug_cfg is not None:
+        short_cutout = None
+        if aug_cfg.random_cutout:
+            short_cutout = (float(aug_cfg.cutout_factor[0]), float(aug_cfg.cutout_factor[1]))
+        null_aug_cfg = PairedNullAugmentationConfig(
+            short_cutout_factor=short_cutout,
+            long_cutout_factor=(float(aug_cfg.long_cutout_factor[0]), float(aug_cfg.long_cutout_factor[1])),
+            long_cutout_prob=float(aug_cfg.long_cutout_prob),
+            null_frame_prob=float(aug_cfg.null_frame_prob),
+        )
+        if not null_aug_cfg.enabled:
+            null_aug_cfg = None
+
     cache_cfg = data.cache
     streaming_cfg = data.streaming
 
@@ -397,6 +414,7 @@ def build_datasets(
             target_filter_cfg=target_filter_dict if data.target_filter.enabled else None,
             sample_rate=data.effective_sample_rate,
             num_leads=data.num_leads,
+            null_aug_cfg=null_aug_cfg,
             shuffle=True,
             seed=data.shuffle_seed,
         )
@@ -421,6 +439,16 @@ def build_datasets(
 
     elif streaming_cfg.enabled:
         info["mode"] = "streaming"
+        if data.target_sample_rate is not None and data.target_sample_rate != data.sampling_rate:
+            raise ValueError(
+                "Streaming mode does not resample ECG windows. Set data.target_sample_rate to "
+                "null (matching data.sampling_rate) or use cache mode for resampling."
+            )
+        if data.target_filter.enabled:
+            raise ValueError(
+                "Streaming mode does not apply data.target_filter. Use cache or in-memory mode "
+                "for filtered-target training."
+            )
         train_files, val_files, _ = load_ecg_file_splits(
             Path(data.datasets_dir),
             data.dataset_glob,
@@ -435,6 +463,7 @@ def build_datasets(
             "interleave_cycle_length": streaming_cfg.interleave_cycle_length,
             "lead_index": data.lead_index,
             "preprocessor": preprocessor,
+            "sample_rate": data.effective_sample_rate,
             "input_filter_cfg": input_filter_dict if data.input_filter.enabled else None,
             "target_filter_cfg": target_filter_dict if data.target_filter.enabled else None,
             "seed": data.shuffle_seed,
@@ -445,6 +474,7 @@ def build_datasets(
             window_buffer_size=streaming_cfg.window_buffer_size,
             windows_per_subject=streaming_cfg.windows_per_subject_train,
             augmenter=augmenter,
+            null_aug_cfg=null_aug_cfg,
             shuffle=True,
             **stream_kwargs,
         )
@@ -463,6 +493,11 @@ def build_datasets(
 
     else:
         # In-memory mode
+        if data.target_sample_rate is not None and data.target_sample_rate != data.sampling_rate:
+            raise ValueError(
+                "In-memory mode does not resample ECG windows. Set data.target_sample_rate to "
+                "null (matching data.sampling_rate) or use cache mode for resampling."
+            )
         train_data, val_data, _ = load_ecg_splits(
             Path(data.datasets_dir),
             data.dataset_glob,
@@ -556,6 +591,7 @@ def build_datasets(
             preprocessor=preprocessor,
             augmenter=augmenter,
             target_data=train_target_data,
+            null_aug_cfg=null_aug_cfg,
             shuffle=True,
         )
         val_ds = make_ecg_inmemory_dataset(
@@ -564,7 +600,7 @@ def build_datasets(
             batch_size=data.batch_size,
             buffer_size=data.buffer_size,
             preprocessor=preprocessor,
-            augmenter=augmenter,
+            augmenter=None,
             target_data=val_target_data,
             shuffle=False,
         )
@@ -576,6 +612,43 @@ def build_datasets(
         train_ds = _wrap_dataset_with_transform(train_ds, domain, transform_cfg, data.frame_size)
         val_ds = _wrap_dataset_with_transform(val_ds, domain, transform_cfg, data.frame_size)
         info["transform_domain"] = domain
+
+    # Optional reference-free label-trust weighting (n0-aware loss weighting).
+    # Appends a per-window/per-timestep sample_weight derived from the inherent
+    # corruption of each *target*, so clean targets get higher scrutiny. Applied
+    # to the train split only (val metrics stay unweighted) and to raw-domain
+    # training only.
+    lt_cfg = cfg.training.label_trust
+    info["label_trust"] = False
+    if lt_cfg.enabled:
+        if domain != "raw":
+            logger.warning(
+                "label_trust weighting only supports raw-domain training; skipping (domain=%s).",
+                domain,
+            )
+        else:
+            from compressionkit.preprocessing.label_trust import build_label_trust_map
+
+            lt_map = build_label_trust_map(
+                sample_rate=data.effective_sample_rate,
+                w_min=lt_cfg.w_min,
+                gamma=lt_cfg.gamma,
+                granularity=lt_cfg.granularity,
+                hf_window_ms=lt_cfg.hf_window_ms,
+                baseline_window_ms=lt_cfg.baseline_window_ms,
+                smooth_ms=lt_cfg.smooth_ms,
+                half_sat_ratio=lt_cfg.half_sat_ratio,
+                normalize=lt_cfg.normalize,
+            )
+            train_ds = train_ds.map(lt_map, num_parallel_calls=tf.data.AUTOTUNE)
+            info["label_trust"] = True
+            logger.info(
+                "Label-trust weighting enabled (granularity=%s, w_min=%.2f, gamma=%.2f, half_sat=%.2f).",
+                lt_cfg.granularity,
+                lt_cfg.w_min,
+                lt_cfg.gamma,
+                lt_cfg.half_sat_ratio,
+            )
 
     return train_ds, val_ds, validation_steps, info
 
@@ -772,7 +845,7 @@ def run_evaluation(
 
 
 def build_model(cfg: EcgRvqConfig) -> keras.Model:
-    """Build the ECG RVQ autoencoder — 1-D or 2-D spatial depending on domain.
+    """Build the ECG RVQ autoencoder — 1-D, 2-D spatial, or DWT-domain.
 
     The encoder/decoder/RVQ submodules are attached to the returned model as
     ``model.encoder``, ``model.decoder``, ``model.vq``.
@@ -781,6 +854,44 @@ def build_model(cfg: EcgRvqConfig) -> keras.Model:
     mcfg = cfg.model
     prefix_cfg = cfg.training.rvq_prefix_loss
     domain, _ = _build_transform_configs(cfg)
+
+    # ------------------------------------------------------------------
+    # DWT-domain codec: DWT → encoder → RVQ → decoder → iDWT
+    # ------------------------------------------------------------------
+    if mcfg.model_type == "dwt_rvq":
+        from compressionkit.models.dwt_codec import build_dwt_rvq_autoencoder
+
+        logger.info(
+            "Building DWT-domain RVQ codec (wavelet=%s, levels=%d, frame=%d)",
+            mcfg.dwt_wavelet,
+            mcfg.dwt_levels,
+            data.frame_size,
+        )
+        _enc, _rvq, _dec, model = build_dwt_rvq_autoencoder(
+            frame_size=data.frame_size,
+            wavelet=mcfg.dwt_wavelet,
+            dwt_levels=mcfg.dwt_levels,
+            embedding_dim=mcfg.embedding_dim,
+            latent_width=mcfg.latent_width,
+            num_levels=mcfg.num_levels,
+            num_stages=mcfg.num_stages,
+            base_filters=mcfg.base_filters,
+            multiplier=mcfg.multiplier,
+            beta=mcfg.beta,
+            use_ema=mcfg.use_ema,
+            ema_decay=mcfg.ema_decay,
+            encoder_block_norm=mcfg.encoder_block_norm,
+            encoder_head_norm=mcfg.encoder_head_norm,
+            decoder_block_norm=mcfg.decoder_block_norm,
+            decoder_head_norm=mcfg.decoder_head_norm,
+            use_residual=mcfg.use_residual,
+            decoder_activation=mcfg.decoder_activation,
+            encoder_blocks_per_stage=mcfg.encoder_blocks_per_stage,
+            revive_dead_codes=mcfg.revive_dead_codes,
+            revive_threshold=mcfg.revive_threshold,
+            kmeans_init=mcfg.kmeans_init,
+        )
+        return model
 
     if domain == "stft":
         logger.info(

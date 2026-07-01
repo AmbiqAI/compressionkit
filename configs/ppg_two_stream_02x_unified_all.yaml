@@ -4,7 +4,7 @@
 run_name: ppg_two_stream_02x_unified_all
 
 data:
-  datasets_dir: /home/vscode/datasets
+  datasets_dir: datasets
   dataset_glob: mesa-commercial-use/polysomnography/edfs/*.edf
   sampling_rate: 64
   frame_size: 320
@@ -23,7 +23,7 @@ data:
     epsilon: 1.0e-6
   cache_enabled: false
   unified_cache_enabled: true
-  unified_cache_root: /home/vscode/datasets/ppg_cache
+  unified_cache_root: datasets/ppg_cache
   max_train_windows: 200000
   max_val_windows: 20000
   unified_sources:
