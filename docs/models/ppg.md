@@ -151,11 +151,11 @@ uv run python scripts/build_ppg_cache.py \
 ## Training
 
 ```bash
-# Train a specific compression ratio
-python -m compressionkit.recipes.train_ppg_rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
+# Reproduce a specific published operating point.
+uv run compressionkit golden run ppg-rvq-8x
 
-# Train all five golden configs
-bash run_ppg_golden.sh
+# Reproduce all PPG RVQ goldens.
+uv run compressionkit golden run-all --modality ppg --method rvq
 ```
 
 ### Output Structure

@@ -4,141 +4,89 @@ icon: lucide/play
 
 # Getting Started
 
-## Installation
+Start with the smallest path that answers your question. You do not need a
+dataset to load a published codec, inspect its package, or run a synthetic
+round-trip.
 
-compressionKIT uses [uv](https://docs.astral.sh/uv/) for package management. Install in a development environment:
+## 1. Install
+
+For a source checkout:
 
 ```bash
-# Clone the repository
 git clone https://github.com/AmbiqAI/compressionkit.git
 cd compressionkit
-
-# Create virtual environment and install
-uv sync
+uv sync --extra hf
 ```
 
-!!! tip "Try a codec first — no dataset needed"
-    To just load a published golden codec and round-trip a signal, jump to the
-    [Example Notebooks](examples.md). Training and real-data evaluation need the
-    datasets described in [Dataset Setup](datasets.md).
-
-### Dependencies
-
-compressionKIT relies on:
-
-- **[Keras 3](https://keras.io/)** — Model building and training
-- **[heliaEDGE](https://github.com/AmbiqAI/helia-edge)** — RVQ layers, VQ trainers, preprocessing pipelines, TFLite export
-- **[physioKIT](https://github.com/AmbiqAI/physiokit)** — Signal processing and physiological metric computation
-- **[TensorFlow](https://www.tensorflow.org/)** — Backend and tf.data pipelines
-
-## Project Structure
-
-```
-compressionkit/
-├── cli/                # Command-line entry points
-│   └── train_ppg_rvq.py
-├── configs/            # Pydantic configuration models
-│   └── ppg_rvq.py
-├── datasets/           # Data loading and tf.data pipelines
-│   └── ppg.py
-├── preprocessing/      # Augmentation and synthetic generation
-│   └── ppg.py
-├── models/             # Model architecture builders
-│   └── rvq_autoencoder.py
-├── evaluation/         # Metrics and artifact generation
-│   ├── metrics.py
-│   └── artifacts.py
-├── export/             # TFLite and C header export
-│   └── tflite.py
-├── trainers/           # Training orchestration
-│   └── ppg_rvq.py
-└── logging/            # W&B integration
-    └── wandb_utils.py
-```
-
-## Training a Model
-
-### 1. Prepare a YAML config
-
-Create a configuration file (or use an existing one):
-
-```yaml
-run_name: ppg_rvq_08x_ds8_l2
-
-data:
-  datasets_dir: datasets        # or set COMPRESSIONKIT_DATASETS_DIR
-  dataset_glob: "mesa-commercial-use/polysomnography/edfs/*.edf"
-  sampling_rate: 64
-  frame_size: 320
-  segment_samples: 7680
-  batch_size: 64
-  epochs: 100
-
-model:
-  embedding_dim: 16
-  latent_width: 256
-  num_levels: 2
-  num_stages: 3      # 2^3 = 8× downsample
-  base_filters: 32
-  beta: 0.25
-
-training:
-  learning_rate: 0.001
-  early_stop_patience: 25
-  selection_metric: val_mse
-
-output:
-  results_root: results
-  tensorboard: true
-```
-
-### 2. Run training
+For a package install:
 
 ```bash
-train-ppg-rvq --config path/to/config.yaml
+uv pip install "compressionkit[hf]"
 ```
 
-### 3. Outputs
+The `hf` extra is only needed when downloading HuggingFace bundles. Local deploy
+packages can be loaded after they are already on disk.
 
-After training completes, the results directory contains:
+## 2. Try a published codec
 
-| File | Description |
-|------|-------------|
-| `best_model.weights.h5` | Best checkpoint weights selected by validation metric |
-| `model.weights.h5` | Final model weights |
-| `encoder.keras` | Encoder model only |
-| `decoder.keras` | Decoder model only |
-| `rvq_weights.npz` | RVQ codebook weights |
-| `encoder.tflite` | INT8 quantized TFLite encoder |
-| `encoder.h` | C header for embedded deployment |
-| `summary.json` | Full metrics and compression statistics |
-| `plots/` | Reconstruction visualizations |
+Published v1 RVQ bundles are available for PPG and ECG:
 
-## Dataset Modes
+| Signal | HuggingFace repos | Frame |
+|--------|-------------------|-------|
+| PPG | `Ambiq/compressionkit-ppg-{2,4,8,16,32}x` | 5 s at 64 Hz |
+| ECG | `Ambiq/compressionkit-ecg-{2,4,8,16,32,64}x` | 2 s at 256 Hz |
 
-compressionKIT supports three data loading modes:
+```python
+import numpy as np
 
-### In-Memory (default)
-Loads all segments into RAM. Best for small-to-medium datasets.
+from compressionkit.runtime import load_codec
 
-### Streaming
-Samples random windows per-subject from EDF files each epoch. Memory-efficient for large datasets.
+codec = load_codec("Ambiq/compressionkit-ppg-4x")
 
-```yaml
-data:
-  streaming:
-    enabled: true
-    windows_per_subject_train: 8
-    windows_per_subject_val: 4
+t = np.arange(codec.frame_size, dtype=np.float32) / codec.sample_rate
+frame = 0.6 * np.sin(2.0 * np.pi * 1.2 * t)
+
+encoded = codec.compress(frame.astype(np.float32))
+reconstructed = codec.decompress(encoded)
+
+print(codec.modality, codec.compression_ratio, reconstructed.shape)
 ```
 
-### TFRecord Cache
-Builds a deterministic TFRecord cache keyed by dataset+config signature. Best balance of speed and reproducibility.
+For a fuller HuggingFace example using the bundled sample stimulus, see
+[Load & test a HuggingFace model](huggingface.md).
 
-```yaml
-data:
-  cache:
-    enabled: true
-    cache_root: datasets/ppg_tfrecord_cache
-    windows_per_subject_train: 64
+## 3. Choose your next step
+
+| Goal | Go here | Dataset required? |
+|------|---------|-------------------|
+| See quality and tradeoffs | [Model zoo](models/index.md), [PPG models](models/ppg.md), [ECG models](models/ecg.md) | No |
+| Understand SPIHT / RVQ / hybrid behavior | [Methods](methods/index.md), [Validation Scorecard](validation-scorecard.md) | No |
+| Run notebooks or synthetic examples | [Example Notebooks](examples.md) | No |
+| Evaluate on your own waveform | [Dataset Setup · bring your own data](datasets.md#bring-your-own-data) | Your signal only |
+| Validate a deploy package | [Deployment Guide](deployment.md#recommended-validation) | No |
+| Reproduce a golden run | [Golden Experiments](experiments/index.md) | Yes |
+| Build a new supported artifact | [Experiment Architecture](experiment-architecture.md), [V1 Release Contract](release-contract.md) | Usually |
+
+## 4. When datasets matter
+
+Datasets are only needed when you train, reproduce published metrics, or evaluate
+on real recordings. The current release uses:
+
+| Signal | Release dataset surface | Notes |
+|--------|-------------------------|-------|
+| PPG | `ppg-unified-strict-sanitize-v1` | Open-source PPG cache built from BIDMC, BUT PPG, PPG-DaLiA, and WESAD |
+| ECG | `ptb-xl` | PTB-XL Lead II windows resampled to 256 Hz |
+
+See [Dataset Setup](datasets.md) for cache layout, licensing, and synthetic
+generators.
+
+## 5. Validate before deployment
+
+Before integrating a codec into a product workflow, check the package boundary:
+
+```bash
+uv run compressionkit golden validate-deploy results/ppg_rvq_64hz_08x_golden/deploy --max-vectors 1
 ```
+
+For runtime packaging, HuggingFace naming, and split encoder/decoder deployment,
+see [Deployment Guide](deployment.md).
