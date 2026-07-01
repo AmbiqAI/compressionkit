@@ -31,15 +31,17 @@ CODEC_SOURCE = "Ambiq/compressionkit-ppg-4x"
 # CODEC_SOURCE = "results/ppg_rvq_64hz_04x_golden/deploy"
 ```
 
-Point it at any tier in the [Model Zoo](models/index.md) \u2014 PPG or ECG, RVQ or
-SPIHT \u2014 and the rest of the notebook adapts to the codec's modality, sample
-rate, and frame size automatically.
+Point it at any published RVQ tier in the [Model Zoo](models/index.md), PPG or
+ECG, and the rest of the notebook adapts to the codec's modality, sample rate,
+and frame size automatically. Use a local deploy package when evaluating a
+reproducible SPIHT, hybrid, or custom run.
 
 ## What you don't need
 
 - **No dataset.** Notebook 1 uses the reference frames shipped inside the deploy
   package; notebook 2 can synthesize signals on the fly.
-- **No training.** These load already-published codecs.
+- **No training for the published RVQ path.** Local comparison lanes only need a
+  deploy package that has already been built.
 
 When you are ready to evaluate at population scale or reproduce a golden run from
 scratch, see [Dataset Setup](datasets.md) and the

@@ -26,7 +26,10 @@ The ECG waveform consists of the characteristic P-QRS-T complex, where the sharp
 
 ## ECG in compressionKIT
 
-ECG compression uses the same RVQ autoencoder architecture as PPG, with parameters tuned for the higher sampling rate and sharper morphology of ECG signals.
+ECG compression in the v1 release has published RVQ bundles plus local
+SPIHT and hybrid comparison lanes. The RVQ architecture is tuned for the higher
+sampling rate and sharper morphology of ECG signals; SPIHT is the clean-signal
+DSP baseline, and hybrid AI+DSP runs help characterize artifact-heavy regimes.
 
 ### Pipeline
 
@@ -52,7 +55,7 @@ See **[ECG Models (v1.0)](../models/ecg.md)** for the full results table, archit
 ### Training
 
 ```bash
-python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
+uv run compressionkit golden run ecg-rvq-8x
 ```
 
 ### Stitching evaluation

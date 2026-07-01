@@ -15,8 +15,8 @@ compressionKIT is designed for **physiological signal compression** — signals 
 
 | Signal | Module | Sampling Rate | Frame Size | Status |
 |--------|--------|---------------|------------|--------|
-| [PPG](ppg.md) | `compressionkit.datasets.mesa` | 64 Hz | 320 (5 s) | Production — [golden models](../models/ppg.md) |
-| [ECG](ecg.md) | `compressionkit.datasets.ptbxl` | 256 Hz | 512 (2 s) | Production — [golden models](../models/ecg.md) |
+| [PPG](ppg.md) | `compressionkit.datasets.ppg` | 64 Hz | 320 (5 s) | RVQ published; SPIHT/hybrid local comparisons — [models](../models/ppg.md) |
+| [ECG](ecg.md) | `compressionkit.datasets.ptbxl` | 256 Hz | 512 (2 s) | RVQ published; SPIHT/hybrid local comparisons — [models](../models/ecg.md) |
 
 ## PPG Section
 

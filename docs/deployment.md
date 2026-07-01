@@ -94,9 +94,6 @@ uv sync --extra hf
 
 Then load a codec directly from the Hub:
 
-!!! note
-    The `Ambiq/compressionkit-{modality}-{cr}x` repos are published as part of the v1 golden release (tracked in #25 / #28). Once a golden run is published, the snippet below works against it; until then the call returns a 404 and you can substitute a local `RVQCodec("results/<run_name>/deploy")` path.
-
 ```python
 import numpy as np
 
@@ -174,6 +171,11 @@ restored_indices = two_stage.decompress_indices(compressed)
 ```
 
 Use the two-stage path when transport or storage cost is the limiting factor and you can afford the extra prior model. Use the single-stage codec when simplicity, fixed compute, or embedded deployment dominates.
+
+Published v1 HuggingFace bundles cover the single-stage RVQ codecs. SPIHT,
+hybrid AI+DSP, and entropy-prior variants are reproducible from the golden
+registry today and should be loaded from local deploy packages until those
+families are published as distribution bundles.
 
 ## Platform Considerations
 

@@ -137,10 +137,10 @@ Or point the config `data.data_dir` to your existing PTB-XL HDF5 directory.
 
 ```bash
 # Train a specific compression ratio
-python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
+uv run compressionkit golden run ecg-rvq-8x
 
 # Train all six golden configs
-bash run_ecg_golden.sh
+uv run compressionkit golden run-all --modality ecg --method rvq
 ```
 
 ### Output Structure
@@ -204,5 +204,5 @@ To create a new ECG model variant:
 
 1. Copy an existing golden config: `cp configs/ecg_rvq_256hz_08x_golden.yaml configs/ecg_rvq_256hz_08x_v2.yaml`
 2. Modify parameters (e.g. `base_filters`, `num_levels`, `learning_rate`)
-3. Train: `python -m compressionkit.recipes.train_ecg_rvq --config configs/ecg_rvq_256hz_08x_v2.yaml`
+3. Train: `uv run train-ecg-rvq --config configs/ecg_rvq_256hz_08x_v2.yaml`
 4. Compare results against the golden baseline

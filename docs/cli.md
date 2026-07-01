@@ -56,6 +56,15 @@ entry-point plugin).
 
 Train a PPG RVQ compression model from a YAML configuration file.
 
+For release reproduction, prefer the golden registry wrapper because it pins the
+canonical dataset, config, export, and validation steps:
+
+```bash
+uv run compressionkit golden run ppg-rvq-8x
+```
+
+Use `train-ppg-rvq` when developing or debugging a custom recipe directly.
+
 ### Usage
 
 ```bash
@@ -77,7 +86,7 @@ python -m compressionkit.recipes.train_ppg_rvq --config <path-to-yaml>
 ### Example
 
 ```bash
-train-ppg-rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
+uv run train-ppg-rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
 ```
 
 ### Configuration
@@ -111,6 +120,14 @@ results/ppg_rvq_08x_ds8_l2/
 
 Train an ECG RVQ compression model from a YAML configuration file.
 
+For release reproduction, prefer the golden registry wrapper:
+
+```bash
+uv run compressionkit golden run ecg-rvq-8x
+```
+
+Use `train-ecg-rvq` when developing or debugging a custom recipe directly.
+
 ### Usage
 
 ```bash
@@ -132,7 +149,7 @@ python -m compressionkit.recipes.train_ecg_rvq --config <path-to-yaml>
 ### Example
 
 ```bash
-train-ecg-rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
+uv run train-ecg-rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
 ```
 
 ### Configuration
