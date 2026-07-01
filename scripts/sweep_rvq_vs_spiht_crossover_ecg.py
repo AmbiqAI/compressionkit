@@ -125,7 +125,7 @@ def build_real_windows(
     rng.shuffle(files)
 
     # Window length at the source rate that yields ``frame_size`` after resample.
-    src_window = int(round(frame_size * source_sample_rate / sample_rate))
+    src_window = round(frame_size * source_sample_rate / sample_rate)
 
     proxy = np.empty((n_windows, frame_size), dtype=np.float32)
     native = np.empty((n_windows, frame_size), dtype=np.float32)
@@ -281,7 +281,7 @@ def main() -> None:
         if npct == 0.0:
             inp = clean.copy()
         else:
-            inp = add_gaussian(clean, npct, seed=int(round(npct * 1000)) + 17)
+            inp = add_gaussian(clean, npct, seed=round(npct * 1000) + 17)
         columns.append((_snr_label(snr_db), snr_db, inp))
 
     summary: dict = {

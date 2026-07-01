@@ -42,9 +42,9 @@ __all__ = [
     "FinestLevelFeature",
     "LevelGate",
     "as_coeff_denoiser",
-    "build_wavelet_noise_predictor",
     "build_wavelet_denoiser_v2",
     "build_wavelet_gain_denoiser",
+    "build_wavelet_noise_predictor",
     "build_wavelet_unrolled_shrinkage",
     "finest_band_indices",
     "level_feature_np",
@@ -183,12 +183,8 @@ class NoiseGatedGain(keras.layers.Layer):
         self.b_init = float(b_init)
 
     def build(self, input_shape):
-        self.a = self.add_weight(
-            name="gate_a", shape=(), initializer=keras.initializers.Constant(self.a_init)
-        )
-        self.b = self.add_weight(
-            name="gate_b", shape=(), initializer=keras.initializers.Constant(self.b_init)
-        )
+        self.a = self.add_weight(name="gate_a", shape=(), initializer=keras.initializers.Constant(self.a_init))
+        self.b = self.add_weight(name="gate_b", shape=(), initializer=keras.initializers.Constant(self.b_init))
         super().build(input_shape)
 
     def call(self, inputs):
@@ -210,7 +206,6 @@ class SoftThreshold(keras.layers.Layer):
         value, threshold = inputs
         magnitude = keras.ops.maximum(keras.ops.abs(value) - threshold, 0.0)
         return keras.ops.sign(value) * magnitude
-
 
 
 def _causal_ds_block(
@@ -275,7 +270,10 @@ def build_wavelet_gain_denoiser(
         # Noise-gated gain: suppression starts near 0 (bias -identity_bias) and
         # is gated by the per-window noise level so clean input stays identity.
         suppression = keras.layers.Conv2D(
-            1, (1, 1), padding="same", activation="sigmoid",
+            1,
+            (1, 1),
+            padding="same",
+            activation="sigmoid",
             kernel_initializer="zeros",
             bias_initializer=keras.initializers.Constant(-identity_bias),
             name="suppression",
@@ -284,7 +282,10 @@ def build_wavelet_gain_denoiser(
         gain = NoiseGatedGain(b_init=gate_b_init, name="gain")([suppression, level])
     else:
         gain = keras.layers.Conv2D(
-            1, (1, 1), padding="same", activation="sigmoid",
+            1,
+            (1, 1),
+            padding="same",
+            activation="sigmoid",
             kernel_initializer="zeros",
             bias_initializer=keras.initializers.Constant(identity_bias),
             name="gain",
@@ -373,7 +374,10 @@ def build_wavelet_denoiser_v2(
         x = _residual_ds_block(x, width, k_w=k_w, dilation=d, name=f"blk{i}")
 
     gain = keras.layers.Conv2D(
-        1, (1, 1), padding="same", activation="sigmoid",
+        1,
+        (1, 1),
+        padding="same",
+        activation="sigmoid",
         kernel_initializer="zeros",
         bias_initializer=keras.initializers.Constant(identity_bias),
         name="gain",
@@ -381,8 +385,12 @@ def build_wavelet_denoiser_v2(
     attenuated = keras.layers.Multiply(name="attenuated")([gain, coeff])
 
     residual = keras.layers.Conv2D(
-        1, (1, 1), padding="same", activation="tanh",
-        kernel_initializer="zeros", bias_initializer="zeros",
+        1,
+        (1, 1),
+        padding="same",
+        activation="tanh",
+        kernel_initializer="zeros",
+        bias_initializer="zeros",
         name="residual",
     )(x)
     residual = keras.layers.Rescaling(residual_scale, name="residual_scaled")(residual)
@@ -424,8 +432,12 @@ def build_wavelet_noise_predictor(
         x = _residual_ds_block(x, width, k_w=k_w, dilation=d, name=f"blk{i}")
 
     noise_pred = keras.layers.Conv2D(
-        1, (1, 1), padding="same", activation="tanh",
-        kernel_initializer="zeros", bias_initializer="zeros",
+        1,
+        (1, 1),
+        padding="same",
+        activation="tanh",
+        kernel_initializer="zeros",
+        bias_initializer="zeros",
         name="noise_pred",
     )(x)
     noise_pred = keras.layers.Rescaling(residual_scale, name="noise_scaled")(noise_pred)
@@ -499,7 +511,11 @@ def build_wavelet_unrolled_shrinkage(
         proposal = keras.layers.Subtract(name=f"stage{stage_idx}_proposal")([coeff, delta])
 
         coeff = SoftThreshold(name=f"stage{stage_idx}_shrink")([proposal, tau])
-        state = keras.layers.Concatenate(axis=-1, name=f"stage{stage_idx}_state")([coeff, level]) if level is not None else coeff
+        state = (
+            keras.layers.Concatenate(axis=-1, name=f"stage{stage_idx}_state")([coeff, level])
+            if level is not None
+            else coeff
+        )
 
     denoised = keras.layers.Identity(name="denoised")(coeff)
     return keras.Model(inp, denoised, name=name)

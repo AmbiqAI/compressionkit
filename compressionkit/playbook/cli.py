@@ -238,12 +238,11 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
     print(header)
     print("-" * len(header))
     for r in results:
-        print(
-            f"{r.method_id:40s}  {r.truth_prd:9.2f}  {r.faithful_prd:12.2f}  "
-            f"{r.imprint:7.3f}  {r.true_cr:6.2f}x"
-        )
-    print("\ntruth_PRD vs the true clean ECG (unbiased) | faithful_PRD vs noisy input | "
-          "imprint = invented periodic structure on pure noise (lower=better)")
+        print(f"{r.method_id:40s}  {r.truth_prd:9.2f}  {r.faithful_prd:12.2f}  {r.imprint:7.3f}  {r.true_cr:6.2f}x")
+    print(
+        "\ntruth_PRD vs the true clean ECG (unbiased) | faithful_PRD vs noisy input | "
+        "imprint = invented periodic structure on pure noise (lower=better)"
+    )
     return 0
 
 
@@ -286,22 +285,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_cmp.add_argument("--plot", default=None, help="Optional PNG path for a reconstruction plot.")
     p_cmp.set_defaults(func=_cmd_compare)
 
-    p_bench = sub.add_parser(
-        "benchmark", help="Triple-metric benchmark on synthetic clean-truth ECG (unbiased)."
-    )
+    p_bench = sub.add_parser("benchmark", help="Triple-metric benchmark on synthetic clean-truth ECG (unbiased).")
     p_bench.add_argument("--lane", choices=[lane.value for lane in Lane], default=None)
     p_bench.add_argument("--methods", default=None, help="Comma-separated method ids (overrides --lane).")
     p_bench.add_argument("--n-windows", type=int, default=64)
     p_bench.add_argument("--cr", type=float, default=8.0)
-    p_bench.add_argument("--family", default="motion",
-                         choices=["colored", "mains", "motion", "lead_off", "weak_leak"])
+    p_bench.add_argument("--family", default="motion", choices=["colored", "mains", "motion", "lead_off", "weak_leak"])
     p_bench.add_argument("--severity", type=float, default=0.5)
-    p_bench.add_argument("--sweep", action="store_true",
-                         help="Sweep across --families x --severities and report truth_PRD vs SNR.")
-    p_bench.add_argument("--families", default="colored,mains,motion,lead_off,weak_leak",
-                         help="Comma-separated families for --sweep.")
-    p_bench.add_argument("--severities", default="0.25,0.5,0.75,1.0",
-                         help="Comma-separated severities for --sweep.")
+    p_bench.add_argument(
+        "--sweep", action="store_true", help="Sweep across --families x --severities and report truth_PRD vs SNR."
+    )
+    p_bench.add_argument(
+        "--families", default="colored,mains,motion,lead_off,weak_leak", help="Comma-separated families for --sweep."
+    )
+    p_bench.add_argument("--severities", default="0.25,0.5,0.75,1.0", help="Comma-separated severities for --sweep.")
     p_bench.add_argument("--sample-rate", type=int, default=256)
     p_bench.add_argument("--frame-size", type=int, default=512)
     p_bench.add_argument("--seed", type=int, default=0)

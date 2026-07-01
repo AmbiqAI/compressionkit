@@ -71,9 +71,7 @@ def _build_spiht(experiment: GoldenExperiment, run_dir: Path) -> dict[str, objec
     try:
         script_path = script_by_modality[experiment.modality]
     except KeyError as err:
-        raise ValueError(
-            f"No SPIHT golden evaluator registered for modality {experiment.modality!r}"
-        ) from err
+        raise ValueError(f"No SPIHT golden evaluator registered for modality {experiment.modality!r}") from err
 
     cmd = [
         sys.executable,

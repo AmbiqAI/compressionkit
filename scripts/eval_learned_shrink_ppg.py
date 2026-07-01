@@ -34,7 +34,6 @@ from compressionkit.evaluation.codec import (
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.models.wavelet_denoiser import as_coeff_denoiser
 from compressionkit.preprocessing.augmentations import build_noise_bank_from_h5
-
 from scripts.sweep_codec_noise_ppg import _prd, encode_decode_batch
 from scripts.sweep_empirical_regime_ppg import (
     DEFAULT_RVQ_RUN_DIRS,
@@ -77,9 +76,7 @@ def _parse_sources(text: str) -> list[str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument(
-        "--gain-model", type=Path, default=Path("results/wavelet_denoiser_ppg/gain_model.keras")
-    )
+    ap.add_argument("--gain-model", type=Path, default=Path("results/wavelet_denoiser_ppg/gain_model.keras"))
     ap.add_argument("--reference-run", type=Path, default=Path("results/ppg_rvq_64hz_08x_golden"))
     ap.add_argument("--n-windows", type=int, default=500)
     ap.add_argument("--crs", type=_parse_crs, default=[2, 4, 8, 16, 32])
@@ -91,7 +88,9 @@ def main() -> None:
     ap.add_argument("--levels", type=int, default=6)
     ap.add_argument("--output-stem", type=str, default="ppg_learned_shrink")
     ap.add_argument(
-        "--run-dirs", type=_parse_run_dirs, default=None,
+        "--run-dirs",
+        type=_parse_run_dirs,
+        default=None,
         help="Optional override mapping 'cr=path,cr=path' for RVQ run dirs.",
     )
     ap.add_argument("--no-rvq", action="store_true", help="Skip the RVQ golden comparison.")
@@ -106,9 +105,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"[setup] Loading {args.n_windows} real PPG windows from {args.reference_run} ...")
-    filtered, raw_native, native_snr, cfg = build_real_windows(
-        args.n_windows, reference_run=args.reference_run
-    )
+    filtered, raw_native, native_snr, cfg = build_real_windows(args.n_windows, reference_run=args.reference_run)
     frame_size = int(cfg.data.frame_size)
     sample_rate = int(cfg.data.sampling_rate)
     print(
@@ -118,9 +115,7 @@ def main() -> None:
 
     print(f"[setup] Loading gain model: {args.gain_model}")
     gain_model = keras.models.load_model(args.gain_model)
-    coeff_denoiser = as_coeff_denoiser(
-        gain_model, frame_size=frame_size, wavelet=args.wavelet, levels=args.levels
-    )
+    coeff_denoiser = as_coeff_denoiser(gain_model, frame_size=frame_size, wavelet=args.wavelet, levels=args.levels)
 
     print(f"[setup] Building empirical noise bank from {args.noise_bank_sources} ...")
     bank_files: list[Path] = []
@@ -128,7 +123,9 @@ def main() -> None:
         bank_files.extend(sorted((args.noise_bank_root / src).glob("*.h5")))
     noise_bank = build_noise_bank_from_h5(
         [str(p) for p in bank_files[: args.noise_bank_files]],
-        target_fs=sample_rate, window_size=frame_size, max_segments=5000,
+        target_fs=sample_rate,
+        window_size=frame_size,
+        max_segments=5000,
     )
     if noise_bank is None or len(noise_bank) == 0:
         raise RuntimeError("Empirical noise bank is empty.")
@@ -139,7 +136,7 @@ def main() -> None:
         if snr_db is None:
             columns.append(("clean", None, filtered.copy()))
         else:
-            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + int(round(snr_db)))
+            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + round(snr_db))
             columns.append((_snr_label(snr_db), snr_db, inp))
 
     probe_rng = np.random.default_rng(7)
@@ -148,15 +145,24 @@ def main() -> None:
     ).astype(np.float32)
 
     summary: dict = {
-        "n_windows": args.n_windows, "crs": args.crs,
-        "columns": [c[0] for c in columns], "by_cr": {}, "imprinting": {},
+        "n_windows": args.n_windows,
+        "crs": args.crs,
+        "columns": [c[0] for c in columns],
+        "by_cr": {},
+        "imprinting": {},
     }
 
     from scripts.sweep_empirical_regime_ppg import _pulse_autocorr_peak
 
     for cr in args.crs:
-        kw = dict(modality="ppg", sample_rate=sample_rate, frame_size=frame_size,
-                  target_cr=float(cr), wavelet=args.wavelet, levels=args.levels)
+        kw = {
+            "modality": "ppg",
+            "sample_rate": sample_rate,
+            "frame_size": frame_size,
+            "target_cr": float(cr),
+            "wavelet": args.wavelet,
+            "levels": args.levels,
+        }
         spiht = SpihtAcCodec(name=f"spiht_{cr}x", **kw)
         bayes = BayesShrinkSpihtCodec(name=f"bayes_{cr}x", **kw) if args.with_bayes else None
         learned = LearnedShrinkSpihtCodec(name=f"learned_{cr}x", coeff_denoiser=coeff_denoiser, **kw)
@@ -185,10 +191,7 @@ def main() -> None:
             block["rvq"].append(tr)
             rvq_str = f"  RVQ={tr:6.2f} ({tr - ts:+5.2f})" if rvq is not None else ""
             bayes_str = f"  Bayes={tb:6.2f} ({tb - ts:+5.2f})" if bayes is not None else ""
-            print(
-                f"  {label:>7s}: SPIHT={ts:6.2f}  Hybrid={tl:6.2f} ({tl - ts:+5.2f})"
-                f"{rvq_str}{bayes_str}"
-            )
+            print(f"  {label:>7s}: SPIHT={ts:6.2f}  Hybrid={tl:6.2f} ({tl - ts:+5.2f}){rvq_str}{bayes_str}")
 
         ac_in = float(_pulse_autocorr_peak(pure_noise, sample_rate).mean())
         ac_l = float(_pulse_autocorr_peak(encode_decode_batch(learned, pure_noise), sample_rate).mean())

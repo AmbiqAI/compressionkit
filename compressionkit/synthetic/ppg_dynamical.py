@@ -60,7 +60,7 @@ def _rr_process(
     rng: np.random.Generator,
 ) -> np.ndarray:
     """Bimodal-spectrum HRV generator, same as the ECG model."""
-    n = int(round(duration_s * fs_internal))
+    n = round(duration_s * fs_internal)
     if n < 2:
         return np.full(max(n, 1), hr_mean, dtype=np.float64)
 
@@ -130,7 +130,7 @@ def ppg_dynamical(
         morphology = PpgMorphologyParams()
 
     rng = np.random.default_rng(seed)
-    n_internal = int(round(duration_s * fs_internal))
+    n_internal = round(duration_s * fs_internal)
     dt = 1.0 / fs_internal
 
     hr_inst = _rr_process(
@@ -154,12 +154,18 @@ def ppg_dynamical(
         t = k * dt
         a_scale = 1.0 + respiration_amplitude_mod * np.sin(two_pi_fr * t)
         baseline = (
-            respiration_baseline_amplitude * np.sin(two_pi_fr * t)
-            if respiration_baseline_amplitude > 0.0
-            else 0.0
+            respiration_baseline_amplitude * np.sin(two_pi_fr * t) if respiration_baseline_amplitude > 0.0 else 0.0
         )
 
-        def rhs(xs: float, ys: float, zs: float, theta: float) -> tuple[float, float, float]:
+        def rhs(
+            xs: float,
+            ys: float,
+            zs: float,
+            theta: float,
+            w: float = w,
+            baseline: float = baseline,
+            a_scale: float = a_scale,
+        ) -> tuple[float, float, float]:
             alpha = 1.0 - np.sqrt(xs * xs + ys * ys)
             dx = alpha * xs - w * ys
             dy = alpha * ys + w * xs
@@ -192,7 +198,7 @@ def ppg_dynamical(
         z += dt * (k1z + 2.0 * k2z + 2.0 * k3z + k4z) / 6.0
         z_out[k] = z
 
-    n_out = int(round(duration_s * sample_rate))
+    n_out = round(duration_s * sample_rate)
     t_in = np.arange(n_internal) / fs_internal
     t_out = np.arange(n_out) / sample_rate
     return np.interp(t_out, t_in, z_out)

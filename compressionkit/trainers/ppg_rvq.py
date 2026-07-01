@@ -15,6 +15,7 @@ import numpy as np
 import tensorflow as tf
 
 from compressionkit.configs.ppg_rvq import PpgRvqConfig, TransformConfig
+from compressionkit.datasets.null_augmentation import PairedNullAugmentationConfig, apply_paired_null_augmentation_batch
 from compressionkit.datasets.ppg import (
     bandpass_filter_batch,
     build_ppg_tfrecord_cache,
@@ -25,8 +26,6 @@ from compressionkit.datasets.ppg import (
     make_ppg_stream_dataset,
     make_ppg_tfrecord_dataset,
 )
-from compressionkit.datasets.null_augmentation import PairedNullAugmentationConfig
-from compressionkit.datasets.null_augmentation import apply_paired_null_augmentation_batch
 from compressionkit.evaluation.artifacts import save_sample_artifacts
 from compressionkit.evaluation.metrics import (
     TruePRD,
@@ -44,6 +43,7 @@ from compressionkit.models.rvq_autoencoder import (
     build_rvq_autoencoder,
     compute_compression_stats,
 )
+from compressionkit.preprocessing.artifact_suite import RoleRoutingAugmenter
 from compressionkit.preprocessing.augmentations import (
     PPGAugmenter,
     build_noise_bank_from_h5,
@@ -159,26 +159,20 @@ def _build_ppg_augmenter(cfg: PpgRvqConfig) -> PPGAugmenter | None:
     )
 
 
-def _build_artifact_suite_augmenter(cfg: PpgRvqConfig) -> "RoleRoutingAugmenter | None":
+def _build_artifact_suite_augmenter(cfg: PpgRvqConfig) -> RoleRoutingAugmenter | None:
     """Build the role-routing artifact suite augmenter from config.
 
     Returns ``None`` when ``data.artifact_suite.enabled`` is false. Syncs the
     suite ``sample_rate``/``epsilon`` from the data config and builds the
     empirical noise bank only when an ``empirical_noise`` artifact can fire.
     """
-    from compressionkit.preprocessing.artifact_suite import RoleRoutingAugmenter
-
     suite_cfg = cfg.data.artifact_suite
     if not suite_cfg.enabled:
         return None
 
-    suite_cfg = suite_cfg.model_copy(
-        update={"sample_rate": cfg.data.sampling_rate, "epsilon": cfg.data.epsilon}
-    )
+    suite_cfg = suite_cfg.model_copy(update={"sample_rate": cfg.data.sampling_rate, "epsilon": cfg.data.epsilon})
 
-    needs_bank = any(
-        spec.name == "empirical_noise" and spec.prob > 0.0 for spec in suite_cfg.effective_specs()
-    )
+    needs_bank = any(spec.name == "empirical_noise" and spec.prob > 0.0 for spec in suite_cfg.effective_specs())
     noise_bank = _build_ppg_noise_bank(cfg) if needs_bank else None
 
     return RoleRoutingAugmenter(suite_cfg, noise_bank=noise_bank, seed=cfg.data.shuffle_seed)
@@ -213,7 +207,7 @@ def _wrap_dataset_with_augmentation(
 
 def _wrap_dataset_with_artifact_suite(
     ds: tf.data.Dataset,
-    suite_augmenter: "RoleRoutingAugmenter",
+    suite_augmenter: RoleRoutingAugmenter,
     frame_size: int,
 ) -> tf.data.Dataset:
     """Apply the role-routing artifact suite to RAW ``(x, x)`` pairs.
@@ -327,9 +321,7 @@ def build_datasets(
         raise ValueError("Enable at most one of data.cache, data.streaming, or data.unified_cache.")
 
     if suite_enabled and not unified_cfg.enabled:
-        raise NotImplementedError(
-            "data.artifact_suite is currently only supported with data.unified_cache mode."
-        )
+        raise NotImplementedError("data.artifact_suite is currently only supported with data.unified_cache mode.")
 
     input_filter_dict = data.input_filter.model_dump() if data.input_filter.enabled else {}
     target_filter_dict = data.target_filter.model_dump() if data.target_filter.enabled else {}

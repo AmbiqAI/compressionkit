@@ -94,9 +94,7 @@ def _load_ecg_frames(exp: GoldenExperiment, args: argparse.Namespace, frame_size
     from compressionkit.datasets.ecg import _resample, load_ecg_file_splits, load_ecg_signal
 
     datasets_dir = Path(args.datasets_dir)
-    _, val_files, _ = load_ecg_file_splits(
-        datasets_dir, args.dataset_glob, train_ratio=0.8, val_ratio=0.2, seed=42
-    )
+    _, val_files, _ = load_ecg_file_splits(datasets_dir, args.dataset_glob, train_ratio=0.8, val_ratio=0.2, seed=42)
     if args.max_val_files:
         val_files = val_files[: args.max_val_files]
     logger.info("Using %d ECG validation files", len(val_files))
@@ -107,7 +105,7 @@ def _load_ecg_frames(exp: GoldenExperiment, args: argparse.Namespace, frame_size
         try:
             signal_native = load_ecg_signal(fpath, lead_index=args.lead_index)
             signal = _resample(signal_native, _ECG_SOURCE_RATE, exp.sample_rate)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("Skipping %s: %s", fpath.name, exc)
             skipped_files += 1
             continue
@@ -121,9 +119,7 @@ def _load_ppg_frames(exp: GoldenExperiment, args: argparse.Namespace, frame_size
     from compressionkit.datasets.ppg_cache import SourceWeight, load_cached_raw_windows
 
     if exp.dataset_id != _PPG_V1_DATASET_ID:
-        raise SystemExit(
-            f"PPG hybrid golden expects dataset_id {_PPG_V1_DATASET_ID!r}, got {exp.dataset_id!r}."
-        )
+        raise SystemExit(f"PPG hybrid golden expects dataset_id {_PPG_V1_DATASET_ID!r}, got {exp.dataset_id!r}.")
     sources = [SourceWeight(slug=slug, weight=1.0) for slug in args.cache_sources]
     windows = load_cached_raw_windows(
         sources,
@@ -135,7 +131,9 @@ def _load_ppg_frames(exp: GoldenExperiment, args: argparse.Namespace, frame_size
     )
     logger.info(
         "Using %d unified-cache PPG validation windows from %s (%s)",
-        len(windows), args.cache_root, ", ".join(args.cache_sources),
+        len(windows),
+        args.cache_root,
+        ", ".join(args.cache_sources),
     )
     return [np.asarray(w, dtype=np.float32) for w in windows]
 
@@ -183,9 +181,7 @@ def main() -> None:
     logger.info("Run dir: %s", run_dir)
 
     denoiser_path = Path(spec.denoiser_path)
-    pre = load_wavelet_gain_preprocessor(
-        denoiser_path, frame_size=frame_size, wavelet=spec.wavelet, levels=spec.levels
-    )
+    pre = load_wavelet_gain_preprocessor(denoiser_path, frame_size=frame_size, wavelet=spec.wavelet, levels=spec.levels)
     codec = LearnedShrinkSpihtCodec(
         name=exp.experiment_id.replace("-", "_"),
         modality=exp.modality,
@@ -199,8 +195,15 @@ def main() -> None:
     )
     logger.info(
         "Hybrid codec: strategy=%s denoiser=%s fs=%d frame=%d cr=%gx wavelet=%s L=%d use_ac=%s max_bits=%d",
-        spec.strategy, denoiser_path, codec.sample_rate, codec.frame_size, codec.target_cr,
-        codec.wavelet, codec.levels, codec.use_ac, codec.max_bits,
+        spec.strategy,
+        denoiser_path,
+        codec.sample_rate,
+        codec.frame_size,
+        codec.target_cr,
+        codec.wavelet,
+        codec.levels,
+        codec.use_ac,
+        codec.max_bits,
     )
 
     if exp.modality == "ecg":
@@ -321,9 +324,9 @@ def main() -> None:
     n_csv = min(args.max_samples_csv, n_frames)
     for idx in range(n_csv):
         orig, recon = pairs[idx]
-        pd.DataFrame(
-            {"time_index": np.arange(len(orig)), "original": orig, "reconstructed": recon}
-        ).to_csv(run_dir / f"sample_{idx:03d}.csv", index=False)
+        pd.DataFrame({"time_index": np.arange(len(orig)), "original": orig, "reconstructed": recon}).to_csv(
+            run_dir / f"sample_{idx:03d}.csv", index=False
+        )
     logger.info("Wrote %d per-frame sample CSVs", n_csv)
 
     scorecard_summary: dict[str, float | int] = {
@@ -341,7 +344,7 @@ def main() -> None:
         scorecard = build_quality_scorecard(run_dir, modality=exp.modality, sample_rate=exp.sample_rate)
         (run_dir / "quality_scorecard.json").write_text(json.dumps(scorecard, indent=2))
         logger.info("Wrote quality_scorecard.json")
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("Quality scorecard build failed; continuing without it.")
 
     if not args.skip_deploy:
@@ -401,7 +404,7 @@ def _export_deploy(
             scorecard_summary=scorecard_summary,
         )
         logger.info("SPIHT deploy artifacts written to %s", deploy_dir)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("SPIHT deploy export failed; continuing with denoiser + manifest only.")
         arts = None
 
@@ -412,7 +415,7 @@ def _export_deploy(
         config_src = denoiser_path.parent / "train_config.json"
         if config_src.exists():
             shutil.copyfile(config_src, deploy_dir / "denoiser_train_config.json")
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("Failed to stage denoiser artifact into deploy package.")
 
     manifest = {

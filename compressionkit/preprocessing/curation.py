@@ -31,10 +31,10 @@ from compressionkit.evaluation.noise import (
 )
 
 __all__ = [
-    "ppg_pulse_snr_db",
-    "template_snr_db",
     "bandpass_snr_db",
     "curate_windows",
+    "ppg_pulse_snr_db",
+    "template_snr_db",
 ]
 
 
@@ -55,9 +55,9 @@ def ppg_pulse_snr_db(
     std = float(x.std())
     if std < 1e-6:
         return float("nan")
-    peaks, _ = find_peaks(x, distance=int(round(0.4 * fs)), prominence=0.4 * std)
-    pre = int(round(pre_ms / 1000.0 * fs))
-    post = int(round(post_ms / 1000.0 * fs))
+    peaks, _ = find_peaks(x, distance=round(0.4 * fs), prominence=0.4 * std)
+    pre = round(pre_ms / 1000.0 * fs)
+    post = round(post_ms / 1000.0 * fs)
     if pre + post <= 0:
         return float("nan")
     beats = [x[p - pre : p + post] for p in peaks if p - pre >= 0 and p + post <= x.size]
@@ -131,7 +131,7 @@ def curate_windows(
         method_used = "bp"
 
     ranked = np.argsort(np.where(np.isfinite(snr), snr, -np.inf))[::-1]
-    n_keep = max(1, int(round(keep_frac * n)))
+    n_keep = max(1, round(keep_frac * n))
     kept_idx = ranked[:n_keep]
     kept_snr = snr[kept_idx]
     info = {

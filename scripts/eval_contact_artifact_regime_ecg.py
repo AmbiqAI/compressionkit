@@ -25,8 +25,7 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 import keras
 import numpy as np
 
-from compressionkit.evaluation.codec import LearnedShrinkSpihtCodec, SpihtAcCodec
-from compressionkit.evaluation.codec import FilterSpihtCodec
+from compressionkit.evaluation.codec import FilterSpihtCodec, LearnedShrinkSpihtCodec, SpihtAcCodec
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.models.wavelet_denoiser import as_coeff_denoiser
 from compressionkit.preprocessing.ecg import build_noise_bank_from_h5
@@ -35,7 +34,6 @@ from compressionkit.synthetic.ecg_contact_artifacts import (
     DEFAULT_CONTACT_SEVERITIES,
     simulate_contact_artifact_batch,
 )
-
 from scripts.sweep_codec_noise_ecg import _prd, encode_decode_batch
 from scripts.sweep_empirical_regime_ecg import _rr_autocorr_peak
 from scripts.sweep_rvq_vs_spiht_crossover_ecg import DEFAULT_RVQ_RUN_DIRS, build_real_windows
@@ -158,7 +156,7 @@ def main() -> None:
             family="pure_artifact",
             severity=severity,
             sample_rate=sample_rate,
-            seed=9000 + int(round(100 * severity)),
+            seed=9000 + round(100 * severity),
             noise_bank=noise_bank,
         )[:128]
 
@@ -175,14 +173,14 @@ def main() -> None:
 
     try:
         for cr in args.crs:
-            kw = dict(
-                modality="ecg",
-                sample_rate=int(sample_rate),
-                frame_size=frame_size,
-                target_cr=float(cr),
-                wavelet=args.wavelet,
-                levels=args.levels,
-            )
+            kw = {
+                "modality": "ecg",
+                "sample_rate": int(sample_rate),
+                "frame_size": frame_size,
+                "target_cr": float(cr),
+                "wavelet": args.wavelet,
+                "levels": args.levels,
+            }
             spiht = SpihtAcCodec(name=f"spiht_{cr}x", **kw)
             learned = LearnedShrinkSpihtCodec(name=f"learned_{cr}x", coeff_denoiser=coeff_denoiser, **kw)
             filt = FilterSpihtCodec(

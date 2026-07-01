@@ -27,8 +27,7 @@ from compressionkit.experiments.registry import (
     get_golden,
     list_goldens,
 )
-from compressionkit.experiments.runner import run_golden
-from compressionkit.experiments.runner import repackage_golden
+from compressionkit.experiments.runner import repackage_golden, run_golden
 
 __all__ = [
     "GOLDEN_REGISTRY",

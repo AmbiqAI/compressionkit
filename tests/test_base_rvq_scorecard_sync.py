@@ -69,7 +69,9 @@ def test_base_rvq_trainer_syncs_built_scorecard_into_deploy(monkeypatch, tmp_pat
         model=SimpleNamespace(kmeans_init=False),
         evaluation=SimpleNamespace(tflite_rep_batches=1),
         training=SimpleNamespace(selection_metric="val_loss"),
-        output=SimpleNamespace(results_root=tmp_path, log_file="train.log", wandb=SimpleNamespace(artifact_summary_only=False)),
+        output=SimpleNamespace(
+            results_root=tmp_path, log_file="train.log", wandb=SimpleNamespace(artifact_summary_only=False)
+        ),
     )
     trainer = _DummyTrainer(cfg)
 
@@ -100,8 +102,14 @@ def test_base_rvq_trainer_syncs_built_scorecard_into_deploy(monkeypatch, tmp_pat
             selection_metric,
         ),
     )
-    monkeypatch.setattr(base_rvq, "write_summary", lambda summary, run_dir: written_summaries.append(summary.copy()) or run_dir / "summary.json")
-    monkeypatch.setattr(base_rvq, "write_long_recording_eval", lambda payload, run_dir: run_dir / "long_recording_eval.json")
+    monkeypatch.setattr(
+        base_rvq,
+        "write_summary",
+        lambda summary, run_dir: written_summaries.append(summary.copy()) or run_dir / "summary.json",
+    )
+    monkeypatch.setattr(
+        base_rvq, "write_long_recording_eval", lambda payload, run_dir: run_dir / "long_recording_eval.json"
+    )
     monkeypatch.setattr(base_rvq, "finalize_wandb_run", lambda **kwargs: None)
 
     scorecard = {"time_domain": {"prd_percent": {"mean": 2.5}}}
@@ -115,8 +123,9 @@ def test_base_rvq_trainer_syncs_built_scorecard_into_deploy(monkeypatch, tmp_pat
     monkeypatch.setattr(
         base_rvq,
         "sync_scorecard_to_deploy",
-        lambda output_dir, scorecard_summary: synced_payloads.append(scorecard_summary)
-        or (Path(output_dir) / "scorecard.json"),
+        lambda output_dir, scorecard_summary: (
+            synced_payloads.append(scorecard_summary) or (Path(output_dir) / "scorecard.json")
+        ),
     )
 
     summary = trainer.train()

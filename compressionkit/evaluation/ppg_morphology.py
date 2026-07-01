@@ -27,8 +27,8 @@ from typing import Any
 import numpy as np
 import physiokit as pk
 
-
 # Tolerance for matching orig/recon peaks (samples), set at call time.
+
 
 def _detect_peaks_clean(
     signal: np.ndarray,
@@ -229,9 +229,7 @@ def evaluate_ppg_morphology(
         originals = originals[None, :]
         reconstructions = reconstructions[None, :]
     if originals.shape != reconstructions.shape:
-        raise ValueError(
-            f"originals/reconstructions shape mismatch: {originals.shape} vs {reconstructions.shape}"
-        )
+        raise ValueError(f"originals/reconstructions shape mismatch: {originals.shape} vs {reconstructions.shape}")
 
     tol_samples = max(1, round(timing_tolerance_ms * sample_rate / 1000.0))
 
@@ -322,7 +320,12 @@ def evaluate_ppg_morphology(
 
     def _paired_block(orig_vals: list[float], recon_vals: list[float]) -> dict[str, Any]:
         if not orig_vals:
-            return {"orig": _aggregate([]), "recon": _aggregate([]), "abs_delta": _aggregate([]), "delta": _aggregate([])}
+            return {
+                "orig": _aggregate([]),
+                "recon": _aggregate([]),
+                "abs_delta": _aggregate([]),
+                "delta": _aggregate([]),
+            }
         deltas = [r - o for o, r in zip(orig_vals, recon_vals)]
         abs_deltas = [abs(d) for d in deltas]
         return {

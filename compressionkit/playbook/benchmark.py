@@ -108,9 +108,7 @@ def benchmark_method(
         recon = np.asarray(codec.decode(enc), dtype=np.float32).reshape(-1)[:frame_size]
         # truth_prd is scale-invariant (shape fidelity to the true clean morphology):
         # the synthetic clean is in raw units while the input is unit-normalized.
-        truth.append(
-            compute_signal_metrics(normalize_window(clean[i]), normalize_window(recon))["prd_percent"]
-        )
+        truth.append(compute_signal_metrics(normalize_window(clean[i]), normalize_window(recon))["prd_percent"])
         faithful.append(compute_signal_metrics(corrupted[i], recon)["prd_percent"])
         crs.append((frame_size * 16) / enc.nbits if enc.nbits > 0 else np.inf)
 

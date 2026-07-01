@@ -313,9 +313,7 @@ class LearnedShrinkSpihtCodec:
         packed = np.concatenate([coeffs.approx, *coeffs.details]).astype(np.float32)
         denoised_packed = np.asarray(self.coeff_denoiser(packed), dtype=np.float32)
         if denoised_packed.shape != packed.shape:
-            raise ValueError(
-                f"coeff_denoiser must preserve length {packed.shape}, got {denoised_packed.shape}"
-            )
+            raise ValueError(f"coeff_denoiser must preserve length {packed.shape}, got {denoised_packed.shape}")
         offsets = np.cumsum(sizes)
         approx_d = denoised_packed[: offsets[0]]
         details_d = [denoised_packed[offsets[i - 1] : offsets[i]] for i in range(1, len(sizes))]
@@ -389,12 +387,8 @@ class FilterSpihtCodec:
         nyq = self.sample_rate / 2.0
         high = min(self.high_hz, nyq * 0.95)
         if not 0.0 < self.low_hz < high:
-            raise ValueError(
-                f"Invalid bandpass cutoffs: low_hz={self.low_hz}, high_hz={self.high_hz} (nyquist={nyq})"
-            )
-        self._sos = scipy_signal.butter(
-            self.order, [self.low_hz / nyq, high / nyq], btype="bandpass", output="sos"
-        )
+            raise ValueError(f"Invalid bandpass cutoffs: low_hz={self.low_hz}, high_hz={self.high_hz} (nyquist={nyq})")
+        self._sos = scipy_signal.butter(self.order, [self.low_hz / nyq, high / nyq], btype="bandpass", output="sos")
 
     def _denoise_signal(self, arr: np.ndarray) -> np.ndarray:
         from scipy import signal as scipy_signal

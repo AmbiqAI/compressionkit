@@ -41,14 +41,12 @@ import argparse
 import json
 import sys
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
 from compressionkit.evaluation import (
-    PHYSIO_BANDS,
     Codec,
     RvqCodec,
     RvqQoSCalibrator,
@@ -84,11 +82,7 @@ def _synthetic_signal(modality: str, fs: int, n_samples: int, seed: int) -> np.n
     rng = np.random.default_rng(seed)
     t = np.arange(n_samples) / fs
     if modality == "ppg":
-        sig = (
-            np.sin(2 * np.pi * 1.2 * t)
-            + 0.3 * np.sin(2 * np.pi * 2.4 * t)
-            + 0.05 * rng.standard_normal(n_samples)
-        )
+        sig = np.sin(2 * np.pi * 1.2 * t) + 0.3 * np.sin(2 * np.pi * 2.4 * t) + 0.05 * rng.standard_normal(n_samples)
     elif modality == "ecg":
         # Brief Gaussian bumps to fake QRS complexes at 1 Hz.
         period = round(fs / 1.0)
@@ -96,7 +90,7 @@ def _synthetic_signal(modality: str, fs: int, n_samples: int, seed: int) -> np.n
         sig = 0.1 * rng.standard_normal(n_samples)
         centres = np.arange(period // 2, n_samples, period)
         x = np.arange(-bump_width, bump_width + 1)
-        bump = np.exp(-(x ** 2) / (2 * (bump_width / 3.0) ** 2)).astype(np.float32)
+        bump = np.exp(-(x**2) / (2 * (bump_width / 3.0) ** 2)).astype(np.float32)
         for c in centres:
             lo, hi = max(0, c - bump_width), min(n_samples, c + bump_width + 1)
             sig[lo:hi] += bump[: hi - lo]
@@ -110,9 +104,7 @@ def _load_signal(args: argparse.Namespace) -> np.ndarray:
     if args.signal_npy:
         sig = np.load(args.signal_npy).astype(np.float32).reshape(-1)
         if sig.size < args.frame_size * 2:
-            raise ValueError(
-                f"--signal-npy too short ({sig.size}); need >= 2 * frame_size = {2 * args.frame_size}"
-            )
+            raise ValueError(f"--signal-npy too short ({sig.size}); need >= 2 * frame_size = {2 * args.frame_size}")
         return sig
     n_samples = max(args.frame_size * 16, args.frame_size * 2)
     return _synthetic_signal(args.modality, args.sample_rate, n_samples, seed=args.seed)
@@ -177,13 +169,9 @@ def tier_spectral(codec: Codec, frames: np.ndarray, fs: int, modality: str) -> d
     for f in frames:
         dec = np.asarray(codec.decode(codec.encode(f)), dtype=np.float32).reshape(-1)
         band_rows.append(psd_band_error(f, dec, fs=fs, bands=bands))
-        coh_rows.append(
-            spectral_coherence(f, dec, fs=fs, band=coh_band)
-        )
+        coh_rows.append(spectral_coherence(f, dec, fs=fs, band=coh_band))
     band_keys = band_rows[0].keys()
-    band_summary = {
-        k: float(np.mean([r[k] for r in band_rows])) for k in band_keys
-    }
+    band_summary = {k: float(np.mean([r[k] for r in band_rows])) for k in band_keys}
     coh_keys = coh_rows[0].keys()
     coh_summary = {k: float(np.mean([r[k] for r in coh_rows])) for k in coh_keys}
     return {"band_error": band_summary, "coherence": coh_summary}
@@ -252,8 +240,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
         lines.append("|---|---:|---:|---:|---:|---:|")
         for k, v in m.items():
             lines.append(
-                f"| {k} | {v['mean']:.4f} | {v['std']:.4f} | "
-                f"{v['median']:.4f} | {v['p10']:.4f} | {v['p90']:.4f} |"
+                f"| {k} | {v['mean']:.4f} | {v['std']:.4f} | {v['median']:.4f} | {v['p10']:.4f} | {v['p90']:.4f} |"
             )
         lines.append("")
     if "adversarial" in report["tiers"]:
@@ -264,10 +251,12 @@ def _render_markdown(report: dict[str, Any]) -> str:
         for name, row in report["tiers"]["adversarial"].items():
             er = row.get("energy_ratio")
             er_s = "inf" if er is None or (isinstance(er, float) and np.isinf(er)) else f"{er:.3f}"
+
             def _f(x, fmt=".3f"):
                 if x is None or (isinstance(x, float) and (np.isnan(x) or np.isinf(x))):
                     return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else "inf"
                 return format(x, fmt)
+
             lines.append(
                 f"| {name} | {row['n_frames']} | {er_s} | "
                 f"{_f(row['output_l2_when_input_zero'])} | "
@@ -283,9 +272,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
         for row in report["tiers"]["stitching"]["rows"]:
             hop = row["hop_ratio"]
             hop_s = "—" if hop != hop else f"{hop:.2f}"  # NaN check
-            lines.append(
-                f"| {row['method']} | {hop_s} | {row['prd']:.3f} | {row['seam_ratio']:.3f} |"
-            )
+            lines.append(f"| {row['method']} | {hop_s} | {row['prd']:.3f} | {row['seam_ratio']:.3f} |")
         lines.append("")
     if "qos" in report["tiers"]:
         q = report["tiers"]["qos"]
@@ -298,8 +285,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- n_calibration: {q['n_calibration']}")
             lines.append(f"- n_scored: {q['n_scored']}")
             lines.append(
-                f"- confidence: mean={c['mean']:.3f} median={c['median']:.3f} "
-                f"p10={c['p10']:.3f} p90={c['p90']:.3f}"
+                f"- confidence: mean={c['mean']:.3f} median={c['median']:.3f} p10={c['p10']:.3f} p90={c['p90']:.3f}"
             )
         lines.append("")
     return "\n".join(lines)
@@ -315,16 +301,29 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--codec", required=True, choices=["spiht_ac", "rvq"])
     p.add_argument("--modality", required=True, choices=["ppg", "ecg"])
     p.add_argument("--cr", type=float, default=4.0, help="Target compression ratio (SPIHT). Ignored for RVQ.")
-    p.add_argument("--frame-size", type=int, default=None,
-                   help="Frame size in samples. Default: 320 (PPG) / 512 (ECG); inferred from RVQ run when --codec rvq.")
-    p.add_argument("--sample-rate", type=int, default=None,
-                   help="Sample rate Hz. Default: 64 (PPG) / 256 (ECG); inferred from RVQ run when --codec rvq.")
+    p.add_argument(
+        "--frame-size",
+        type=int,
+        default=None,
+        help="Frame size in samples. Default: 320 (PPG) / 512 (ECG); inferred from RVQ run when --codec rvq.",
+    )
+    p.add_argument(
+        "--sample-rate",
+        type=int,
+        default=None,
+        help="Sample rate Hz. Default: 64 (PPG) / 256 (ECG); inferred from RVQ run when --codec rvq.",
+    )
     p.add_argument("--rvq-run", type=str, default=None, help="Path to RVQ golden run directory.")
-    p.add_argument("--tiers", nargs="+", default=["fidelity", "adversarial", "stitching"],
-                   choices=list(TIERS),
-                   help=f"Which evaluation tiers to run. Default: fidelity adversarial stitching.")
-    p.add_argument("--signal-npy", type=str, default=None,
-                   help="Optional .npy file with a 1-D signal. Default: synthetic.")
+    p.add_argument(
+        "--tiers",
+        nargs="+",
+        default=["fidelity", "adversarial", "stitching"],
+        choices=list(TIERS),
+        help="Which evaluation tiers to run. Default: fidelity adversarial stitching.",
+    )
+    p.add_argument(
+        "--signal-npy", type=str, default=None, help="Optional .npy file with a 1-D signal. Default: synthetic."
+    )
     p.add_argument("--n-frames", type=int, default=16, help="Frames for fidelity / spectral / qos tiers.")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", type=str, required=True, help="Output directory (created if missing).")

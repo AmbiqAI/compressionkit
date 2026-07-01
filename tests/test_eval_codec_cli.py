@@ -26,12 +26,20 @@ def test_cli_spiht_ppg_smoke(tmp_path: Path) -> None:
     cli = _load_cli_module()
     args = cli.build_parser().parse_args(
         [
-            "--codec", "spiht_ac",
-            "--modality", "ppg",
-            "--cr", "4",
-            "--tiers", "fidelity", "adversarial", "stitching",
-            "--n-frames", "4",
-            "--out", str(tmp_path),
+            "--codec",
+            "spiht_ac",
+            "--modality",
+            "ppg",
+            "--cr",
+            "4",
+            "--tiers",
+            "fidelity",
+            "adversarial",
+            "stitching",
+            "--n-frames",
+            "4",
+            "--out",
+            str(tmp_path),
         ]
     )
     report = cli.run(args)
@@ -54,12 +62,19 @@ def test_cli_qos_requires_rvq(tmp_path: Path) -> None:
     cli = _load_cli_module()
     args = cli.build_parser().parse_args(
         [
-            "--codec", "spiht_ac",
-            "--modality", "ppg",
-            "--cr", "4",
-            "--tiers", "fidelity", "qos",
-            "--n-frames", "4",
-            "--out", str(tmp_path),
+            "--codec",
+            "spiht_ac",
+            "--modality",
+            "ppg",
+            "--cr",
+            "4",
+            "--tiers",
+            "fidelity",
+            "qos",
+            "--n-frames",
+            "4",
+            "--out",
+            str(tmp_path),
         ]
     )
     report = cli.run(args)
@@ -70,11 +85,16 @@ def test_cli_rejects_rvq_without_run(tmp_path: Path) -> None:
     cli = _load_cli_module()
     args = cli.build_parser().parse_args(
         [
-            "--codec", "rvq",
-            "--modality", "ppg",
-            "--tiers", "fidelity",
-            "--n-frames", "4",
-            "--out", str(tmp_path),
+            "--codec",
+            "rvq",
+            "--modality",
+            "ppg",
+            "--tiers",
+            "fidelity",
+            "--n-frames",
+            "4",
+            "--out",
+            str(tmp_path),
         ]
     )
     with pytest.raises(SystemExit):

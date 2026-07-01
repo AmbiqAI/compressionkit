@@ -18,7 +18,6 @@ import numpy as np
 from compressionkit.preprocessing.ecg import build_noise_bank_from_h5
 from compressionkit.synthetic.ecg_contact_artifacts import (
     DEFAULT_CONTACT_FAMILIES,
-    DEFAULT_CONTACT_SEVERITIES,
     simulate_contact_artifact_batch,
 )
 from scripts.sweep_rvq_vs_spiht_crossover_ecg import build_real_windows
@@ -165,7 +164,11 @@ def main() -> None:
     }
     for index in range(args.n_examples):
         output_path = out_dir / f"{args.output_stem}_ex{index + 1}.png"
-        rendered = {(family, severity): rendered_batches[(family, severity)][index] for family in families for severity in args.severities}
+        rendered = {
+            (family, severity): rendered_batches[(family, severity)][index]
+            for family in families
+            for severity in args.severities
+        }
         _plot_example_sheet(
             output_path,
             time_axis=time_axis,

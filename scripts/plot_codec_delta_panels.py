@@ -112,7 +112,7 @@ def plot_line_panels(
                 )
         ax.set_title(f"CR {cr}")
         ax.set_xticks(np.concatenate(([-1.0], x)))
-        ax.set_xticklabels(["native"] + ladder_labels, rotation=45, ha="right", fontsize=7)
+        ax.set_xticklabels(["native", *ladder_labels], rotation=45, ha="right", fontsize=7)
         ax.axvline(-0.5, color="0.7", linestyle=":", linewidth=0.8)
         ax.set_ylabel("PRD% vs clean truth")
         ax.grid(True, alpha=0.25)
@@ -129,9 +129,7 @@ def plot_line_panels(
     print(f"Wrote {out_path}")
 
 
-def _delta_matrix(
-    crs: list[str], columns: list[str], by_cr: dict[str, dict], a: str, b: str
-) -> np.ndarray:
+def _delta_matrix(crs: list[str], columns: list[str], by_cr: dict[str, dict], a: str, b: str) -> np.ndarray:
     """PRD[a] - PRD[b]; negative => lane a wins."""
     mat = np.full((len(crs), len(columns)), np.nan, dtype=float)
     for r, cr in enumerate(crs):

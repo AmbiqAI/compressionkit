@@ -14,6 +14,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from compressionkit.evaluation.ecg_morphology import evaluate_ecg_morphology
 from compressionkit.evaluation.metrics import (
     compute_signal_metrics,
     summarize_ecg_alignment,
@@ -24,9 +25,8 @@ from compressionkit.evaluation.noise import (
     estimate_ecg_noise_floor,
     estimate_ppg_noise_floor,
 )
-from compressionkit.evaluation.robustness import summarize_robustness_for_scorecard
-from compressionkit.evaluation.ecg_morphology import evaluate_ecg_morphology
 from compressionkit.evaluation.ppg_morphology import evaluate_ppg_morphology
+from compressionkit.evaluation.robustness import summarize_robustness_for_scorecard
 from compressionkit.evaluation.spectral_metrics import (
     ECG_DEFAULT_BANDS,
     ECG_DEFAULT_COHERENCE_BAND,
@@ -213,14 +213,11 @@ def _load_clean_reference_arrays(
                     break
         if chosen_key is None or chosen_key not in blob:
             raise KeyError(
-                f"Could not find clean-reference array in {reference_path}; "
-                f"available keys={sorted(blob.files)}"
+                f"Could not find clean-reference array in {reference_path}; available keys={sorted(blob.files)}"
             )
         arr = blob[chosen_key]
     else:
-        raise ValueError(
-            f"Unsupported clean-reference format {reference_path.suffix!r}; expected .npy or .npz"
-        )
+        raise ValueError(f"Unsupported clean-reference format {reference_path.suffix!r}; expected .npy or .npz")
 
     arr = np.asarray(arr, dtype=np.float32)
     if arr.ndim == 1:
@@ -228,9 +225,7 @@ def _load_clean_reference_arrays(
     if arr.ndim != 2:
         raise ValueError(f"Clean-reference array must be 2-D, got shape {arr.shape}")
     if arr.shape[0] != num_samples:
-        raise ValueError(
-            f"Clean-reference sample count mismatch: expected {num_samples}, got {arr.shape[0]}"
-        )
+        raise ValueError(f"Clean-reference sample count mismatch: expected {num_samples}, got {arr.shape[0]}")
     return arr
 
 
@@ -666,7 +661,7 @@ def build_quality_scorecard(
                 recons,
                 sample_rate=sample_rate,
             )
-        except Exception:  # noqa: BLE001 — morphology is best-effort
+        except Exception:
             morphology = {}
 
         # Noise-tertile stratification of vs_raw HR errors. Only run when
@@ -756,7 +751,7 @@ def build_quality_scorecard(
                     high_hz=8.0,
                     order=3,
                 )
-            except Exception:  # noqa: BLE001 — morphology is best-effort
+            except Exception:
                 morphology = {}
 
             if (

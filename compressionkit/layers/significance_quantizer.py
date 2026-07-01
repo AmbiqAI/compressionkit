@@ -86,19 +86,13 @@ class SignificanceQuantizer(keras.layers.Layer):
 
             # Find threshold: k-th largest magnitude
             top_vals = keras.ops.top_k(abs_z, k=k)[0]  # (B, k)
-            threshold = keras.ops.stop_gradient(
-                keras.ops.expand_dims(top_vals[:, -1], axis=-1)
-            )  # (B, 1)
+            threshold = keras.ops.stop_gradient(keras.ops.expand_dims(top_vals[:, -1], axis=-1))  # (B, 1)
 
             # Hard mask: exactly K values kept (correct forward simulation)
-            hard_mask = keras.ops.cast(
-                abs_z >= threshold, "float32"
-            )  # (B, N), exactly K ones per row
+            hard_mask = keras.ops.cast(abs_z >= threshold, "float32")  # (B, N), exactly K ones per row
 
             # Soft mask for gradient flow
-            soft_mask = keras.ops.sigmoid(
-                (abs_z - threshold) / (self.temperature + 1e-8)
-            )
+            soft_mask = keras.ops.sigmoid((abs_z - threshold) / (self.temperature + 1e-8))
 
             # STE: hard in forward, soft gradient in backward
             mask = soft_mask + keras.ops.stop_gradient(hard_mask - soft_mask)
@@ -107,16 +101,10 @@ class SignificanceQuantizer(keras.layers.Layer):
             z_masked = z_flat * mask
 
             # Add quantization noise to kept values only
-            z_range = keras.ops.stop_gradient(
-                keras.ops.max(keras.ops.abs(z_flat), axis=-1, keepdims=True)
-            )
-            noise_scale = z_range / (2.0 ** self.quant_bits)
-            noise = keras.random.uniform(
-                shape=keras.ops.shape(z_flat), minval=-0.5, maxval=0.5
-            )
-            z_hat = z_masked + keras.ops.stop_gradient(
-                noise * noise_scale * hard_mask
-            )
+            z_range = keras.ops.stop_gradient(keras.ops.max(keras.ops.abs(z_flat), axis=-1, keepdims=True))
+            noise_scale = z_range / (2.0**self.quant_bits)
+            noise = keras.random.uniform(shape=keras.ops.shape(z_flat), minval=-0.5, maxval=0.5)
+            z_hat = z_masked + keras.ops.stop_gradient(noise * noise_scale * hard_mask)
 
             # Rate loss: penalize below-threshold values
             below_threshold = (1.0 - hard_mask) * abs_z

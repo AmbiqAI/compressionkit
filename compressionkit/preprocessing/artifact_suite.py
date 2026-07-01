@@ -22,7 +22,6 @@ from __future__ import annotations
 import numpy as np
 
 from compressionkit.configs.artifact_suite import (
-    ArtifactParam,
     ArtifactRole,
     ArtifactSpec,
     ArtifactSuiteConfig,
@@ -36,7 +35,6 @@ from compressionkit.preprocessing.augmentations import (
     scale_beat_amplitudes,
     time_warp,
 )
-
 
 # ---------------------------------------------------------------------------
 # Role-routing augmenter
@@ -91,7 +89,7 @@ class RoleRoutingAugmenter:
             # Severity is a fraction of the signal's own std so it is meaningful in
             # both raw (pre-norm) and normalized space (std approx 1).
             sig_std = float(np.std(signal)) + 1e-8
-            return (self.rng.standard_normal(signal.shape[0]).astype(np.float32) * severity * sig_std)
+            return self.rng.standard_normal(signal.shape[0]).astype(np.float32) * severity * sig_std
         if spec.name == "baseline_wander":
             corrupted = add_baseline_wander(
                 signal,
@@ -102,16 +100,20 @@ class RoleRoutingAugmenter:
             return (corrupted - signal).astype(np.float32)
         if spec.name == "motion":
             corrupted = add_motion_artifact(
-                signal, sample_rate=self.cfg.sample_rate,
-                snr_range=(severity, severity), rng=self.rng,
+                signal,
+                sample_rate=self.cfg.sample_rate,
+                snr_range=(severity, severity),
+                rng=self.rng,
             )
             return (corrupted - signal).astype(np.float32)
         if spec.name == "empirical_noise":
             if self.noise_bank is None or len(self.noise_bank) == 0:
                 return np.zeros_like(signal)
             corrupted = add_empirical_noise(
-                signal, self.noise_bank,
-                snr_range=(severity, severity), rng=self.rng,
+                signal,
+                self.noise_bank,
+                snr_range=(severity, severity),
+                rng=self.rng,
             )
             return (corrupted - signal).astype(np.float32)
         return np.zeros_like(signal)
@@ -120,25 +122,31 @@ class RoleRoutingAugmenter:
         """Apply a recover-role transform to the shared signal (in place semantics)."""
         if spec.name == "baseline_wander":
             return add_baseline_wander(
-                signal, sample_rate=self.cfg.sample_rate,
-                amplitude_range=(severity, severity), rng=self.rng,
+                signal,
+                sample_rate=self.cfg.sample_rate,
+                amplitude_range=(severity, severity),
+                rng=self.rng,
             ).astype(np.float32)
         if spec.name == "time_warp":
             return time_warp(
-                signal, sample_rate=self.cfg.sample_rate,
-                max_warp_fraction=severity, rng=self.rng,
+                signal,
+                sample_rate=self.cfg.sample_rate,
+                max_warp_fraction=severity,
+                rng=self.rng,
             ).astype(np.float32)
         if spec.name == "beat_scale":
             spread = severity
             return scale_beat_amplitudes(
-                signal, sample_rate=self.cfg.sample_rate,
-                scale_range=(1.0 - spread, 1.0 + spread), rng=self.rng,
+                signal,
+                sample_rate=self.cfg.sample_rate,
+                scale_range=(1.0 - spread, 1.0 + spread),
+                rng=self.rng,
             ).astype(np.float32)
         # Additive recover artifacts (e.g. gaussian/motion under faithful_all).
         return (signal + self._additive_noise(spec, signal, severity)).astype(np.float32)
 
     def _span_mask(self, length: int, fraction: float) -> np.ndarray:
-        span = int(round(min(max(fraction, 0.0), 1.0) * length))
+        span = round(min(max(fraction, 0.0), 1.0) * length)
         mask = np.ones(length, dtype=np.float32)
         if span <= 0:
             return mask
@@ -273,7 +281,7 @@ def make_curriculum_callback(augmenter: RoleRoutingAugmenter):
     import keras
 
     class ArtifactCurriculumCallback(keras.callbacks.Callback):
-        def on_epoch_begin(self, epoch, logs=None):  # noqa: D401
+        def on_epoch_begin(self, epoch, logs=None):
             augmenter.set_severity_scale(cfg.scale_at(epoch))
 
     return ArtifactCurriculumCallback()
@@ -282,9 +290,9 @@ def make_curriculum_callback(augmenter: RoleRoutingAugmenter):
 __all__ = [
     "ArtifactRole",
     "ArtifactSpec",
-    "NoiseBudgetConfig",
-    "CurriculumConfig",
     "ArtifactSuiteConfig",
+    "CurriculumConfig",
+    "NoiseBudgetConfig",
     "RoleRoutingAugmenter",
     "make_curriculum_callback",
 ]

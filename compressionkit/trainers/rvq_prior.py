@@ -84,7 +84,7 @@ def _load_token_signals(modality: str, parent_cfg: Any, num_files: int) -> tuple
         train_files, _, _ = load_ppg_file_splits(Path(data.datasets_dir), data.dataset_glob, seed=data.shuffle_seed)
         train_files = train_files[:num_files]
         target_label = getattr(data, "target_label", "Pleth")
-        target_rate = int(getattr(data, "effective_sample_rate", getattr(data, "sampling_rate")))
+        target_rate = int(getattr(data, "effective_sample_rate", data.sampling_rate))
         signals = [load_ppg_signal(p, target_rate=target_rate, target_label=target_label) for p in train_files]
     return signals, {"num_files": len(signals)}
 

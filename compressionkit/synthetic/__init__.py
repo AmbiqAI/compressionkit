@@ -30,9 +30,9 @@ from compressionkit.synthetic.ppg_dynamical import (
 
 __all__ = [
     "EcgMorphologyParams",
-    "ecg_mcsharry",
-    "PpgMorphologyParams",
-    "ppg_dynamical",
     "NoiseSpec",
+    "PpgMorphologyParams",
     "add_noise",
+    "ecg_mcsharry",
+    "ppg_dynamical",
 ]

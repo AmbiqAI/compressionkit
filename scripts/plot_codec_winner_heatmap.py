@@ -30,7 +30,6 @@ import numpy as np
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Patch
 
-
 LANE_SPECS: list[tuple[str, str, str, str]] = [
     ("spiht", "SPIHT", "S", "#d9d9d9"),
     ("filter", "Bandpass+SPIHT", "B", "#e9c46a"),
@@ -188,7 +187,7 @@ def _write_csv(csv_path: Path, rows: list[list[dict[str, object]]]) -> None:
 
 def _write_markdown(md_path: Path, columns: list[str], rows: list[list[dict[str, object]]]) -> None:
     with md_path.open("w") as handle:
-        header = ["CR"] + columns
+        header = ["CR", *columns]
         handle.write("| " + " | ".join(header) + " |\n")
         handle.write("| " + " | ".join(["---"] * len(header)) + " |\n")
         for cr_rows in rows:

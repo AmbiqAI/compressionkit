@@ -123,35 +123,35 @@ def main() -> None:
         help="Unified-cache source slugs for canonical v1 evaluation.",
     )
     parser.add_argument(
-        "--num-windows", type=int, default=1000,
+        "--num-windows",
+        type=int,
+        default=1000,
         help="Number of cached validation windows to score for canonical v1 evaluation.",
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
-        "--samples-per-file", type=int, default=64 * 60 * 5,
+        "--samples-per-file",
+        type=int,
+        default=64 * 60 * 5,
         help="Per-file PPG sample count (default: 5 min @ 64 Hz).",
     )
     parser.add_argument(
-        "--max-samples-csv", type=int, default=1000,
+        "--max-samples-csv",
+        type=int,
+        default=1000,
         help="Number of sample_NNN.csv per-frame files to write for the scorecard.",
     )
     parser.add_argument("--target-label", default="Pleth")
     parser.add_argument(
         "--wavelet",
         default=_PPG_WAVELET,
-        help=(
-            "Wavelet to use for the SPIHT codec. "
-            f"Default: {_PPG_WAVELET}. Tuned PPG setting: {_TUNED_WAVELET}."
-        ),
+        help=(f"Wavelet to use for the SPIHT codec. Default: {_PPG_WAVELET}. Tuned PPG setting: {_TUNED_WAVELET}."),
     )
     parser.add_argument(
         "--levels",
         type=int,
         default=_PPG_LEVELS,
-        help=(
-            "DWT levels for the SPIHT codec. "
-            f"Default: {_PPG_LEVELS}. Tuned PPG setting: {_TUNED_LEVELS}."
-        ),
+        help=(f"DWT levels for the SPIHT codec. Default: {_PPG_LEVELS}. Tuned PPG setting: {_TUNED_LEVELS}."),
     )
     parser.add_argument(
         "--disable-ac",
@@ -161,18 +161,18 @@ def main() -> None:
     parser.add_argument(
         "--tuned",
         action="store_true",
-        help=(
-            "Shortcut for the tuned PPG operating point: "
-            f"wavelet={_TUNED_WAVELET}, levels={_TUNED_LEVELS}."
-        ),
+        help=(f"Shortcut for the tuned PPG operating point: wavelet={_TUNED_WAVELET}, levels={_TUNED_LEVELS}."),
     )
     parser.add_argument(
-        "--max-stitching-signals", type=int, default=10,
+        "--max-stitching-signals",
+        type=int,
+        default=10,
         help="Number of long signals to retain for the stitching evaluation.",
     )
     parser.add_argument("--stitching-hop-ratio", type=float, default=0.5)
     parser.add_argument(
-        "--skip-stitching", action="store_true",
+        "--skip-stitching",
+        action="store_true",
         help="Skip the long-signal stitching evaluation (stability scorecard block).",
     )
     parser.add_argument("--log-level", default="INFO")
@@ -248,8 +248,11 @@ def main() -> None:
             bits_used.append(int(enc.nbits))
     else:
         _, val_files, _ = load_ppg_file_splits(
-            datasets_dir, args.dataset_glob,
-            train_ratio=0.8, val_ratio=0.2, seed=42,
+            datasets_dir,
+            args.dataset_glob,
+            train_ratio=0.8,
+            val_ratio=0.2,
+            seed=42,
         )
         if args.max_val_files:
             val_files = val_files[: args.max_val_files]
@@ -263,7 +266,7 @@ def main() -> None:
                     num_samples=args.samples_per_file,
                     target_label=args.target_label,
                 )
-            except Exception as exc:  # noqa: BLE001 — best-effort over heterogeneous files
+            except Exception as exc:
                 logger.warning("Skipping %s: %s", fpath.name, exc)
                 skipped_files += 1
                 continue
@@ -290,7 +293,9 @@ def main() -> None:
     n_frames = len(pairs)
     logger.info(
         "Evaluated %d frames (skipped files=%d, flat frames=%d)",
-        n_frames, skipped_files, skipped_flat_frames,
+        n_frames,
+        skipped_files,
+        skipped_flat_frames,
     )
 
     prd_list, mse_list, mae_list, snr_list = [], [], [], []
@@ -408,20 +413,23 @@ def main() -> None:
             (run_dir / "stitching_report.json").write_text(json.dumps(stitching_report, indent=2))
             logger.info(
                 "Wrote stitching_report.json (n_signals=%d, methods=%d)",
-                stitching_report["num_recordings_eval"], len(stitching_report["methods"]),
+                stitching_report["num_recordings_eval"],
+                len(stitching_report["methods"]),
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("Stitching evaluation failed; continuing without it.")
 
     _purge_old_sample_csvs(run_dir)
     n_csv = min(args.max_samples_csv, n_frames)
     for idx in range(n_csv):
         orig, recon = pairs[idx]
-        df = pd.DataFrame({
-            "time_index": np.arange(len(orig)),
-            "original": orig,
-            "reconstructed": recon,
-        })
+        df = pd.DataFrame(
+            {
+                "time_index": np.arange(len(orig)),
+                "original": orig,
+                "reconstructed": recon,
+            }
+        )
         df.to_csv(run_dir / f"sample_{idx:03d}.csv", index=False)
     logger.info("Wrote %d per-frame sample CSVs", n_csv)
 
@@ -445,7 +453,7 @@ def main() -> None:
         scorecard_path = run_dir / "quality_scorecard.json"
         scorecard_path.write_text(json.dumps(scorecard, indent=2))
         logger.info("Wrote quality_scorecard.json")
-    except Exception:  # noqa: BLE001 — scorecard is optional; continue with summary-only
+    except Exception:
         logger.exception("Quality scorecard build failed; continuing without it.")
 
     deploy_dir = run_dir / "deploy"
@@ -481,8 +489,10 @@ def main() -> None:
     print(f"PRD%   mean/median/p95 : {prd_stats['mean']:.2f} / {prd_stats['median']:.2f} / {prd_stats['p95']:.2f}")
     print(f"SNR dB mean/median     : {snr_stats['mean']:.2f} / {snr_stats['median']:.2f}")
     print(f"MSE    mean            : {mse_stats['mean']:.6f}")
-    print(f"Bits/frame (mean/used range / budget): "
-          f"{mean_bits:.0f} / [{int(np.min(bits_used))}-{int(np.max(bits_used))}] / {codec.max_bits}")
+    print(
+        f"Bits/frame (mean/used range / budget): "
+        f"{mean_bits:.0f} / [{int(np.min(bits_used))}-{int(np.max(bits_used))}] / {codec.max_bits}"
+    )
     print(f"Deploy artifacts : {arts.as_dict()}")
     print()
     print("Review the run dir before publishing. To publish later:")

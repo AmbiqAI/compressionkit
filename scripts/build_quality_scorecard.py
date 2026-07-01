@@ -215,21 +215,13 @@ def main() -> None:
         denoise_td = clean_ref.get("denoising", {}).get("time_domain", {})
         print(f"  CLEAN REFERENCE ({clean_ref.get('label', 'clean_truth')}) :")
         if base_td.get("prd_percent", {}).get("n"):
-            print(
-                f"    input PRD vs clean    = {_fmt_agg(base_td['prd_percent'], precision=2)}"
-            )
+            print(f"    input PRD vs clean    = {_fmt_agg(base_td['prd_percent'], precision=2)}")
         if out_td.get("prd_percent", {}).get("n"):
-            print(
-                f"    recon PRD vs clean    = {_fmt_agg(out_td['prd_percent'], precision=2)}"
-            )
+            print(f"    recon PRD vs clean    = {_fmt_agg(out_td['prd_percent'], precision=2)}")
         if denoise_td.get("prd_percent_improvement") is not None:
-            print(
-                f"    denoise delta PRD     = {denoise_td['prd_percent_improvement']:.2f}"
-            )
+            print(f"    denoise delta PRD     = {denoise_td['prd_percent_improvement']:.2f}")
         if denoise_td.get("cosine_similarity_improvement") is not None:
-            print(
-                f"    denoise delta cosine  = {denoise_td['cosine_similarity_improvement']:.4f}"
-            )
+            print(f"    denoise delta cosine  = {denoise_td['cosine_similarity_improvement']:.4f}")
 
     hallucination = card.get("hallucination")
     if isinstance(hallucination, dict):

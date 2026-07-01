@@ -32,15 +32,6 @@ from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.configs.ppg_rvq import PpgRvqConfig
 from compressionkit.datasets.ppg import collect_random_samples
 from compressionkit.evaluation.codec import BayesShrinkSpihtCodec, SpihtAcCodec
-from compressionkit.evaluation.noise import estimate_ppg_noise_floor
-from compressionkit.evaluation.rvq_codec import RvqCodec
-from compressionkit.playbook.catalog import get_method
-from compressionkit.preprocessing.augmentations import build_noise_bank_from_h5
-from compressionkit.preprocessing.ppg import build_augmenter, build_preprocessor
-from compressionkit.trainers.ppg_rvq import build_datasets as build_ppg_datasets
-
-from scripts.sweep_codec_noise_ppg import _corr, _prd, encode_decode_batch
-
 from compressionkit.evaluation.empirical_regime import (
     DEFAULT_SNR_DB,
     add_empirical_noise,
@@ -49,7 +40,13 @@ from compressionkit.evaluation.empirical_regime import (
     sample_noise_segment,
     snr_label,
 )
-
+from compressionkit.evaluation.noise import estimate_ppg_noise_floor
+from compressionkit.evaluation.rvq_codec import RvqCodec
+from compressionkit.playbook.catalog import get_method
+from compressionkit.preprocessing.augmentations import build_noise_bank_from_h5
+from compressionkit.preprocessing.ppg import build_augmenter, build_preprocessor
+from compressionkit.trainers.ppg_rvq import build_datasets as build_ppg_datasets
+from scripts.sweep_codec_noise_ppg import _corr, _prd, encode_decode_batch
 
 DEFAULT_RVQ_RUN_DIRS: dict[int, Path] = {
     2: Path("results/ppg_rvq_64hz_02x_golden"),
@@ -250,7 +247,7 @@ def main() -> None:
         if snr_db is None:
             inp = filtered.copy()
         else:
-            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + int(round(snr_db)))
+            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + round(snr_db))
         columns.append((_snr_label(snr_db), snr_db, inp, inp))
 
     probe_rng = np.random.default_rng(7)
@@ -270,7 +267,7 @@ def main() -> None:
         "snr_db": [c[1] for c in columns],
         "crs": args.crs,
         "native_snr": native_snr_summary,
-        "noise_bank_size": int(len(noise_bank)),
+        "noise_bank_size": len(noise_bank),
         "by_cr": {},
         "imprinting": {},
     }
@@ -304,7 +301,7 @@ def main() -> None:
         rvq = RvqCodec.from_run_dir(run_dir, modality="ppg")
 
         block: dict = {"columns": [], "spiht": [], "hybrid": [], "rvq": []}
-        for si, (label, snr_db, inp, faithful_ref) in enumerate(columns):
+        for si, (label, _snr_db, inp, faithful_ref) in enumerate(columns):
             rec_s = encode_decode_batch(spiht, inp)
             rec_h = encode_decode_batch(hybrid, inp)
             rec_r = encode_decode_batch(rvq, inp)
@@ -395,8 +392,7 @@ def main() -> None:
         title=f"{args.hybrid_method} - SPIHT PRD-vs-INPUT gap — empirical noise\n{native_note}",
     )
     print(
-        f"Wrote {out_dir / f'{args.output_stem}_truth.png'}, _faithful.png, "
-        f"_hybrid_truth.png, and _hybrid_faithful.png"
+        f"Wrote {out_dir / f'{args.output_stem}_truth.png'}, _faithful.png, _hybrid_truth.png, and _hybrid_faithful.png"
     )
 
 

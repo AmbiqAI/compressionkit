@@ -189,4 +189,3 @@ class TestPrdnNoise:
         # And a near-total noise estimate (>95% of signal power) is also NaN.
         out2 = compute_signal_metrics(sig, recon, noise_power=0.97 * sig_power)
         assert np.isnan(out2["prdn_noise_percent"])
-

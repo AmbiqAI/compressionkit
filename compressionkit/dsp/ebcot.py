@@ -31,7 +31,7 @@ Tree structure for L-level 1-D DWT of length N:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -49,7 +49,7 @@ _AC_COUNT_CAP = 256  # Tighter adaptation for EBCOT contexts
 class _BitWriter:
     """Fixed-capacity bit writer."""
 
-    __slots__ = ("buffer", "bit_pos", "capacity_bits")
+    __slots__ = ("bit_pos", "buffer", "capacity_bits")
 
     def __init__(self, capacity_bits: int):
         self.capacity_bits = capacity_bits
@@ -72,7 +72,7 @@ class _BitWriter:
 class _BitReader:
     """Fixed-capacity bit reader."""
 
-    __slots__ = ("data", "total_bits", "bit_pos")
+    __slots__ = ("bit_pos", "data", "total_bits")
 
     def __init__(self, data: bytes, total_bits: int):
         self.data = data
@@ -111,20 +111,20 @@ class _BudgetExhausted(Exception):
 #   12: cleanup (run-length context)
 
 _N_CONTEXTS = 13
-_CTX_SIG_BASE = 0      # + num_sig_neighbors (0, 1, 2)
+_CTX_SIG_BASE = 0  # + num_sig_neighbors (0, 1, 2)
 _CTX_SIGN_POS = 6
 _CTX_SIGN_NEG = 7
 _CTX_SIGN_ZERO = 8
-_CTX_MAG_FIRST = 9     # first refinement pass for this sample
-_CTX_MAG_OTHER = 10    # subsequent refinement passes
-_CTX_MAG_NBSIG = 11    # refinement with significant neighbor
+_CTX_MAG_FIRST = 9  # first refinement pass for this sample
+_CTX_MAG_OTHER = 10  # subsequent refinement passes
+_CTX_MAG_NBSIG = 11  # refinement with significant neighbor
 _CTX_CLEANUP = 12
 
 
 class _ArithEnc:
     """Adaptive binary AC encoder for EBCOT."""
 
-    __slots__ = ("writer", "capacity", "low", "high", "pending", "ctx0", "ctx1")
+    __slots__ = ("capacity", "ctx0", "ctx1", "high", "low", "pending", "writer")
 
     def __init__(self, capacity_bits: int):
         self.writer = _BitWriter(capacity_bits + 128)  # headroom for flush
@@ -187,7 +187,7 @@ class _ArithEnc:
 class _ArithDec:
     """Adaptive binary AC decoder for EBCOT."""
 
-    __slots__ = ("reader", "low", "high", "value", "ctx0", "ctx1")
+    __slots__ = ("ctx0", "ctx1", "high", "low", "reader", "value")
 
     def __init__(self, data: bytes, total_bits: int):
         self.reader = _BitReader(data, total_bits)
@@ -244,10 +244,10 @@ class _ArithDec:
 # ---------------------------------------------------------------------------
 # Code-block state flags (uint8 per sample)
 # ---------------------------------------------------------------------------
-_STATE_SIG = 0x01        # sample has become significant
-_STATE_REFINED = 0x02    # sample has been refined at least once
-_STATE_VISITED = 0x04    # visited this pass (cleared between passes)
-_STATE_SIGN = 0x08       # sign bit (1 = negative)
+_STATE_SIG = 0x01  # sample has become significant
+_STATE_REFINED = 0x02  # sample has been refined at least once
+_STATE_VISITED = 0x04  # visited this pass (cleared between passes)
+_STATE_SIGN = 0x08  # sign bit (1 = negative)
 
 
 # ---------------------------------------------------------------------------
@@ -410,7 +410,7 @@ def encode_code_block(
             # Update reconstruction
             old_mag = abs(recon[i])
             # Refine: we now know the bit at this plane
-            new_mag = old_mag - half_step + (threshold if bit else 0) + (half_step >> 1 if half_step > 0 else 0)
+            old_mag - half_step + (threshold if bit else 0) + (half_step >> 1 if half_step > 0 else 0)
             # Simpler: just accumulate the bit
             sign_mult = -1.0 if (state[i] & _STATE_SIGN) else 1.0
             current_mag = int(abs(recon[i]))
@@ -559,10 +559,8 @@ def decode_code_block(
     for i in range(block_size):
         if state[i] & _STATE_SIG:
             # Find lowest coded bit-plane for this sample
-            lowest_bp = 0
             for bp_check in range(num_bitplanes):
                 if magnitudes[i] & (1 << bp_check):
-                    lowest_bp = bp_check
                     break
             result[i] = magnitudes[i]  # exact magnitude bits we decoded
     # Apply signs
@@ -579,10 +577,10 @@ def decode_code_block(
 class SubbandInfo:
     """Metadata for one DWT subband."""
 
-    offset: int       # start index in packed coefficient array
-    length: int       # number of coefficients
-    level: int        # decomposition level (0 = finest detail)
-    gain: float       # subband gain weight for distortion (energy weighting)
+    offset: int  # start index in packed coefficient array
+    length: int  # number of coefficients
+    level: int  # decomposition level (0 = finest detail)
+    gain: float  # subband gain weight for distortion (energy weighting)
 
 
 def _partition_into_blocks(length: int, block_size: int) -> list[tuple[int, int]]:
@@ -677,16 +675,21 @@ def ebcot_encode(
     # details arrives as [finest(detail_1), ..., coarsest(detail_L)]
     # We pack as [approx, detail_L, detail_{L-1}, ..., detail_1] (coarsest first)
     levels = len(details)
-    bands = [approx] + list(reversed(details))  # [approx, d_L, ..., d_1]
+    bands = [approx, *list(reversed(details))]  # [approx, d_L, ..., d_1]
 
     subband_layout: list[SubbandInfo] = []
     offset = 0
     for band_idx, band in enumerate(bands):
         level = levels - band_idx if band_idx > 0 else levels
         gain = 1.0  # uniform weighting; could be wavelet-dependent
-        subband_layout.append(SubbandInfo(
-            offset=offset, length=len(band), level=level, gain=gain,
-        ))
+        subband_layout.append(
+            SubbandInfo(
+                offset=offset,
+                length=len(band),
+                level=level,
+                gain=gain,
+            )
+        )
         offset += len(band)
 
     packed = np.concatenate(bands).astype(np.float64)
@@ -764,17 +767,14 @@ def ebcot_encode(
     for sb_idx, start_in_band, size in all_blocks:
         sb = subband_layout[sb_idx]
         global_start = sb.offset + start_in_band
-        block_coeffs = q_packed[global_start: global_start + size]
+        block_coeffs = q_packed[global_start : global_start + size]
         result = encode_code_block(block_coeffs.astype(np.int64))
         block_results.append(result)
 
     # --- PCRD: Select truncation points ---
     # Compute header size so PCRD can budget for data only
     # Header: 4+1+4+2+1 + num_bands*4 + 2 + num_blocks*(2+1+4)
-    header_bytes = (4 + 1 + 4 + 2 + 1
-                    + len(subband_layout) * 4
-                    + 2
-                    + len(block_results) * 7)
+    header_bytes = 4 + 1 + 4 + 2 + 1 + len(subband_layout) * 4 + 2 + len(block_results) * 7
     data_budget_bits = max(max_bits - header_bytes * 8, 0)
 
     best_allocation = _pcrd_optimize(block_results, data_budget_bits)
@@ -792,6 +792,7 @@ def ebcot_encode(
     #   - block bitstreams concatenated
 
     import struct
+
     header = bytearray()
     header += struct.pack("<I", n_coeffs)
     header += struct.pack("<B", min(num_bp_global, 255))
@@ -872,8 +873,7 @@ def _pcrd_optimize(
     # give bits to the block with the best marginal return.
     # This is O(n_blocks * n_truncation_points) — fine for our sizes.
 
-    allocation = [0] * n_blocks  # current option index per block
-    total_bits = 0
+    [0] * n_blocks  # current option index per block
 
     # Simple approach: fill blocks in round-robin by distortion slope.
     # Better: use Lagrangian.
@@ -917,8 +917,7 @@ def _pcrd_optimize(
             best_block = -1
             best_gain = -1
             best_new_bits = 0
-            for blk_idx, res in enumerate(block_results):
-                options = block_options[blk_idx]
+            for blk_idx, options in enumerate(block_options):
                 current = alloc[blk_idx]
                 # Find next option above current
                 for opt in options:
@@ -933,7 +932,7 @@ def _pcrd_optimize(
                         break
             if best_block < 0:
                 break
-            remaining -= (_byte_cost(best_new_bits) - _byte_cost(alloc[best_block]))
+            remaining -= _byte_cost(best_new_bits) - _byte_cost(alloc[best_block])
             alloc[best_block] = best_new_bits
 
     return alloc
@@ -979,7 +978,11 @@ def ebcot_decode(
 
         if trunc_bits > 0 and max_val > 0:
             packed_q = decode_code_block(
-                blk_data, trunc_bits, n_coeffs, num_bp_global, max_val,
+                blk_data,
+                trunc_bits,
+                n_coeffs,
+                num_bp_global,
+                max_val,
                 truncate_at=trunc_bits,
             )
         else:
@@ -991,7 +994,7 @@ def ebcot_decode(
         bands = []
         offset = 0
         for band_len in band_lengths:
-            bands.append(packed_float[offset: offset + band_len])
+            bands.append(packed_float[offset : offset + band_len])
             offset += band_len
 
         approx_out = bands[0]
@@ -1036,13 +1039,18 @@ def ebcot_decode(
             continue
         # Extract block bitstream bytes
         trunc_bytes = (trunc_bits + 7) // 8
-        blk_data = bitstream[pos: pos + trunc_bytes]
+        blk_data = bitstream[pos : pos + trunc_bytes]
         pos += trunc_bytes
 
         decoded = decode_code_block(
-            blk_data, trunc_bits, size, num_bp, max_val, truncate_at=trunc_bits,
+            blk_data,
+            trunc_bits,
+            size,
+            num_bp,
+            max_val,
+            truncate_at=trunc_bits,
         )
-        packed_q[global_start: global_start + size] = decoded
+        packed_q[global_start : global_start + size] = decoded
 
     # Dequantize
     packed_float = _dequantize_coeffs(packed_q, step)
@@ -1051,7 +1059,7 @@ def ebcot_decode(
     bands = []
     offset = 0
     for band_len in band_lengths:
-        bands.append(packed_float[offset: offset + band_len])
+        bands.append(packed_float[offset : offset + band_len])
         offset += band_len
 
     approx = bands[0]

@@ -54,9 +54,7 @@ class LearnedDenoisePreprocessor:
         packed = np.concatenate([coeffs.approx, *coeffs.details]).astype(np.float32)
         denoised_packed = np.asarray(self.coeff_denoiser(packed), dtype=np.float32)
         if denoised_packed.shape != packed.shape:
-            raise ValueError(
-                f"coeff_denoiser must preserve length {packed.shape}, got {denoised_packed.shape}"
-            )
+            raise ValueError(f"coeff_denoiser must preserve length {packed.shape}, got {denoised_packed.shape}")
         offsets = np.cumsum(sizes)
         approx_d = denoised_packed[: offsets[0]]
         details_d = [denoised_packed[offsets[i - 1] : offsets[i]] for i in range(1, len(sizes))]

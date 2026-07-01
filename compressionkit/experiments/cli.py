@@ -41,8 +41,7 @@ def _print_table(modality: GoldenModality | None, method: GoldenMethod | None) -
         print("(no golden experiments registered)")
         return
     header = (
-        f"{'EXPERIMENT_ID':16s}  {'MODALITY':8s}  {'METHOD':8s}  {'FAMILY':9s}  "
-        f"{'CR':>3s}  {'CONFIG':45s}  HF_REPO_ID"
+        f"{'EXPERIMENT_ID':16s}  {'MODALITY':8s}  {'METHOD':8s}  {'FAMILY':9s}  {'CR':>3s}  {'CONFIG':45s}  HF_REPO_ID"
     )
     print(header)
     print("-" * len(header))

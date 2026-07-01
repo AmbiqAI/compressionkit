@@ -66,8 +66,7 @@ def _mains_component(length: int, sample_rate: float, rng: np.random.Generator) 
     drift_hz = float(rng.uniform(0.08, 0.35))
     envelope = 1.0 + 0.35 * np.sin(2.0 * math.pi * drift_hz * t + phase2)
     mains = envelope * (
-        np.sin(2.0 * math.pi * base_freq * t + phase)
-        + 0.35 * np.sin(2.0 * math.pi * 2.0 * base_freq * t + 0.3 * phase)
+        np.sin(2.0 * math.pi * base_freq * t + phase) + 0.35 * np.sin(2.0 * math.pi * 2.0 * base_freq * t + 0.3 * phase)
     )
     return normalize_window(mains.astype(np.float32))
 

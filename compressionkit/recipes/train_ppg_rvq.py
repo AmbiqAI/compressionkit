@@ -69,7 +69,6 @@ class PpgRVQTrainer(BaseRVQTrainer[PpgRvqConfig]):
         callback = make_curriculum_callback(augmenter)
         return [callback] if callback is not None else []
 
-
     def build_model(self) -> keras.Model:
         return build_model(self.cfg)
 

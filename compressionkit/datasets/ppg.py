@@ -538,6 +538,7 @@ def make_ppg_inmemory_dataset(
         lambda x_in, x_tgt: (_layer_norm_batch(x_in), _layer_norm_batch(x_tgt)),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
+
     def _augment_pair(x_in: tf.Tensor, x_tgt: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
         x_aug, x_tgt = apply_paired_null_augmentation_batch(_apply_aug(x_in), x_tgt, null_aug_cfg)
         return reshape(x_aug), reshape(x_tgt)
@@ -648,6 +649,7 @@ def make_ppg_tfrecord_dataset(
         lambda x_in, x_tgt: (_layer_norm_batch(x_in), _layer_norm_batch(x_tgt)),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
+
     def _augment_pair(x_in: tf.Tensor, x_tgt: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
         x_aug, x_tgt = apply_paired_null_augmentation_batch(_apply_aug(x_in), x_tgt, null_aug_cfg)
         return reshape(x_aug), reshape(x_tgt)
@@ -769,6 +771,7 @@ def make_ppg_stream_dataset(
         lambda x_in, x_tgt: (_layer_norm_batch(x_in), _layer_norm_batch(x_tgt)),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
+
     def _augment_pair(x_in: tf.Tensor, x_tgt: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
         x_aug, x_tgt = apply_paired_null_augmentation_batch(_apply_aug(x_in), x_tgt, null_aug_cfg)
         return reshape(x_aug), reshape(x_tgt)

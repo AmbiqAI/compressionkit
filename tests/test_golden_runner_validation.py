@@ -49,8 +49,12 @@ def test_run_golden_validates_before_publish(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
         runner,
         "validate_deploy_package",
-        lambda path, *, strict_release: calls.append(("validate", (path, strict_release)))
-        or DeployValidationResult(path, "rvq", [], ["missing release artifact: scorecard.json"], ["deploy_manifest.json"]),
+        lambda path, *, strict_release: (
+            calls.append(("validate", (path, strict_release)))
+            or DeployValidationResult(
+                path, "rvq", [], ["missing release artifact: scorecard.json"], ["deploy_manifest.json"]
+            )
+        ),
     )
     monkeypatch.setattr(runner, "_publish", lambda exp, run_dir, dry_run: calls.append(("publish", run_dir)) or 0)
 
@@ -196,14 +200,23 @@ def test_repackage_golden_validates_repackaged_deploy(monkeypatch, tmp_path) -> 
     monkeypatch.setattr(
         runner,
         "repackage_rvq_golden",
-        lambda exp, **kwargs: calls.append(("repackage", kwargs))
-        or {"experiment_id": exp.experiment_id, "run_dir": str(run_dir), "deploy_dir": str(run_dir / "deploy"), "artifacts": {}},
+        lambda exp, **kwargs: (
+            calls.append(("repackage", kwargs))
+            or {
+                "experiment_id": exp.experiment_id,
+                "run_dir": str(run_dir),
+                "deploy_dir": str(run_dir / "deploy"),
+                "artifacts": {},
+            }
+        ),
     )
     monkeypatch.setattr(
         runner,
         "validate_deploy_package",
-        lambda path, *, strict_release: calls.append(("validate", (path, strict_release)))
-        or DeployValidationResult(path, "rvq", [], [], ["deploy_manifest.json"]),
+        lambda path, *, strict_release: (
+            calls.append(("validate", (path, strict_release)))
+            or DeployValidationResult(path, "rvq", [], [], ["deploy_manifest.json"])
+        ),
     )
 
     summary = runner.repackage_golden(

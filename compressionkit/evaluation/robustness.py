@@ -20,6 +20,7 @@ empirical-SNR ladder and the additive artifact families.
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -27,8 +28,8 @@ from typing import Any
 import numpy as np
 
 __all__ = [
-    "RobustnessCondition",
     "ImprintProbe",
+    "RobustnessCondition",
     "evaluate_robustness",
     "summarize_robustness_for_scorecard",
 ]
@@ -128,7 +129,7 @@ def _crossing_snr(snr_db: list[float], prd: list[float], threshold: float) -> fl
         return None  # never degrades past threshold in the tested range
     if all(p >= threshold for _s, p in pts):
         return float(pts[0][0])  # already bad at the cleanest tested point
-    for (s_hi, p_hi), (s_lo, p_lo) in zip(pts[:-1], pts[1:], strict=False):
+    for (s_hi, p_hi), (s_lo, p_lo) in itertools.pairwise(pts):
         if (p_hi - threshold) * (p_lo - threshold) <= 0 and p_lo != p_hi:
             frac = (threshold - p_hi) / (p_lo - p_hi)
             return float(s_hi + frac * (s_lo - s_hi))
@@ -196,7 +197,7 @@ def evaluate_robustness(
         if morphology_fn is not None and cond.group in ("reference", "empirical_snr"):
             try:
                 morph = morphology_fn(clean, recon)
-            except Exception:  # noqa: BLE001 - morphology is best-effort
+            except Exception:
                 morph = {}
             if morph:
                 entry["morphology"] = morph
@@ -264,9 +265,7 @@ def evaluate_robustness(
         # Headline imprint = worst (max) invented periodicity across probes.
         worst = max(
             record["imprint"].values(),
-            key=lambda d: d["output_autocorr_mean"]
-            if np.isfinite(d["output_autocorr_mean"])
-            else -1.0,
+            key=lambda d: d["output_autocorr_mean"] if np.isfinite(d["output_autocorr_mean"]) else -1.0,
         )
         record["headline"]["imprint_output_autocorr_max"] = worst["output_autocorr_mean"]
 
@@ -316,9 +315,7 @@ def summarize_robustness_for_scorecard(record: dict[str, Any]) -> dict[str, Any]
         "headline": record.get("headline", {}),
         "empirical_snr_curve": ladder,
         "reference": {
-            k: v.get("prd", {}).get("mean")
-            for k, v in record.get("reference", {}).items()
-            if isinstance(v, dict)
+            k: v.get("prd", {}).get("mean") for k, v in record.get("reference", {}).items() if isinstance(v, dict)
         },
     }
     # Morphology (SpO2 proxy) reference values, when present.

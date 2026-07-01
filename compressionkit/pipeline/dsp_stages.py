@@ -137,9 +137,7 @@ class DeadzoneQuantizer:
             steps = [self._step(approx, self.approx_ratio)] + [self._step(d, 1.0) for d in details]
             bands = [approx, *details]
             sizes = [int(b.size) for b in bands]
-            symbols = np.concatenate(
-                [np.round(b / s).astype(np.int32) for b, s in zip(bands, steps, strict=True)]
-            )
+            symbols = np.concatenate([np.round(b / s).astype(np.int32) for b, s in zip(bands, steps, strict=True)])
             meta = {"kind": "dwt", "sizes": sizes, "steps": steps}
             return symbols, meta
 

@@ -27,9 +27,7 @@ def normalize_signal(x: np.ndarray) -> np.ndarray:
     return (x - x.mean()) / (x.std() + 1e-9)
 
 
-def sample_noise_segment(
-    noise_bank: np.ndarray, length: int, rng: np.random.Generator
-) -> np.ndarray:
+def sample_noise_segment(noise_bank: np.ndarray, length: int, rng: np.random.Generator) -> np.ndarray:
     """Draw a ``length``-sample noise segment from ``noise_bank``.
 
     Tiles short segments and randomly crops long ones so the returned array
@@ -96,8 +94,8 @@ def autocorr_peak(
     codec is imprinting a spurious periodic structure. ``hi_bpm`` maps to the
     shortest lag, ``lo_bpm`` to the longest (ECG: 40-150 bpm; PPG: 40-180 bpm).
     """
-    lo_lag = int(round(sample_rate * 60.0 / hi_bpm))
-    hi_lag = int(round(sample_rate * 60.0 / lo_bpm))
+    lo_lag = round(sample_rate * 60.0 / hi_bpm)
+    hi_lag = round(sample_rate * 60.0 / lo_bpm)
     out = np.empty(recon.shape[0], dtype=np.float32)
     for i, r in enumerate(recon):
         r = r - r.mean()

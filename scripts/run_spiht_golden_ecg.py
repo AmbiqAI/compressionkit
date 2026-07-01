@@ -86,16 +86,21 @@ def main() -> None:
     parser.add_argument("--max-val-files", type=int, default=200)
     parser.add_argument("--lead-index", type=int, default=1)
     parser.add_argument(
-        "--max-samples-csv", type=int, default=1000,
+        "--max-samples-csv",
+        type=int,
+        default=1000,
         help="Number of sample_NNN.csv files to write for the scorecard.",
     )
     parser.add_argument(
-        "--max-stitching-signals", type=int, default=10,
+        "--max-stitching-signals",
+        type=int,
+        default=10,
         help="Number of long signals to retain for the stitching evaluation.",
     )
     parser.add_argument("--stitching-hop-ratio", type=float, default=0.5)
     parser.add_argument(
-        "--skip-stitching", action="store_true",
+        "--skip-stitching",
+        action="store_true",
         help="Skip the long-signal stitching evaluation (stability scorecard block).",
     )
     parser.add_argument("--log-level", default="INFO")
@@ -129,14 +134,22 @@ def main() -> None:
     )
     logger.info(
         "Codec: fs=%d frame=%d target_cr=%gx wavelet=%s L=%d use_ac=%s max_bits=%d",
-        codec.sample_rate, codec.frame_size, codec.target_cr,
-        codec.wavelet, codec.levels, codec.use_ac, codec.max_bits,
+        codec.sample_rate,
+        codec.frame_size,
+        codec.target_cr,
+        codec.wavelet,
+        codec.levels,
+        codec.use_ac,
+        codec.max_bits,
     )
 
     datasets_dir = Path(args.datasets_dir)
     _, val_files, _ = load_ecg_file_splits(
-        datasets_dir, args.dataset_glob,
-        train_ratio=0.8, val_ratio=0.2, seed=42,
+        datasets_dir,
+        args.dataset_glob,
+        train_ratio=0.8,
+        val_ratio=0.2,
+        seed=42,
     )
     if args.max_val_files:
         val_files = val_files[: args.max_val_files]
@@ -152,7 +165,7 @@ def main() -> None:
         try:
             signal_native = load_ecg_signal(fpath, lead_index=args.lead_index)
             signal = _resample(signal_native, _ECG_SOURCE_RATE, codec.sample_rate)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("Skipping %s: %s", fpath.name, exc)
             skipped_files += 1
             continue
@@ -178,7 +191,9 @@ def main() -> None:
     n_frames = len(pairs)
     logger.info(
         "Evaluated %d frames (skipped files=%d, flat frames=%d)",
-        n_frames, skipped_files, skipped_flat_frames,
+        n_frames,
+        skipped_files,
+        skipped_flat_frames,
     )
 
     prd_list, mse_list, mae_list, snr_list = [], [], [], []
@@ -289,19 +304,22 @@ def main() -> None:
             (run_dir / "stitching_report.json").write_text(json.dumps(stitching_report, indent=2))
             logger.info(
                 "Wrote stitching_report.json (n_signals=%d, methods=%d)",
-                stitching_report["num_recordings_eval"], len(stitching_report["methods"]),
+                stitching_report["num_recordings_eval"],
+                len(stitching_report["methods"]),
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("Stitching evaluation failed; continuing without it.")
 
     n_csv = min(args.max_samples_csv, n_frames)
     for idx in range(n_csv):
         orig, recon = pairs[idx]
-        df = pd.DataFrame({
-            "time_index": np.arange(len(orig)),
-            "original": orig,
-            "reconstructed": recon,
-        })
+        df = pd.DataFrame(
+            {
+                "time_index": np.arange(len(orig)),
+                "original": orig,
+                "reconstructed": recon,
+            }
+        )
         df.to_csv(run_dir / f"sample_{idx:03d}.csv", index=False)
     logger.info("Wrote %d per-frame sample CSVs", n_csv)
 
@@ -324,7 +342,7 @@ def main() -> None:
         )
         (run_dir / "quality_scorecard.json").write_text(json.dumps(scorecard, indent=2))
         logger.info("Wrote quality_scorecard.json")
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("Quality scorecard build failed; continuing without it.")
 
     deploy_dir = run_dir / "deploy"
@@ -357,8 +375,10 @@ def main() -> None:
     print(f"Bitrate          : {bitrate_bps:.1f} bps  (raw {raw_bps} bps)")
     print(f"PRD%   mean/median/p95 : {prd_stats['mean']:.2f} / {prd_stats['median']:.2f} / {prd_stats['p95']:.2f}")
     print(f"SNR dB mean/median     : {snr_stats['mean']:.2f} / {snr_stats['median']:.2f}")
-    print(f"Bits/frame mean / used range / budget: "
-          f"{mean_bits:.0f} / [{int(np.min(bits_used))}-{int(np.max(bits_used))}] / {codec.max_bits}")
+    print(
+        f"Bits/frame mean / used range / budget: "
+        f"{mean_bits:.0f} / [{int(np.min(bits_used))}-{int(np.max(bits_used))}] / {codec.max_bits}"
+    )
     print(f"Deploy artifacts : {arts.as_dict()}")
 
 

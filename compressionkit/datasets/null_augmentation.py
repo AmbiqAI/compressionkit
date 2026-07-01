@@ -38,9 +38,7 @@ class PairedNullAugmentationConfig:
         if not 0.0 <= self.null_frame_prob <= 1.0:
             raise ValueError(f"null_frame_prob must be in [0, 1], got {self.null_frame_prob}")
         if self.long_cutout_prob + self.null_frame_prob > 1.0:
-            raise ValueError(
-                "long_cutout_prob + null_frame_prob must be <= 1.0 so regimes remain exclusive"
-            )
+            raise ValueError("long_cutout_prob + null_frame_prob must be <= 1.0 so regimes remain exclusive")
         for name, factor in (
             ("short_cutout_factor", self.short_cutout_factor),
             ("long_cutout_factor", self.long_cutout_factor),
@@ -49,9 +47,7 @@ class PairedNullAugmentationConfig:
                 continue
             low, high = float(factor[0]), float(factor[1])
             if low <= 0.0 or high <= 0.0 or low > high or high > 1.0:
-                raise ValueError(
-                    f"{name} must satisfy 0 < low <= high <= 1.0, got {(low, high)}"
-                )
+                raise ValueError(f"{name} must satisfy 0 < low <= high <= 1.0, got {(low, high)}")
 
     @property
     def enabled(self) -> bool:

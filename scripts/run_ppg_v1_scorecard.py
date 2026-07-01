@@ -39,15 +39,17 @@ from compressionkit.trainers.ppg_rvq import _build_ppg_noise_bank
 
 # Reuse audited primitives.
 from experiments.eval_ppg_artifact_paired import (
+    _default_levels,
+    _layer_norm_windows,
     codec_metrics,
     corrupt_raw_windows,
     encode_decode_batch,
-    _default_levels,
-    _layer_norm_windows,
 )
 from experiments.eval_ppg_synthetic_triplet import (
     _build_clean_windows,
     _corrupt_windows,
+)
+from experiments.eval_ppg_synthetic_triplet import (
     _metrics as _synthetic_metrics,
 )
 
@@ -66,9 +68,12 @@ def _hr_series(windows: np.ndarray, *, sample_rate: int, phys: dict) -> np.ndarr
     out = np.full(windows.shape[0], np.nan, dtype=np.float64)
     for i, w in enumerate(windows):
         m = compute_ppg_physiokit_metrics(
-            w, sample_rate=sample_rate,
-            low_hz=phys["low_hz"], high_hz=phys["high_hz"],
-            order=phys["order"], min_peaks=phys["min_peaks"],
+            w,
+            sample_rate=sample_rate,
+            low_hz=phys["low_hz"],
+            high_hz=phys["high_hz"],
+            order=phys["order"],
+            min_peaks=phys["min_peaks"],
         )
         if m is not None:
             out[i] = m["hr_bpm"]
@@ -120,7 +125,7 @@ def _masked_prd(clean_norm, recon, mask_visible):
 def _filter_finite_rows(*arrays: np.ndarray) -> tuple[np.ndarray, ...]:
     """Drop any window rows that contain non-finite values in any paired array."""
     if not arrays:
-        return tuple()
+        return ()
     mask = np.ones(arrays[0].shape[0], dtype=bool)
     for arr in arrays:
         mask &= np.isfinite(arr.reshape(arr.shape[0], -1)).all(axis=1)
@@ -153,8 +158,7 @@ def main() -> None:
     sr = int(cfg.data.sampling_rate)
     frame = int(cfg.data.frame_size)
     pm = cfg.evaluation.physiokit_metrics
-    phys = {"low_hz": pm.low_hz, "high_hz": pm.high_hz, "order": pm.order,
-            "min_peaks": max(4, pm.min_peaks)}
+    phys = {"low_hz": pm.low_hz, "high_hz": pm.high_hz, "order": pm.order, "min_peaks": max(4, pm.min_peaks)}
 
     print(f"Loading codec from {run_dir}")
     codec = RvqCodec.from_run_dir(run_dir, modality="ppg")
@@ -162,8 +166,12 @@ def main() -> None:
     # Fixed shared real window set from the unified strict-sanitized val split.
     sources = [SourceWeight(slug=s.slug, weight=s.weight) for s in cfg.data.unified_cache.sources]
     clean_raw = load_cached_raw_windows(
-        sources, cache_root=Path(cfg.data.unified_cache.cache_root),
-        frame_size=frame, split="val", max_windows=args.num_windows, seed=args.seed,
+        sources,
+        cache_root=Path(cfg.data.unified_cache.cache_root),
+        frame_size=frame,
+        split="val",
+        max_windows=args.num_windows,
+        seed=args.seed,
     )
     clean_norm = _layer_norm_windows(clean_raw, cfg.data.epsilon)
     hr_clean = _hr_series(clean_norm, sample_rate=sr, phys=phys)
@@ -173,7 +181,7 @@ def main() -> None:
 
     report: dict = {
         "run_dir": str(run_dir),
-        "num_windows": int(len(clean_raw)),
+        "num_windows": len(clean_raw),
         "seed": args.seed,
         "compression_ratio": float(getattr(codec, "target_cr", 0.0)),
     }
@@ -182,8 +190,10 @@ def main() -> None:
     print("\n[1/3] Clean fidelity")
     clean_section, _ = _clean_fidelity(codec, clean_norm, sample_rate=sr, phys=phys, hr_clean=hr_clean)
     report["clean_fidelity"] = clean_section
-    print(f"  PRD median={clean_section['prd_median']:.2f} p90={clean_section['prd_p90']:.2f} "
-          f"| HR MAE={clean_section['hr']['hr_mae_bpm']:.2f} bpm (cov {clean_section['hr']['coverage']:.0%})")
+    print(
+        f"  PRD median={clean_section['prd_median']:.2f} p90={clean_section['prd_p90']:.2f} "
+        f"| HR MAE={clean_section['hr']['hr_mae_bpm']:.2f} bpm (cov {clean_section['hr']['coverage']:.0%})"
+    )
 
     # --- Section 2: robustness battery ---------------------------------------
     print("\n[2/3] Robustness battery (floor / delta / HR MAE)")
@@ -194,8 +204,12 @@ def main() -> None:
         battery[art] = {}
         for level in _default_levels(art):
             noisy_raw = corrupt_raw_windows(
-                clean_raw, artifact=art, level=level, sample_rate=sr,
-                seed=args.seed, noise_bank=noise_bank,
+                clean_raw,
+                artifact=art,
+                level=level,
+                sample_rate=sr,
+                seed=args.seed,
+                noise_bank=noise_bank,
             )
             noisy_norm = _layer_norm_windows(noisy_raw, cfg.data.epsilon)
             recon = encode_decode_batch(codec, noisy_norm)
@@ -212,18 +226,23 @@ def main() -> None:
                 entry["masked_prd_median"] = _masked_prd(clean_norm, recon, mask_visible)
             battery[art][level] = entry
             extra = f" maskedPRD={entry.get('masked_prd_median', float('nan')):.1f}" if art == "cutout" else ""
-            print(f"  {art:>16} @ {level:>6}: floor={entry['input_floor_prd']:6.1f}  "
-                  f"delta={entry['denoising_delta_prd']:+6.2f}  HRmae={entry['hr']['hr_mae_bpm']:5.2f}{extra}")
+            print(
+                f"  {art:>16} @ {level:>6}: floor={entry['input_floor_prd']:6.1f}  "
+                f"delta={entry['denoising_delta_prd']:+6.2f}  HRmae={entry['hr']['hr_mae_bpm']:5.2f}{extra}"
+            )
     report["robustness_battery"] = battery
 
     # --- Section 3: synthetic truth-aware triplets ---------------------------
     print("\n[3/3] Synthetic triplets (prd_vs_clean vs prd_vs_noisy)")
     synth_clean = _build_clean_windows(
-        generator="physiokit", n_windows=min(args.num_windows, 500),
-        frame_size=frame, sample_rate=sr, seed=args.seed,
+        generator="physiokit",
+        n_windows=min(args.num_windows, 500),
+        frame_size=frame,
+        sample_rate=sr,
+        seed=args.seed,
     )
     synth_clean_total = int(synth_clean.shape[0])
-    synth_clean, = _filter_finite_rows(synth_clean)
+    (synth_clean,) = _filter_finite_rows(synth_clean)
     synth_clean_stats = _drop_stats(synth_clean_total, int(synth_clean.shape[0]))
     if synth_clean_stats["dropped_windows"]:
         warn = " WARNING" if synth_clean_stats["warn_threshold_exceeded"] else ""
@@ -254,8 +273,10 @@ def main() -> None:
                 )
                 if drop_stats["warn_threshold_exceeded"]:
                     drop_note += " WARNING"
-            print(f"  {art:>16} @ {level}: prd_vs_clean={t['prd_vs_clean']:6.2f}  "
-                  f"prd_vs_noisy={t['prd_vs_noisy']:6.2f}  delta={t['denoising_delta_prd']:+6.2f}{drop_note}")
+            print(
+                f"  {art:>16} @ {level}: prd_vs_clean={t['prd_vs_clean']:6.2f}  "
+                f"prd_vs_noisy={t['prd_vs_noisy']:6.2f}  delta={t['denoising_delta_prd']:+6.2f}{drop_note}"
+            )
     report["synthetic_triplets"] = triplets
     report["synthetic_triplet_drop_stats"] = triplet_drop_stats
 

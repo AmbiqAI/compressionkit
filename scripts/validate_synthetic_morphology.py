@@ -108,9 +108,7 @@ def _summarise_morph(report: dict[str, Any], metric_keys: list[str]) -> dict[str
     out: dict[str, Any] = {
         "windows": report.get("num_windows"),
         "windows_with_beats": report.get("num_windows_with_beats"),
-        "matched": report.get(
-            "num_beats_matched", report.get("num_pulses_matched")
-        ),
+        "matched": report.get("num_beats_matched", report.get("num_pulses_matched")),
     }
     for k in metric_keys:
         block = report.get(k)
@@ -128,9 +126,7 @@ def _summarise_morph(report: dict[str, Any], metric_keys: list[str]) -> dict[str
     return out
 
 
-def _run_ecg_checks(
-    n_windows: int = 20, window_s: float = 8.0, sample_rate: float = 256.0
-) -> dict[str, Any]:
+def _run_ecg_checks(n_windows: int = 20, window_s: float = 8.0, sample_rate: float = 256.0) -> dict[str, Any]:
     clean = _build_ecg_batch(n_windows, window_s, sample_rate)
     print(f"[ECG] built {clean.shape[0]} clean windows of {clean.shape[1]} samples")
 
@@ -174,9 +170,7 @@ def _run_ecg_checks(
     return results
 
 
-def _run_ppg_checks(
-    n_windows: int = 20, window_s: float = 10.0, sample_rate: float = 64.0
-) -> dict[str, Any]:
+def _run_ppg_checks(n_windows: int = 20, window_s: float = 10.0, sample_rate: float = 64.0) -> dict[str, Any]:
     clean = _build_ppg_batch(n_windows, window_s, sample_rate)
     print(f"[PPG] built {clean.shape[0]} clean windows of {clean.shape[1]} samples")
 
@@ -225,7 +219,9 @@ def main() -> None:
         "ecg": _run_ecg_checks(),
         "ppg": _run_ppg_checks(),
     }
-    out_path.write_text(json.dumps(summary, indent=2, default=lambda o: None if isinstance(o, float) and math.isnan(o) else o))
+    out_path.write_text(
+        json.dumps(summary, indent=2, default=lambda o: None if isinstance(o, float) and math.isnan(o) else o)
+    )
     print(f"\nWrote {out_path}")
 
 

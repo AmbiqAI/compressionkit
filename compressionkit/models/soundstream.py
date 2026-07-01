@@ -20,7 +20,6 @@ import keras
 
 from compressionkit.models.blocks import _apply_norm_2d, make_divisible
 
-
 # ---------------------------------------------------------------------------
 # Core building block: Residual unit with dilated convolution
 # ---------------------------------------------------------------------------
@@ -54,9 +53,7 @@ def _residual_unit(
 
     # If channel mismatch, project the shortcut
     if in_ch != filters:
-        shortcut = keras.layers.Conv2D(
-            filters, (1, 1), padding="same", name=f"{name}_skip_proj"
-        )(shortcut)
+        shortcut = keras.layers.Conv2D(filters, (1, 1), padding="same", name=f"{name}_skip_proj")(shortcut)
 
     # Dilated conv path
     h = keras.layers.ELU(name=f"{name}_act1")(x)
@@ -71,9 +68,7 @@ def _residual_unit(
 
     # Pointwise conv
     h = keras.layers.ELU(name=f"{name}_act2")(h)
-    h = keras.layers.Conv2D(
-        filters, (1, 1), padding="same", name=f"{name}_pw"
-    )(h)
+    h = keras.layers.Conv2D(filters, (1, 1), padding="same", name=f"{name}_pw")(h)
     h = _apply_norm_2d(h, norm, name=f"{name}_norm2")
 
     return keras.layers.Add(name=f"{name}_add")([shortcut, h])
@@ -109,8 +104,12 @@ def _encoder_block(
     for i in range(n_residual):
         d = dilations[i % len(dilations)]
         x = _residual_unit(
-            x, filters, kernel_size=kernel_size, dilation=d,
-            name=f"{name}_res{i}", norm=norm,
+            x,
+            filters,
+            kernel_size=kernel_size,
+            dilation=d,
+            name=f"{name}_res{i}",
+            norm=norm,
         )
 
     # Strided downsampling conv (kernel = 2*stride for good coverage)
@@ -165,9 +164,7 @@ def build_soundstream_encoder(
     """
     downsample_factor = 2**num_stages
     if input_len % downsample_factor != 0:
-        raise ValueError(
-            f"input_len ({input_len}) must be divisible by 2^num_stages ({downsample_factor})"
-        )
+        raise ValueError(f"input_len ({input_len}) must be divisible by 2^num_stages ({downsample_factor})")
 
     inp = keras.layers.Input(shape=(1, input_len, in_ch), name="enc_in")
 
@@ -180,9 +177,8 @@ def build_soundstream_encoder(
     )(inp)
 
     # Encoder blocks with increasing channel count
-    filters = base_filters
     for stage in range(num_stages):
-        filters = make_divisible(base_filters * (multiplier**stage), 8) if stage > 0 else base_filters
+        make_divisible(base_filters * (multiplier**stage), 8) if stage > 0 else base_filters
         x = _encoder_block(
             x,
             filters=make_divisible(base_filters * (multiplier ** (stage + 1)), 8),
@@ -196,9 +192,7 @@ def build_soundstream_encoder(
 
     # Final projection to embedding dim + normalization for VQ stability
     x = keras.layers.ELU(name="enc_final_act")(x)
-    x = keras.layers.Conv2D(
-        embedding_dim, (1, 1), padding="same", name="enc_to_vq"
-    )(x)
+    x = keras.layers.Conv2D(embedding_dim, (1, 1), padding="same", name="enc_to_vq")(x)
     x = _apply_norm_2d(x, head_norm, name="enc_head_norm")
 
     return keras.Model(inp, x, name=f"SoundStreamEncoder_ds{downsample_factor}")
@@ -244,8 +238,12 @@ def _decoder_block(
     for i in range(n_residual):
         d = dilations[i % len(dilations)]
         x = _residual_unit(
-            x, filters, kernel_size=kernel_size, dilation=d,
-            name=f"{name}_res{i}", norm=norm,
+            x,
+            filters,
+            kernel_size=kernel_size,
+            dilation=d,
+            name=f"{name}_res{i}",
+            norm=norm,
         )
     return x
 
@@ -288,25 +286,19 @@ def build_soundstream_decoder(
     """
     downsample_factor = 2**num_stages
     if output_len % downsample_factor != 0:
-        raise ValueError(
-            f"output_len ({output_len}) must be divisible by 2^num_stages ({downsample_factor})"
-        )
+        raise ValueError(f"output_len ({output_len}) must be divisible by 2^num_stages ({downsample_factor})")
 
     latent_len = output_len // downsample_factor
     inp = keras.layers.Input(shape=(1, latent_len, embedding_dim), name="latent_in")
 
     # Initial projection from embedding_dim to widest channel count
     widest = make_divisible(base_filters * (multiplier**num_stages), 8)
-    x = keras.layers.Conv2D(
-        widest, (1, 1), padding="same", name="dec_from_vq"
-    )(inp)
+    x = keras.layers.Conv2D(widest, (1, 1), padding="same", name="dec_from_vq")(inp)
 
     # Decoder blocks with decreasing channel count (mirror of encoder)
     for stage in range(num_stages):
         # Channel count decreases as we go up in resolution
-        out_filters = make_divisible(
-            base_filters * (multiplier ** (num_stages - 1 - stage)), 8
-        )
+        out_filters = make_divisible(base_filters * (multiplier ** (num_stages - 1 - stage)), 8)
         x = _decoder_block(
             x,
             filters=out_filters,
@@ -320,8 +312,6 @@ def build_soundstream_decoder(
 
     # Final output conv
     x = keras.layers.ELU(name="dec_final_act")(x)
-    x = keras.layers.Conv2D(
-        out_ch, (1, final_kernel), padding="same", name="dec_out"
-    )(x)
+    x = keras.layers.Conv2D(out_ch, (1, final_kernel), padding="same", name="dec_out")(x)
 
     return keras.Model(inp, x, name=f"SoundStreamDecoder_ds{downsample_factor}")

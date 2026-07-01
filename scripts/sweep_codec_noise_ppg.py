@@ -34,20 +34,21 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+# Silence TF noise.
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Silence TF noise.
-import os
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
 from compressionkit.evaluation.codec import SpihtAcCodec
 from compressionkit.evaluation.empirical_regime import corr as _corr
-from compressionkit.evaluation.empirical_regime import encode_decode_batch, prd as _prd
+from compressionkit.evaluation.empirical_regime import encode_decode_batch
+from compressionkit.evaluation.empirical_regime import prd as _prd
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.synthetic import ppg_dynamical
 from compressionkit.synthetic.noise import NoiseSpec, add_noise
-
 
 PPG_DEFAULT_WAVELET = "coif5"
 PPG_DEFAULT_LEVELS = 6
@@ -144,7 +145,7 @@ def add_dropout(clean: np.ndarray, severity: float, seed: int) -> np.ndarray:
     for i, c in enumerate(clean):
         x = c.copy()
         frac = min(max(0.05 + 0.30 * severity, 0.02), 0.5)
-        width = max(4, int(round(frac * x.shape[0])))
+        width = max(4, round(frac * x.shape[0]))
         start = int(rng.integers(0, max(1, x.shape[0] - width + 1)))
         x[start : start + width] = 0.0
         x = (x - x.mean()) / (x.std() + 1e-9)
@@ -219,9 +220,7 @@ def _level_label(corruption: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def codec_metrics(
-    clean: np.ndarray, noisy: np.ndarray, recon: np.ndarray
-) -> dict[str, float]:
+def codec_metrics(clean: np.ndarray, noisy: np.ndarray, recon: np.ndarray) -> dict[str, float]:
     """Compute both tracks of metrics for one (codec, noise-level) cell."""
     prd_noisy = _prd(noisy, recon)
     prd_clean = _prd(clean, recon)
@@ -253,11 +252,7 @@ def codec_metrics(
 def _build_dsp_codecs(
     crs: list[int], dsp_modes: list[str], frame_size: int, sample_rate: int
 ) -> list[tuple[str, object, str, str]]:
-    mode_styles = {
-        "default": ("#1f77b4", "-"),
-        "tuned": ("#2ca02c", "--"),
-        "tuned_ac": ("#9467bd", "-.")
-    }
+    mode_styles = {"default": ("#1f77b4", "-"), "tuned": ("#2ca02c", "--"), "tuned_ac": ("#9467bd", "-.")}
     codecs: list[tuple[str, object, str, str]] = []
     for cr in crs:
         for mode in dsp_modes:
@@ -306,12 +301,7 @@ def _build_dsp_codecs(
 
 def _load_rvq_codecs(crs: list[int], rvq_root: Path) -> list[tuple[str, object, str, str]]:
     codecs: list[tuple[str, object, str, str]] = []
-    styles = {
-        2: ("#d62728", ":"),
-        4: ("#d62728", "-"),
-        8: ("#d62728", "--"),
-        16: ("#d62728", "-.")
-    }
+    styles = {2: ("#d62728", ":"), 4: ("#d62728", "-"), 8: ("#d62728", "--"), 16: ("#d62728", "-.")}
     for cr in crs:
         run_dir = rvq_root / f"ppg_rvq_64hz_{cr:02d}x_golden"
         if not run_dir.exists():
@@ -379,7 +369,7 @@ def main() -> None:
         "baselines": [],
     }
 
-    for label, codec, _, _ in codecs:
+    for label, _codec, _, _ in codecs:
         summary["codecs"][label] = {"noise_pct": [], "metrics": []}
 
     for npct in noise_pcts:
@@ -398,49 +388,51 @@ def main() -> None:
             "noisy_vs_clean_corr": float(_corr(clean, noisy).mean()),
         }
         summary["baselines"].append({"noise_pct": npct, **base})
-        print(f"  baseline (noisy vs clean): PRD={base['noisy_vs_clean_prd']:.1f}%  "
-              f"corr={base['noisy_vs_clean_corr']:.3f}")
+        print(
+            f"  baseline (noisy vs clean): PRD={base['noisy_vs_clean_prd']:.1f}%  "
+            f"corr={base['noisy_vs_clean_corr']:.3f}"
+        )
 
         for label, codec, _, _ in codecs:
             recon = encode_decode_batch(codec, noisy)
             m = codec_metrics(clean, noisy, recon)
             summary["codecs"][label]["noise_pct"].append(npct)
             summary["codecs"][label]["metrics"].append(m)
-            print(f"  {label:8s}: "
-                  f"PRDn={m['prd_vs_noisy_mean']:5.1f}%  "
-                  f"PRDc={m['prd_vs_clean_mean']:5.1f}%  "
-                  f"corr_c={m['corr_vs_clean_mean']:.3f}  "
-                  f"denoise_delta={m['denoising_delta_prd']:+5.1f}%")
+            print(
+                f"  {label:8s}: "
+                f"PRDn={m['prd_vs_noisy_mean']:5.1f}%  "
+                f"PRDc={m['prd_vs_clean_mean']:5.1f}%  "
+                f"corr_c={m['corr_vs_clean_mean']:.3f}  "
+                f"denoise_delta={m['denoising_delta_prd']:+5.1f}%"
+            )
 
     json_path = out_dir / f"summary_{corruption}.json"
-    json_path.write_text(json.dumps(summary, indent=2,
-                                    default=lambda o: None if isinstance(o, float) and math.isnan(o) else o))
+    json_path.write_text(
+        json.dumps(summary, indent=2, default=lambda o: None if isinstance(o, float) and math.isnan(o) else o)
+    )
     print(f"\nWrote {json_path}")
 
     # --------------------------- plotting ---------------------------
     metric_keys = [
-        ("prd_vs_noisy_mean",  "PRD vs noisy input (%)",   "faithfulness — lower = preserves what codec saw"),
-        ("prd_vs_clean_mean",  "PRD vs CLEAN truth (%)",   "truth — lower = closer to underlying signal"),
-        ("corr_vs_clean_mean", "corr vs CLEAN truth",       "truth — higher = closer to underlying signal"),
-        ("denoising_delta_prd", "denoising Δ PRD (%)",      "positive = codec denoises; negative = codec adds distortion"),
+        ("prd_vs_noisy_mean", "PRD vs noisy input (%)", "faithfulness — lower = preserves what codec saw"),
+        ("prd_vs_clean_mean", "PRD vs CLEAN truth (%)", "truth — lower = closer to underlying signal"),
+        ("corr_vs_clean_mean", "corr vs CLEAN truth", "truth — higher = closer to underlying signal"),
+        ("denoising_delta_prd", "denoising Δ PRD (%)", "positive = codec denoises; negative = codec adds distortion"),
     ]
 
     fig, axes = plt.subplots(2, 2, figsize=(13, 8.5))
     axes = axes.flatten()
     for ax, (key, ylabel, subtitle) in zip(axes, metric_keys):
-        for label, codec, color, ls in codecs:
+        for label, _codec, color, ls in codecs:
             ys = [m[key] for m in summary["codecs"][label]["metrics"]]
-            ax.plot(noise_pcts, ys, color=color, linestyle=ls, marker="o", lw=1.8,
-                    label=label)
+            ax.plot(noise_pcts, ys, color=color, linestyle=ls, marker="o", lw=1.8, label=label)
         # Baseline = no codec at all (when relevant)
         if key == "prd_vs_clean_mean":
             ys_base = [b["noisy_vs_clean_prd"] for b in summary["baselines"]]
-            ax.plot(noise_pcts, ys_base, color="#888", lw=1.2, ls=":", marker="x",
-                    label="noisy input (no codec)")
+            ax.plot(noise_pcts, ys_base, color="#888", lw=1.2, ls=":", marker="x", label="noisy input (no codec)")
         if key == "corr_vs_clean_mean":
             ys_base = [b["noisy_vs_clean_corr"] for b in summary["baselines"]]
-            ax.plot(noise_pcts, ys_base, color="#888", lw=1.2, ls=":", marker="x",
-                    label="noisy input (no codec)")
+            ax.plot(noise_pcts, ys_base, color="#888", lw=1.2, ls=":", marker="x", label="noisy input (no codec)")
         if key == "denoising_delta_prd":
             ax.axhline(0, color="#888", lw=0.7, ls=":")
         ax.set_title(subtitle, fontsize=10, loc="left")
@@ -448,8 +440,7 @@ def main() -> None:
         ax.set_ylabel(ylabel)
         ax.grid(alpha=0.3)
         ax.legend(fontsize=8, loc="best", framealpha=0.85)
-    fig.suptitle(f"PPG codec behaviour under increasing {corruption} severity — DSP vs RVQ",
-                 fontsize=11)
+    fig.suptitle(f"PPG codec behaviour under increasing {corruption} severity — DSP vs RVQ", fontsize=11)
     fig.tight_layout()
     png_path = out_dir / f"ppg_codec_{corruption}_sweep.png"
     fig.savefig(png_path, dpi=130)

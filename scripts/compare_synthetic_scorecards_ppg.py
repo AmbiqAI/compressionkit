@@ -75,10 +75,12 @@ def _write_run_dir(run_dir: Path, noisy: np.ndarray, recon: np.ndarray) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "summary.json").write_text("{}")
     for i, (orig, out) in enumerate(zip(noisy, recon)):
-        pd.DataFrame({
-            "original": orig.astype(np.float32),
-            "reconstructed": out.astype(np.float32),
-        }).to_csv(run_dir / f"sample_{i:03d}.csv", index=False)
+        pd.DataFrame(
+            {
+                "original": orig.astype(np.float32),
+                "reconstructed": out.astype(np.float32),
+            }
+        ).to_csv(run_dir / f"sample_{i:03d}.csv", index=False)
 
 
 def _safe_div(num: float | None, den: float | None) -> float | None:
@@ -104,11 +106,15 @@ def _extract_headline(card: dict[str, Any]) -> dict[str, float | None]:
         "input_prd_vs_clean": input_prd,
         "recon_prd_vs_clean": recon_prd,
         "recon_error_ratio_vs_input": _safe_div(recon_prd, input_prd),
-        "relative_prd_reduction_pct": None if _safe_div(denoise_prd, input_prd) is None else 100.0 * _safe_div(denoise_prd, input_prd),
+        "relative_prd_reduction_pct": None
+        if _safe_div(denoise_prd, input_prd) is None
+        else 100.0 * _safe_div(denoise_prd, input_prd),
         "denoise_delta_prd": denoise_prd,
         "input_cosine_vs_clean": input_cosine,
         "recon_cosine_vs_clean": recon_cosine,
-        "cosine_delta_vs_input": None if input_cosine is None or recon_cosine is None else float(recon_cosine - input_cosine),
+        "cosine_delta_vs_input": None
+        if input_cosine is None or recon_cosine is None
+        else float(recon_cosine - input_cosine),
         "recon_coherence_vs_clean": out_sp.get("coherence", {}).get("mean"),
     }
 
@@ -156,7 +162,9 @@ def main() -> None:
     print(f"[setup] Running RVQ {args.target_cr}x from {rvq_run}")
     rvq_recon = _encode_decode_batch(rvq, noisy)
 
-    out_root = Path("results/_synthetic_scorecards") / f"ppg_{args.target_cr:02d}x_noise{int(round(args.noise_pct * 100)):03d}"
+    out_root = (
+        Path("results/_synthetic_scorecards") / f"ppg_{args.target_cr:02d}x_noise{round(args.noise_pct * 100):03d}"
+    )
     out_root.mkdir(parents=True, exist_ok=True)
     clean_path = out_root / "clean_truth.npz"
     np.savez(clean_path, clean_truth=clean)
@@ -196,10 +204,14 @@ def main() -> None:
         "spiht": _extract_headline(spiht_card),
         "rvq": _extract_headline(rvq_card),
         "delta_rvq_minus_spiht": {
-            "prd_vs_noisy": rvq_card["time_domain"]["prd_percent"]["mean"] - spiht_card["time_domain"]["prd_percent"]["mean"],
-            "prd_vs_clean": rvq_card["clean_reference"]["reconstruction"]["time_domain"]["prd_percent"]["mean"] - spiht_card["clean_reference"]["reconstruction"]["time_domain"]["prd_percent"]["mean"],
-            "denoise_delta_prd": rvq_card["clean_reference"]["denoising"]["time_domain"]["prd_percent_improvement"] - spiht_card["clean_reference"]["denoising"]["time_domain"]["prd_percent_improvement"],
-            "cosine_vs_clean": rvq_card["clean_reference"]["reconstruction"]["time_domain"]["cosine_similarity"]["mean"] - spiht_card["clean_reference"]["reconstruction"]["time_domain"]["cosine_similarity"]["mean"],
+            "prd_vs_noisy": rvq_card["time_domain"]["prd_percent"]["mean"]
+            - spiht_card["time_domain"]["prd_percent"]["mean"],
+            "prd_vs_clean": rvq_card["clean_reference"]["reconstruction"]["time_domain"]["prd_percent"]["mean"]
+            - spiht_card["clean_reference"]["reconstruction"]["time_domain"]["prd_percent"]["mean"],
+            "denoise_delta_prd": rvq_card["clean_reference"]["denoising"]["time_domain"]["prd_percent_improvement"]
+            - spiht_card["clean_reference"]["denoising"]["time_domain"]["prd_percent_improvement"],
+            "cosine_vs_clean": rvq_card["clean_reference"]["reconstruction"]["time_domain"]["cosine_similarity"]["mean"]
+            - spiht_card["clean_reference"]["reconstruction"]["time_domain"]["cosine_similarity"]["mean"],
         },
     }
     cmp_path = out_root / "comparison.json"

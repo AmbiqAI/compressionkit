@@ -186,9 +186,7 @@ def _compute_subband_scales(signal_len: int, wavelet: str, levels: int) -> np.nd
     return scales
 
 
-def _compute_empirical_subband_scales(
-    signal_len: int, wavelet: str, levels: int, *, ecg: bool = True
-) -> np.ndarray:
+def _compute_empirical_subband_scales(signal_len: int, wavelet: str, levels: int, *, ecg: bool = True) -> np.ndarray:
     """Return per-coefficient scales based on typical ECG/PPG subband energy.
 
     Hardcoded values derived from PTB-XL lead-1 (ECG, 500 Hz, 512 samples,
@@ -265,12 +263,14 @@ class SubbandNorm1D(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            "wavelet": self.wavelet,
-            "levels": self.levels,
-            "signal_len": self.signal_len,
-            "use_empirical": self.use_empirical,
-        })
+        config.update(
+            {
+                "wavelet": self.wavelet,
+                "levels": self.levels,
+                "signal_len": self.signal_len,
+                "use_empirical": self.use_empirical,
+            }
+        )
         return config
 
 
@@ -318,10 +318,12 @@ class InverseSubbandNorm1D(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            "wavelet": self.wavelet,
-            "levels": self.levels,
-            "signal_len": self.signal_len,
-            "use_empirical": self.use_empirical,
-        })
+        config.update(
+            {
+                "wavelet": self.wavelet,
+                "levels": self.levels,
+                "signal_len": self.signal_len,
+                "use_empirical": self.use_empirical,
+            }
+        )
         return config

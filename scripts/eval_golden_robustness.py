@@ -39,7 +39,6 @@ from compressionkit.evaluation.robustness import (
     ImprintProbe,
     RobustnessCondition,
     evaluate_robustness,
-    summarize_robustness_for_scorecard,
 )
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.experiments.registry import get_golden, list_goldens
@@ -75,7 +74,6 @@ class ModalityFixture:
 def build_ecg_fixture(args: argparse.Namespace) -> ModalityFixture:
     from compressionkit.preprocessing.ecg import build_noise_bank_from_h5
     from compressionkit.synthetic.ecg_contact_artifacts import simulate_contact_artifact_batch
-
     from scripts.sweep_empirical_regime_ecg import (
         _rr_autocorr_peak,
         _sample_noise_segment,
@@ -87,22 +85,33 @@ def build_ecg_fixture(args: argparse.Namespace) -> ModalityFixture:
     frame_size = 512
     print(f"[ecg] Loading {args.n_windows} PTB-XL windows ...")
     filtered, native, native_snr = build_real_windows(
-        args.n_windows, frame_size, sample_rate,
-        data_dir=args.ecg_data_dir, glob_pattern=args.ecg_data_glob,
-        lead_index=args.ecg_lead_index, source_sample_rate=args.ecg_source_sample_rate,
+        args.n_windows,
+        frame_size,
+        sample_rate,
+        data_dir=args.ecg_data_dir,
+        glob_pattern=args.ecg_data_glob,
+        lead_index=args.ecg_lead_index,
+        source_sample_rate=args.ecg_source_sample_rate,
     )
     print(f"[ecg] native SNR median={np.median(native_snr):.1f} dB")
     bank_files = sorted(args.ecg_data_dir.glob(args.ecg_data_glob))[: args.ecg_noise_bank_files]
     noise_bank = build_noise_bank_from_h5(
-        bank_files, source_sample_rate=args.ecg_source_sample_rate,
-        target_sample_rate=int(sample_rate), window_size=frame_size, lead_index=args.ecg_lead_index,
+        bank_files,
+        source_sample_rate=args.ecg_source_sample_rate,
+        target_sample_rate=int(sample_rate),
+        window_size=frame_size,
+        lead_index=args.ecg_lead_index,
     )
     if noise_bank is None or len(noise_bank) == 0:
         raise RuntimeError("ECG empirical noise bank is empty.")
     print(f"[ecg] noise bank: {len(noise_bank)} segments")
 
     conditions = _build_conditions(
-        filtered, native, noise_bank, sample_rate, args,
+        filtered,
+        native,
+        noise_bank,
+        sample_rate,
+        args,
         add_empirical_noise=add_empirical_noise,
         artifact_families=ECG_ARTIFACT_FAMILIES,
         artifact_fn=lambda fam, sev, seed: simulate_contact_artifact_batch(
@@ -124,7 +133,6 @@ def build_ppg_fixture(args: argparse.Namespace) -> ModalityFixture:
         add_motion_artifact,
         build_noise_bank_from_h5,
     )
-
     from scripts.sweep_empirical_regime_ppg import (
         _normalize,
         _pulse_autocorr_peak,
@@ -134,9 +142,7 @@ def build_ppg_fixture(args: argparse.Namespace) -> ModalityFixture:
     )
 
     print(f"[ppg] Loading {args.n_windows} windows from {args.ppg_reference_run} ...")
-    filtered, native, native_snr, cfg = build_real_windows(
-        args.n_windows, reference_run=args.ppg_reference_run
-    )
+    filtered, native, native_snr, cfg = build_real_windows(args.n_windows, reference_run=args.ppg_reference_run)
     frame_size = int(cfg.data.frame_size)
     sample_rate = float(cfg.data.sampling_rate)
     print(f"[ppg] native SNR median={np.median(native_snr):.1f} dB  frame={frame_size} fs={sample_rate:g}")
@@ -146,7 +152,9 @@ def build_ppg_fixture(args: argparse.Namespace) -> ModalityFixture:
         bank_files.extend(sorted((args.ppg_noise_bank_root / src).glob("*.h5")))
     noise_bank = build_noise_bank_from_h5(
         [str(p) for p in bank_files[: args.ppg_noise_bank_files]],
-        target_fs=int(sample_rate), window_size=frame_size, max_segments=5000,
+        target_fs=int(sample_rate),
+        window_size=frame_size,
+        max_segments=5000,
     )
     if noise_bank is None or len(noise_bank) == 0:
         raise RuntimeError("PPG empirical noise bank is empty.")
@@ -165,7 +173,11 @@ def build_ppg_fixture(args: argparse.Namespace) -> ModalityFixture:
         return _normalize_batch(np.asarray(out, dtype=np.float32))
 
     conditions = _build_conditions(
-        filtered, native, noise_bank, sample_rate, args,
+        filtered,
+        native,
+        noise_bank,
+        sample_rate,
+        args,
         add_empirical_noise=add_empirical_noise,
         artifact_families=PPG_ARTIFACT_FAMILIES,
         artifact_fn=_ppg_artifact,
@@ -199,9 +211,7 @@ def build_ppg_fixture(args: argparse.Namespace) -> ModalityFixture:
         out["n_pulses_matched"] = float(m.get("num_pulses_matched", 0))
         return out
 
-    return ModalityFixture(
-        "ppg", sample_rate, frame_size, filtered, conditions, imprint, morphology_fn=_ppg_morphology
-    )
+    return ModalityFixture("ppg", sample_rate, frame_size, filtered, conditions, imprint, morphology_fn=_ppg_morphology)
 
 
 def _build_conditions(
@@ -221,10 +231,8 @@ def _build_conditions(
         RobustnessCondition("native", "reference", native.copy(), level=None),
     ]
     for snr in args.snr_ladder:
-        inp = add_empirical_noise(filtered, noise_bank, snr, seed=2000 + int(round(snr)), **empirical_noise_kwargs)
-        conditions.append(
-            RobustnessCondition(f"snr_{snr:g}db", "empirical_snr", inp, level=float(snr))
-        )
+        inp = add_empirical_noise(filtered, noise_bank, snr, seed=2000 + round(snr), **empirical_noise_kwargs)
+        conditions.append(RobustnessCondition(f"snr_{snr:g}db", "empirical_snr", inp, level=float(snr)))
     if not args.skip_artifacts:
         for fi, fam in enumerate(artifact_families):
             for si, sev in enumerate(args.severities):
@@ -246,9 +254,13 @@ def _build_codec(exp, run_dir: Path, fixture: ModalityFixture):
             raise FileNotFoundError(f"Missing SPIHT config for {exp.experiment_id}: {cfg_path}")
         cfg = json.loads(cfg_path.read_text())
         return SpihtAcCodec(
-            name=f"spiht_{exp.compression_ratio}x", modality=exp.modality,
-            sample_rate=int(cfg["sample_rate"]), frame_size=int(cfg["frame_size"]),
-            target_cr=float(cfg["target_cr"]), wavelet=cfg["wavelet"], levels=int(cfg["levels"]),
+            name=f"spiht_{exp.compression_ratio}x",
+            modality=exp.modality,
+            sample_rate=int(cfg["sample_rate"]),
+            frame_size=int(cfg["frame_size"]),
+            target_cr=float(cfg["target_cr"]),
+            wavelet=cfg["wavelet"],
+            levels=int(cfg["levels"]),
         )
     if exp.method == "hybrid":
         import keras
@@ -259,9 +271,13 @@ def _build_codec(exp, run_dir: Path, fixture: ModalityFixture):
             gain_model, frame_size=fixture.frame_size, wavelet=spec.wavelet, levels=spec.levels
         )
         return LearnedShrinkSpihtCodec(
-            name=f"hybrid_{exp.compression_ratio}x", modality=exp.modality,
-            sample_rate=int(fixture.sample_rate), frame_size=fixture.frame_size,
-            target_cr=float(exp.compression_ratio), wavelet=spec.wavelet, levels=spec.levels,
+            name=f"hybrid_{exp.compression_ratio}x",
+            modality=exp.modality,
+            sample_rate=int(fixture.sample_rate),
+            frame_size=fixture.frame_size,
+            target_cr=float(exp.compression_ratio),
+            wavelet=spec.wavelet,
+            levels=spec.levels,
             coeff_denoiser=coeff_denoiser,
         )
     if exp.method == "rvq":
@@ -290,8 +306,12 @@ def main() -> None:
     ap.add_argument("--crs", type=lambda s: [int(p) for p in s.split(",") if p.strip()], default=None)
     ap.add_argument("--n-windows", type=int, default=500)
     ap.add_argument("--imprint-windows", type=int, default=128)
-    ap.add_argument("--snr-ladder", type=lambda s: [float(p) for p in s.split(",") if p.strip()], default=DEFAULT_SNR_LADDER)
-    ap.add_argument("--severities", type=lambda s: [float(p) for p in s.split(",") if p.strip()], default=DEFAULT_SEVERITIES)
+    ap.add_argument(
+        "--snr-ladder", type=lambda s: [float(p) for p in s.split(",") if p.strip()], default=DEFAULT_SNR_LADDER
+    )
+    ap.add_argument(
+        "--severities", type=lambda s: [float(p) for p in s.split(",") if p.strip()], default=DEFAULT_SEVERITIES
+    )
     ap.add_argument("--skip-artifacts", action="store_true")
     ap.add_argument("--skip-imprint", action="store_true")
     ap.add_argument("--results-root", type=Path, default=RESULTS_ROOT)
@@ -304,7 +324,11 @@ def main() -> None:
     # PPG fixture args
     ap.add_argument("--ppg-reference-run", type=Path, default=Path("results/ppg_rvq_64hz_08x_golden"))
     ap.add_argument("--ppg-noise-bank-root", type=Path, default=Path(default_datasets_dir()))
-    ap.add_argument("--ppg-noise-bank-sources", type=lambda s: [p.strip() for p in s.split(",") if p.strip()], default=["ppg_dalia", "wesad"])
+    ap.add_argument(
+        "--ppg-noise-bank-sources",
+        type=lambda s: [p.strip() for p in s.split(",") if p.strip()],
+        default=["ppg_dalia", "wesad"],
+    )
     ap.add_argument("--ppg-noise-bank-files", type=int, default=400)
     args = ap.parse_args()
 
@@ -331,12 +355,15 @@ def main() -> None:
             print(f"\n--- robustness: {exp.experiment_id} ({exp.method}) ---")
             try:
                 codec = _build_codec(exp, run_dir, fixture)
-            except Exception as err:  # noqa: BLE001
+            except Exception as err:
                 print(f"  [error] cannot build codec: {err}")
                 continue
             record = evaluate_robustness(
-                codec, fixture.clean, fixture.conditions,
-                sample_rate=fixture.sample_rate, imprint=fixture.imprint or None,
+                codec,
+                fixture.clean,
+                fixture.conditions,
+                sample_rate=fixture.sample_rate,
+                imprint=fixture.imprint or None,
                 morphology_fn=fixture.morphology_fn,
             )
             record["experiment_id"] = exp.experiment_id

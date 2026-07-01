@@ -104,20 +104,27 @@ def main() -> int:
             continue
 
         out_dir = run_dir / "eval"
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Evaluating: {golden['dir']}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         try:
             args = _cli.build_parser().parse_args(
                 [
-                    "--codec", "rvq",
-                    "--modality", str(golden["modality"]),
-                    "--rvq-run", str(run_dir),
-                    "--tiers", *TIERS,
-                    "--n-frames", "16",
-                    "--seed", "42",
-                    "--out", str(out_dir),
+                    "--codec",
+                    "rvq",
+                    "--modality",
+                    str(golden["modality"]),
+                    "--rvq-run",
+                    str(run_dir),
+                    "--tiers",
+                    *TIERS,
+                    "--n-frames",
+                    "16",
+                    "--seed",
+                    "42",
+                    "--out",
+                    str(out_dir),
                 ]
             )
             report = _cli.run(args)
@@ -126,24 +133,28 @@ def main() -> int:
             topline["elapsed_s"] = sum(report.get("elapsed_s", {}).values())
             manifest.append(topline)
             n_ok += 1
-            print(f"  PRD={topline.get('prd_percent_mean', '?'):.2f}%  "
-                  f"zero_l2={topline.get('zero_input_l2', '?')}  "
-                  f"qos={topline.get('qos_confidence_mean', '?')}")
+            print(
+                f"  PRD={topline.get('prd_percent_mean', '?'):.2f}%  "
+                f"zero_l2={topline.get('zero_input_l2', '?')}  "
+                f"qos={topline.get('qos_confidence_mean', '?')}"
+            )
         except Exception as exc:
             print(f"  FAILED: {exc}")
-            manifest.append({
-                "codec": golden["dir"],
-                "modality": golden["modality"],
-                "cr": golden["cr"],
-                "status": "error",
-                "error": str(exc),
-            })
+            manifest.append(
+                {
+                    "codec": golden["dir"],
+                    "modality": golden["modality"],
+                    "cr": golden["cr"],
+                    "status": "error",
+                    "error": str(exc),
+                }
+            )
             n_fail += 1
 
     elapsed = time.time() - t0
     manifest_path = RESULTS_DIR / "golden_eval_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, default=str))
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Done: {n_ok} ok, {n_fail} failed in {elapsed:.1f}s")
     print(f"Manifest: {manifest_path}")
     return 0 if n_fail == 0 else 1

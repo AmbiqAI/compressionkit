@@ -33,7 +33,6 @@ from compressionkit.evaluation.codec import (
 from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.models.wavelet_denoiser import as_coeff_denoiser
 from compressionkit.preprocessing.ecg import build_noise_bank_from_h5
-
 from scripts.sweep_codec_noise_ecg import _prd, encode_decode_batch
 from scripts.sweep_empirical_regime_ecg import (
     DEFAULT_SNR_DB,
@@ -107,15 +106,17 @@ def main() -> None:
 
     print(f"[setup] Loading gain model: {args.gain_model}")
     gain_model = keras.models.load_model(args.gain_model)
-    coeff_denoiser = as_coeff_denoiser(
-        gain_model, frame_size=frame_size, wavelet=args.wavelet, levels=args.levels
-    )
+    coeff_denoiser = as_coeff_denoiser(gain_model, frame_size=frame_size, wavelet=args.wavelet, levels=args.levels)
 
     print(f"[setup] Loading {args.n_windows} real PTB-XL windows ...")
     filtered, raw_native, native_snr = build_real_windows(
-        args.n_windows, frame_size, sample_rate,
-        data_dir=args.data_dir, glob_pattern=args.data_glob,
-        lead_index=args.lead_index, source_sample_rate=args.source_sample_rate,
+        args.n_windows,
+        frame_size,
+        sample_rate,
+        data_dir=args.data_dir,
+        glob_pattern=args.data_glob,
+        lead_index=args.lead_index,
+        source_sample_rate=args.source_sample_rate,
     )
     print(
         f"[native-SNR] median={np.median(native_snr):.1f} dB  "
@@ -125,8 +126,11 @@ def main() -> None:
     print(f"[setup] Building empirical noise bank from up to {args.noise_bank_files} files ...")
     bank_files = sorted(args.data_dir.glob(args.data_glob))[: args.noise_bank_files]
     noise_bank = build_noise_bank_from_h5(
-        bank_files, source_sample_rate=args.source_sample_rate,
-        target_sample_rate=int(sample_rate), window_size=frame_size, lead_index=args.lead_index,
+        bank_files,
+        source_sample_rate=args.source_sample_rate,
+        target_sample_rate=int(sample_rate),
+        window_size=frame_size,
+        lead_index=args.lead_index,
     )
     if noise_bank is None or len(noise_bank) == 0:
         raise RuntimeError("Empirical noise bank is empty.")
@@ -137,7 +141,7 @@ def main() -> None:
         if snr_db is None:
             columns.append(("clean", None, filtered.copy()))
         else:
-            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + int(round(snr_db)))
+            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + round(snr_db))
             columns.append((_snr_label(snr_db), snr_db, inp))
 
     probe_rng = np.random.default_rng(7)
@@ -148,13 +152,22 @@ def main() -> None:
     ).astype(np.float32)
 
     summary: dict = {
-        "n_windows": args.n_windows, "crs": args.crs,
-        "columns": [c[0] for c in columns], "by_cr": {}, "imprinting": {},
+        "n_windows": args.n_windows,
+        "crs": args.crs,
+        "columns": [c[0] for c in columns],
+        "by_cr": {},
+        "imprinting": {},
     }
 
     for cr in args.crs:
-        kw = dict(modality="ecg", sample_rate=int(sample_rate), frame_size=frame_size,
-                  target_cr=float(cr), wavelet=args.wavelet, levels=args.levels)
+        kw = {
+            "modality": "ecg",
+            "sample_rate": int(sample_rate),
+            "frame_size": frame_size,
+            "target_cr": float(cr),
+            "wavelet": args.wavelet,
+            "levels": args.levels,
+        }
         spiht = SpihtAcCodec(name=f"spiht_{cr}x", **kw)
         bayes = BayesShrinkSpihtCodec(name=f"bayes_{cr}x", **kw) if args.with_bayes else None
         learned = LearnedShrinkSpihtCodec(name=f"learned_{cr}x", coeff_denoiser=coeff_denoiser, **kw)
@@ -183,10 +196,7 @@ def main() -> None:
             block["rvq"].append(tr)
             rvq_str = f"  RVQ={tr:6.2f} ({tr - ts:+5.2f})" if rvq is not None else ""
             bayes_str = f"  Bayes={tb:6.2f} ({tb - ts:+5.2f})" if bayes is not None else ""
-            print(
-                f"  {label:>7s}: SPIHT={ts:6.2f}  Hybrid={tl:6.2f} ({tl - ts:+5.2f})"
-                f"{rvq_str}{bayes_str}"
-            )
+            print(f"  {label:>7s}: SPIHT={ts:6.2f}  Hybrid={tl:6.2f} ({tl - ts:+5.2f}){rvq_str}{bayes_str}")
 
         ac_in = float(_rr_autocorr_peak(pure_noise, sample_rate).mean())
         ac_l = float(_rr_autocorr_peak(encode_decode_batch(learned, pure_noise), sample_rate).mean())

@@ -25,7 +25,6 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-
 # Default Lead II-ish fiducial parameters from the original paper
 # (theta in radians, a is amplitude, b is angular width).
 _DEFAULT_THETA = np.array([-np.pi / 3.0, -np.pi / 12.0, 0.0, np.pi / 12.0, np.pi / 2.0])
@@ -82,7 +81,7 @@ def _rr_process(
         Array of instantaneous HR in beats/min, length ``duration_s *
         fs_internal``.
     """
-    n = int(round(duration_s * fs_internal))
+    n = round(duration_s * fs_internal)
     if n < 2:
         return np.full(max(n, 1), hr_mean, dtype=np.float64)
 
@@ -161,7 +160,7 @@ def ecg_mcsharry(
         morphology = EcgMorphologyParams()
 
     rng = np.random.default_rng(seed)
-    n_internal = int(round(duration_s * fs_internal))
+    n_internal = round(duration_s * fs_internal)
     dt = 1.0 / fs_internal
 
     hr_inst = _rr_process(
@@ -189,7 +188,14 @@ def ecg_mcsharry(
         )
 
         # RK4 step on (x, y, z)
-        def rhs(xs: float, ys: float, zs: float, theta: float) -> tuple[float, float, float]:
+        def rhs(
+            xs: float,
+            ys: float,
+            zs: float,
+            theta: float,
+            w: float = w,
+            baseline: float = baseline,
+        ) -> tuple[float, float, float]:
             alpha = 1.0 - np.sqrt(xs * xs + ys * ys)
             dx = alpha * xs - w * ys
             dy = alpha * ys + w * xs
@@ -223,7 +229,7 @@ def ecg_mcsharry(
         z_out[k] = z
 
     # Decimate to requested sample rate by linear interpolation.
-    n_out = int(round(duration_s * sample_rate))
+    n_out = round(duration_s * sample_rate)
     t_in = np.arange(n_internal) / fs_internal
     t_out = np.arange(n_out) / sample_rate
     return np.interp(t_out, t_in, z_out)

@@ -24,14 +24,14 @@ mistaken for sustained corruption.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import tensorflow as tf
 
 
 def _ms_to_odd_window(sample_rate: float, ms: float) -> int:
     """Convert a duration in milliseconds to an odd moving-average window."""
-    win = int(round(float(sample_rate) * float(ms) / 1000.0))
+    win = round(float(sample_rate) * float(ms) / 1000.0)
     win = max(1, win)
     return win if win % 2 == 1 else win + 1
 

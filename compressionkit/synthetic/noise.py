@@ -24,7 +24,6 @@ from typing import Literal
 import numpy as np
 from scipy.signal import butter, sosfiltfilt
 
-
 NoiseKind = Literal[
     "baseline_wander",
     "emg",
@@ -77,9 +76,7 @@ def _baseline_wander(n: int, fs: float, rng: np.random.Generator) -> np.ndarray:
     return out
 
 
-def _emg(
-    n: int, fs: float, band: tuple[float, float], rng: np.random.Generator
-) -> np.ndarray:
+def _emg(n: int, fs: float, band: tuple[float, float], rng: np.random.Generator) -> np.ndarray:
     raw = rng.standard_normal(n)
     nyq = 0.5 * fs
     low = max(band[0], 0.5) / nyq
@@ -129,9 +126,7 @@ def _powerline(n: int, fs: float, f0: float, rng: np.random.Generator) -> np.nda
     return np.sin(phi)
 
 
-def _electrode_pop(
-    n: int, fs: float, rate_hz: float, rng: np.random.Generator
-) -> np.ndarray:
+def _electrode_pop(n: int, fs: float, rate_hz: float, rng: np.random.Generator) -> np.ndarray:
     out = np.zeros(n, dtype=np.float64)
     if rate_hz <= 0.0:
         return out

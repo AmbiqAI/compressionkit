@@ -125,9 +125,7 @@ def evaluate_spiht_stitching(
             recon = stitch(method, predict_fn, s, frame_size, **kwargs)
             m = compute_signal_metrics(s, recon)
             effective_hop = 1.0 if method == "hard_concat" else float(hop_ratio)
-            seam = seam_discontinuity_ratio(
-                recon, frame_size=frame_size, hop_ratio=effective_hop, radius=seam_radius
-            )
+            seam = seam_discontinuity_ratio(recon, frame_size=frame_size, hop_ratio=effective_hop, radius=seam_radius)
             per_method[method]["prd_percent"].append(float(m["prd_percent"]))
             per_method[method]["cosine_similarity"].append(float(m["cosine_similarity"]))
             per_method[method]["mse"].append(float(m["mse"]))

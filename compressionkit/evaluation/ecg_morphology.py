@@ -60,7 +60,7 @@ def _detect_peaks_clean(
 
 
 def _ms_to_samples(ms: float, sample_rate: int) -> int:
-    return max(1, int(round(ms * sample_rate / 1000.0)))
+    return max(1, round(ms * sample_rate / 1000.0))
 
 
 def _measure_beat(
@@ -71,10 +71,10 @@ def _measure_beat(
 ) -> dict[str, float | int | None] | None:
     """Compute per-beat morphology measurements around a single R-peak."""
     n = cleaned.size
-    qrs_half = _ms_to_samples(50.0, sample_rate)        # ±50 ms QRS search
-    pq_lo = _ms_to_samples(100.0, sample_rate)          # PQ baseline left
-    pq_hi = _ms_to_samples(60.0, sample_rate)           # PQ baseline right
-    j80 = _ms_to_samples(80.0, sample_rate)             # ST measurement offset
+    qrs_half = _ms_to_samples(50.0, sample_rate)  # ±50 ms QRS search
+    pq_lo = _ms_to_samples(100.0, sample_rate)  # PQ baseline left
+    pq_hi = _ms_to_samples(60.0, sample_rate)  # PQ baseline right
+    j80 = _ms_to_samples(80.0, sample_rate)  # ST measurement offset
     t_lo = _ms_to_samples(150.0, sample_rate)
     t_hi = _ms_to_samples(400.0, sample_rate)
 
@@ -203,9 +203,7 @@ def evaluate_ecg_morphology(
         originals = originals[None, :]
         reconstructions = reconstructions[None, :]
     if originals.shape != reconstructions.shape:
-        raise ValueError(
-            f"originals/reconstructions shape mismatch: {originals.shape} vs {reconstructions.shape}"
-        )
+        raise ValueError(f"originals/reconstructions shape mismatch: {originals.shape} vs {reconstructions.shape}")
 
     tol_samples = _ms_to_samples(timing_tolerance_ms, sample_rate)
 
@@ -271,15 +269,16 @@ def evaluate_ecg_morphology(
 
             # Beat-shape correlation uses orig's R-peak position for both
             # sides since matched recon R is within tol_samples.
-            shape_corrs.append(
-                _beat_shape_corr(
-                    o_clean, r_clean, int(ob["r_peak"]), sample_rate=sample_rate
-                )
-            )
+            shape_corrs.append(_beat_shape_corr(o_clean, r_clean, int(ob["r_peak"]), sample_rate=sample_rate))
 
     def _paired_block(orig_vals: list[float], recon_vals: list[float]) -> dict[str, Any]:
         if not orig_vals:
-            return {"orig": _aggregate([]), "recon": _aggregate([]), "abs_delta": _aggregate([]), "delta": _aggregate([])}
+            return {
+                "orig": _aggregate([]),
+                "recon": _aggregate([]),
+                "abs_delta": _aggregate([]),
+                "delta": _aggregate([]),
+            }
         deltas = [r - o for o, r in zip(orig_vals, recon_vals)]
         abs_deltas = [abs(d) for d in deltas]
         return {

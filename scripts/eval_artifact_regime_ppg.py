@@ -18,16 +18,14 @@ from compressionkit.evaluation.rvq_codec import RvqCodec
 from compressionkit.playbook.catalog import get_method
 from compressionkit.preprocessing.artifact_suite import RoleRoutingAugmenter
 from compressionkit.preprocessing.augmentations import build_noise_bank_from_h5
-
 from scripts.sweep_codec_noise_ppg import _prd, encode_decode_batch
 from scripts.sweep_empirical_regime_ppg import (
     DEFAULT_RVQ_RUN_DIRS,
+    _normalize,
     _pulse_autocorr_peak,
     _sample_noise_segment,
-    _normalize,
     build_real_windows,
 )
-
 
 DEFAULT_FAMILIES = [
     "baseline_wander",
@@ -179,7 +177,9 @@ def _family_spec(name: str, severity_scale: float) -> ArtifactSpec:
     raise ValueError(f"Unsupported family: {name}")
 
 
-def _make_suite(family: str, severity: float, *, sample_rate: int, epsilon: float, noise_bank: np.ndarray | None, seed: int) -> RoleRoutingAugmenter:
+def _make_suite(
+    family: str, severity: float, *, sample_rate: int, epsilon: float, noise_bank: np.ndarray | None, seed: int
+) -> RoleRoutingAugmenter:
     spec = _family_spec(family, severity)
     suite_cfg = ArtifactSuiteConfig(
         enabled=True,
@@ -300,7 +300,7 @@ def main() -> None:
             "median": float(np.median(native_snr)),
             "mean": float(np.mean(native_snr)),
         },
-        "noise_bank_size": int(len(noise_bank)),
+        "noise_bank_size": len(noise_bank),
         "by_cr": {},
         "artifact_probe": {},
     }
@@ -335,7 +335,12 @@ def main() -> None:
             for label, family, severity, inp, target, metas in columns:
                 rs = encode_decode_batch(spiht, inp)
                 rh = encode_decode_batch(hybrid, inp)
-                role = str(metas[0].get("recover") and "recover" or metas[0].get("remove") and "remove" or metas[0].get("abstain") and "abstain" or "mixed")
+                role = str(
+                    (metas[0].get("recover") and "recover")
+                    or (metas[0].get("remove") and "remove")
+                    or (metas[0].get("abstain") and "abstain")
+                    or "mixed"
+                )
                 is_abstain = bool(metas[0].get("abstain"))
                 mask_visible = _visible_mask(target) if is_abstain else None
 
@@ -349,9 +354,7 @@ def main() -> None:
                     "family": family,
                     "severity": severity,
                     "role": role,
-                    "remove_snr_db_mean": float(
-                        np.mean([meta.get("remove_snr_db", float("inf")) for meta in metas])
-                    ),
+                    "remove_snr_db_mean": float(np.mean([meta.get("remove_snr_db", float("inf")) for meta in metas])),
                     "recover_examples": metas[0].get("recover", []),
                     "remove_examples": metas[0].get("remove", []),
                     "abstain_examples": metas[0].get("abstain", []),
@@ -361,8 +364,14 @@ def main() -> None:
                 tr = float("nan")
                 if rvq is not None:
                     rr = encode_decode_batch(rvq, inp)
-                    tr = _masked_prd(target, rr, mask_visible) if is_abstain and mask_visible is not None else float(_prd(target, rr).mean())
-                    rvq_str = f"  RVQ={tr:6.2f} ({tr - ts:+5.2f})" if np.isfinite(tr) and np.isfinite(ts) else f"  RVQ={tr}"
+                    tr = (
+                        _masked_prd(target, rr, mask_visible)
+                        if is_abstain and mask_visible is not None
+                        else float(_prd(target, rr).mean())
+                    )
+                    rvq_str = (
+                        f"  RVQ={tr:6.2f} ({tr - ts:+5.2f})" if np.isfinite(tr) and np.isfinite(ts) else f"  RVQ={tr}"
+                    )
 
                 if is_abstain and mask_visible is not None:
                     hidden_mask = ~mask_visible
@@ -387,9 +396,7 @@ def main() -> None:
                     if rvq is not None and "rvq_hidden_rms" in entry_meta:
                         extra += f"  RVQ={entry_meta['rvq_hidden_rms']:.3f}"
 
-                print(
-                    f"  {label:>22s}: SPIHT={ts:6.2f}  DSP={th:6.2f} ({th - ts:+5.2f}){rvq_str}{extra}"
-                )
+                print(f"  {label:>22s}: SPIHT={ts:6.2f}  DSP={th:6.2f} ({th - ts:+5.2f}){rvq_str}{extra}")
 
             probe_block = {
                 "input": float(_pulse_autocorr_peak(pure_probe, sample_rate).mean()),

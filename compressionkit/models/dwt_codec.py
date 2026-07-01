@@ -75,12 +75,16 @@ class DWTVQAutoencoder(VQAutoencoder):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            "dwt_layer": keras.saving.serialize_keras_object(self.dwt_layer),
-            "idwt_layer": keras.saving.serialize_keras_object(self.idwt_layer),
-            "subband_norm": keras.saving.serialize_keras_object(self.subband_norm) if self.subband_norm else None,
-            "inv_subband_norm": keras.saving.serialize_keras_object(self.inv_subband_norm) if self.inv_subband_norm else None,
-        })
+        config.update(
+            {
+                "dwt_layer": keras.saving.serialize_keras_object(self.dwt_layer),
+                "idwt_layer": keras.saving.serialize_keras_object(self.idwt_layer),
+                "subband_norm": keras.saving.serialize_keras_object(self.subband_norm) if self.subband_norm else None,
+                "inv_subband_norm": keras.saving.serialize_keras_object(self.inv_subband_norm)
+                if self.inv_subband_norm
+                else None,
+            }
+        )
         return config
 
 
@@ -151,7 +155,9 @@ def build_dwt_rvq_autoencoder(
     inv_norm_layer = None
     if subband_norm:
         norm_layer = SubbandNorm1D(wavelet=wavelet, levels=dwt_levels, signal_len=frame_size, name="subband_norm")
-        inv_norm_layer = InverseSubbandNorm1D(wavelet=wavelet, levels=dwt_levels, signal_len=frame_size, name="inv_subband_norm")
+        inv_norm_layer = InverseSubbandNorm1D(
+            wavelet=wavelet, levels=dwt_levels, signal_len=frame_size, name="inv_subband_norm"
+        )
 
     # Composite model
     downsample_factor = 2**num_stages

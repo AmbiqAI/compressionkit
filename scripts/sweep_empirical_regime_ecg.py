@@ -46,13 +46,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from compressionkit.evaluation.codec import BayesShrinkSpihtCodec, SpihtAcCodec
-from compressionkit.playbook.catalog import get_method
-from compressionkit.evaluation.rvq_codec import RvqCodec
-from compressionkit.preprocessing.ecg import build_noise_bank_from_h5
-
-from scripts.sweep_codec_noise_ecg import _corr, _prd, encode_decode_batch
-from scripts.sweep_rvq_vs_spiht_crossover_ecg import DEFAULT_RVQ_RUN_DIRS, build_real_windows
-
 from compressionkit.evaluation.empirical_regime import (
     DEFAULT_SNR_DB,
     add_empirical_noise,
@@ -61,6 +54,11 @@ from compressionkit.evaluation.empirical_regime import (
     sample_noise_segment,
     snr_label,
 )
+from compressionkit.evaluation.rvq_codec import RvqCodec
+from compressionkit.playbook.catalog import get_method
+from compressionkit.preprocessing.ecg import build_noise_bank_from_h5
+from scripts.sweep_codec_noise_ecg import _corr, _prd, encode_decode_batch
+from scripts.sweep_rvq_vs_spiht_crossover_ecg import DEFAULT_RVQ_RUN_DIRS, build_real_windows
 
 # Backward-compatible aliases — these names are imported by release eval tools.
 _normalize = normalize_signal
@@ -195,7 +193,7 @@ def main() -> None:
         if snr_db is None:
             inp = filtered.copy()
         else:
-            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + int(round(snr_db)))
+            inp = add_empirical_noise(filtered, noise_bank, snr_db, seed=1000 + round(snr_db))
         columns.append((_snr_label(snr_db), snr_db, inp, inp))
 
     # Imprinting probe input: pure noise, no ECG.
@@ -214,7 +212,7 @@ def main() -> None:
         "snr_db": [c[1] for c in columns],
         "crs": args.crs,
         "native_snr": native_snr_summary,
-        "noise_bank_size": int(len(noise_bank)),
+        "noise_bank_size": len(noise_bank),
         "by_cr": {},
         "imprinting": {},
     }
@@ -233,8 +231,11 @@ def main() -> None:
 
         print(f"\n=== CR {cr}x ===")
         spiht = SpihtAcCodec(
-            name=f"spiht_{cr}x", modality="ecg", sample_rate=int(sample_rate),
-            frame_size=frame_size, target_cr=float(cr),
+            name=f"spiht_{cr}x",
+            modality="ecg",
+            sample_rate=int(sample_rate),
+            frame_size=frame_size,
+            target_cr=float(cr),
         )
         hybrid = _build_hybrid_codec(
             args.hybrid_method,
@@ -245,7 +246,7 @@ def main() -> None:
         rvq = RvqCodec.from_run_dir(run_dir, modality="ecg")
 
         block: dict = {"columns": [], "spiht": [], "hybrid": [], "rvq": []}
-        for si, (label, snr_db, inp, faithful_ref) in enumerate(columns):
+        for si, (label, _snr_db, inp, faithful_ref) in enumerate(columns):
             rec_s = encode_decode_batch(spiht, inp)
             rec_h = encode_decode_batch(hybrid, inp)
             rec_r = encode_decode_batch(rvq, inp)
@@ -309,24 +310,35 @@ def main() -> None:
     col_labels = [c[0] for c in columns]
     native_note = f"native real SNR ~ {native_snr_summary['median_db']:.0f} dB (median)"
     _plot_heatmap(
-        truth_gap, args.crs, col_labels, out_dir / f"{args.output_stem}_truth.png",
+        truth_gap,
+        args.crs,
+        col_labels,
+        out_dir / f"{args.output_stem}_truth.png",
         title=f"RVQ - SPIHT PRD-vs-FILTERED gap (truth fidelity) — empirical noise\n{native_note}",
     )
     _plot_heatmap(
-        faith_gap, args.crs, col_labels, out_dir / f"{args.output_stem}_faithful.png",
+        faith_gap,
+        args.crs,
+        col_labels,
+        out_dir / f"{args.output_stem}_faithful.png",
         title=f"RVQ - SPIHT PRD-vs-INPUT gap (faithfulness) — empirical noise\n{native_note}",
     )
     _plot_heatmap(
-        hybrid_truth_gap, args.crs, col_labels, out_dir / f"{args.output_stem}_hybrid_truth.png",
+        hybrid_truth_gap,
+        args.crs,
+        col_labels,
+        out_dir / f"{args.output_stem}_hybrid_truth.png",
         title=f"{args.hybrid_method} - SPIHT PRD-vs-FILTERED gap — empirical noise\n{native_note}",
     )
     _plot_heatmap(
-        hybrid_faith_gap, args.crs, col_labels, out_dir / f"{args.output_stem}_hybrid_faithful.png",
+        hybrid_faith_gap,
+        args.crs,
+        col_labels,
+        out_dir / f"{args.output_stem}_hybrid_faithful.png",
         title=f"{args.hybrid_method} - SPIHT PRD-vs-INPUT gap — empirical noise\n{native_note}",
     )
     print(
-        f"Wrote {out_dir / f'{args.output_stem}_truth.png'}, _faithful.png, "
-        f"_hybrid_truth.png, and _hybrid_faithful.png"
+        f"Wrote {out_dir / f'{args.output_stem}_truth.png'}, _faithful.png, _hybrid_truth.png, and _hybrid_faithful.png"
     )
 
 
@@ -345,8 +357,15 @@ def _plot_heatmap(grid: np.ndarray, crs: list[int], col_labels: list[str], png_p
         for j in range(grid.shape[1]):
             v = grid[i, j]
             if np.isfinite(v):
-                ax.text(j, i, f"{v:+.0f}", ha="center", va="center", fontsize=7,
-                        color="black" if abs(v) < 0.6 * vmax else "white")
+                ax.text(
+                    j,
+                    i,
+                    f"{v:+.0f}",
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color="black" if abs(v) < 0.6 * vmax else "white",
+                )
     fig.colorbar(im, ax=ax, label="PRD gap (%)  (negative = RVQ better)")
     fig.tight_layout()
     fig.savefig(png_path, dpi=130)

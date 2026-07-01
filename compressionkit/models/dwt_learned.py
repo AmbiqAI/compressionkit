@@ -18,9 +18,6 @@ from __future__ import annotations
 import keras
 import numpy as np
 
-from compressionkit.models.blocks import _apply_norm_2d
-
-
 # ---------------------------------------------------------------------------
 # MLP Encoder / Decoder
 # ---------------------------------------------------------------------------
@@ -104,9 +101,7 @@ def build_mlp_decoder(
     downsample_factor = 2**num_stages
     latent_len = output_len // downsample_factor
 
-    inp = keras.layers.Input(
-        shape=(1, latent_len, embedding_dim), name="latent_in"
-    )
+    inp = keras.layers.Input(shape=(1, latent_len, embedding_dim), name="latent_in")
 
     # Flatten latent: (B, 1, L, D) → (B, L*D)
     x = keras.layers.Reshape((latent_len * embedding_dim,), name="dec_flatten")(inp)
@@ -266,9 +261,7 @@ def build_transformer_decoder(
     latent_len = output_len // downsample_factor
     n_patches = output_len // patch_size
 
-    inp = keras.layers.Input(
-        shape=(1, latent_len, embedding_dim), name="latent_in"
-    )
+    inp = keras.layers.Input(shape=(1, latent_len, embedding_dim), name="latent_in")
 
     # Expand latent to sequence of patches.
     if n_patches == latent_len:

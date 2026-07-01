@@ -53,9 +53,7 @@ def butter_bandpass_sos(
     nyq = sample_rate / 2.0
     high = min(high_hz, nyq * 0.95)
     if not 0.0 < low_hz < high:
-        raise ValueError(
-            f"Invalid bandpass cutoffs: low_hz={low_hz}, high_hz={high_hz} (nyquist={nyq})"
-        )
+        raise ValueError(f"Invalid bandpass cutoffs: low_hz={low_hz}, high_hz={high_hz} (nyquist={nyq})")
     return scipy_signal.butter(order, [low_hz / nyq, high / nyq], btype="bandpass", output="sos")
 
 

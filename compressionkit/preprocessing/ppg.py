@@ -47,9 +47,7 @@ def build_augmenter(
             knobs are consumed by dataset builders, not the Keras augmenter.
     """
     layers: list[keras.layers.Layer] = [
-        helia.layers.preprocessing.RandomGaussianNoise1D(
-            factor=tuple(noise_factor), name="GaussianNoise"
-        ),
+        helia.layers.preprocessing.RandomGaussianNoise1D(factor=tuple(noise_factor), name="GaussianNoise"),
     ]
     # Paired null augmentation is handled at the dataset layer so both input
     # and target are zeroed under the same mask.

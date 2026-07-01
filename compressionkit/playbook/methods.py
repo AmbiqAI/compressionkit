@@ -35,7 +35,6 @@ def _build_identity(*, sample_rate: int, frame_size: int, target_cr: float, moda
     return IdentityCodec(name="identity", modality=modality, sample_rate=sample_rate, frame_size=frame_size)
 
 
-
 def _build_spiht(*, sample_rate: int, frame_size: int, target_cr: float, modality: str, **_: object) -> Codec:
     return SpihtAcCodec(
         name=f"spiht_{target_cr:g}x",
@@ -169,7 +168,6 @@ def _build_learned_shrink_spiht_v2(
     )
 
 
-
 # ---------------------------------------------------------------------------
 # Runnable classical cards (no trained weights required)
 # ---------------------------------------------------------------------------
@@ -265,9 +263,11 @@ register_method(
         faithfulness=Faithfulness.FAITHFUL,
         summary="Cleanly separable all-DSP pipeline: znorm \u2192 DWT \u2192 dead-zone quantize \u2192 "
         "deflate. First-class, swappable entropy slot.",
-        status=Status.EXPERIMENTAL,        tier=Tier.BASELINE,
+        status=Status.EXPERIMENTAL,
+        tier=Tier.BASELINE,
         rationale="Separable all-DSP reference: exposes the swappable encoder/entropy slots that "
-        "SPIHT fuses. Substrate for experiments, not yet competitive with SPIHT.",        target_crs=(2, 4, 8, 16),
+        "SPIHT fuses. Substrate for experiments, not yet competitive with SPIHT.",
+        target_crs=(2, 4, 8, 16),
         edge_notes="Uniform quantizer + DEFLATE (portable C); malloc-free.",
         preprocess="znorm",
         transform="dwt(bior4.4)",

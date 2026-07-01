@@ -44,7 +44,7 @@ class ArtifactSpec(BaseModel):
     higher_is_worse: bool = True
 
     @model_validator(mode="after")
-    def _check_range(self) -> "ArtifactSpec":
+    def _check_range(self) -> ArtifactSpec:
         if self.severity_max < self.severity_min:
             self.severity_min, self.severity_max = self.severity_max, self.severity_min
         return self
@@ -85,24 +85,80 @@ class CurriculumConfig(BaseModel):
 def default_artifact_specs() -> list[ArtifactSpec]:
     """Recommended default routing aligned with the Round-3 locked severities."""
     return [
-        ArtifactSpec(name="gaussian", role="remove", param="std",
-                     prob=0.3, severity_min=0.10, severity_max=0.25, higher_is_worse=True),
-        ArtifactSpec(name="motion", role="remove", param="snr_db",
-                     prob=0.3, severity_min=6.0, severity_max=15.0, higher_is_worse=False),
-        ArtifactSpec(name="empirical_noise", role="remove", param="snr_db",
-                     prob=0.3, severity_min=6.0, severity_max=15.0, higher_is_worse=False),
-        ArtifactSpec(name="baseline_wander", role="recover", param="amplitude",
-                     prob=0.3, severity_min=0.20, severity_max=0.60, higher_is_worse=True),
+        ArtifactSpec(
+            name="gaussian",
+            role="remove",
+            param="std",
+            prob=0.3,
+            severity_min=0.10,
+            severity_max=0.25,
+            higher_is_worse=True,
+        ),
+        ArtifactSpec(
+            name="motion",
+            role="remove",
+            param="snr_db",
+            prob=0.3,
+            severity_min=6.0,
+            severity_max=15.0,
+            higher_is_worse=False,
+        ),
+        ArtifactSpec(
+            name="empirical_noise",
+            role="remove",
+            param="snr_db",
+            prob=0.3,
+            severity_min=6.0,
+            severity_max=15.0,
+            higher_is_worse=False,
+        ),
+        ArtifactSpec(
+            name="baseline_wander",
+            role="recover",
+            param="amplitude",
+            prob=0.3,
+            severity_min=0.20,
+            severity_max=0.60,
+            higher_is_worse=True,
+        ),
         # Morphology tracks — stubbed off for the initial pipeline.
-        ArtifactSpec(name="time_warp", role="recover", param="max_warp_fraction",
-                     prob=0.0, severity_min=0.05, severity_max=0.15, higher_is_worse=True),
-        ArtifactSpec(name="beat_scale", role="recover", param="scale_spread",
-                     prob=0.0, severity_min=0.10, severity_max=0.30, higher_is_worse=True),
+        ArtifactSpec(
+            name="time_warp",
+            role="recover",
+            param="max_warp_fraction",
+            prob=0.0,
+            severity_min=0.05,
+            severity_max=0.15,
+            higher_is_worse=True,
+        ),
+        ArtifactSpec(
+            name="beat_scale",
+            role="recover",
+            param="scale_spread",
+            prob=0.0,
+            severity_min=0.10,
+            severity_max=0.30,
+            higher_is_worse=True,
+        ),
         # Abstention tracks.
-        ArtifactSpec(name="cutout", role="abstain", param="fraction",
-                     prob=0.1, severity_min=0.10, severity_max=0.40, higher_is_worse=True),
-        ArtifactSpec(name="null_frame", role="abstain", param="fraction",
-                     prob=0.02, severity_min=1.0, severity_max=1.0, higher_is_worse=True),
+        ArtifactSpec(
+            name="cutout",
+            role="abstain",
+            param="fraction",
+            prob=0.1,
+            severity_min=0.10,
+            severity_max=0.40,
+            higher_is_worse=True,
+        ),
+        ArtifactSpec(
+            name="null_frame",
+            role="abstain",
+            param="fraction",
+            prob=0.02,
+            severity_min=1.0,
+            severity_max=1.0,
+            higher_is_worse=True,
+        ),
     ]
 
 
@@ -146,11 +202,11 @@ class ArtifactSuiteConfig(BaseModel):
 
 
 __all__ = [
-    "ArtifactRole",
     "ArtifactParam",
+    "ArtifactRole",
     "ArtifactSpec",
-    "NoiseBudgetConfig",
-    "CurriculumConfig",
     "ArtifactSuiteConfig",
+    "CurriculumConfig",
+    "NoiseBudgetConfig",
     "default_artifact_specs",
 ]

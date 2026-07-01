@@ -44,6 +44,12 @@ from compressionkit.models.decoder import (
     build_hierarchical_adaptor_decoder_2d,
     build_hierarchical_decoder_2d,
 )
+from compressionkit.models.dwt_learned import (
+    build_mlp_decoder,
+    build_mlp_encoder,
+    build_transformer_decoder,
+    build_transformer_encoder,
+)
 from compressionkit.models.encoder import (
     build_encoder_2d,
     build_encoder_2d_invres,
@@ -52,12 +58,6 @@ from compressionkit.models.encoder import (
 from compressionkit.models.soundstream import (
     build_soundstream_decoder,
     build_soundstream_encoder,
-)
-from compressionkit.models.dwt_learned import (
-    build_mlp_decoder,
-    build_mlp_encoder,
-    build_transformer_decoder,
-    build_transformer_encoder,
 )
 
 # ---------------------------------------------------------------------------

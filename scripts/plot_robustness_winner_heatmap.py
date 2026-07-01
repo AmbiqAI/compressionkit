@@ -85,7 +85,9 @@ def _artifact_rows(scorecard: dict) -> tuple[list[str], dict[str, float]]:
     return labels, out
 
 
-def _winner_grid(crs: list[int], columns: list[str], per_lane: dict[int, dict[str, dict[str, float]]]) -> tuple[np.ndarray, np.ndarray, list[list[str]]]:
+def _winner_grid(
+    crs: list[int], columns: list[str], per_lane: dict[int, dict[str, dict[str, float]]]
+) -> tuple[np.ndarray, np.ndarray, list[list[str]]]:
     idx = np.full((len(crs), len(columns)), np.nan)
     val = np.full((len(crs), len(columns)), np.nan)
     winners: list[list[str]] = [["" for _ in columns] for _ in crs]
@@ -107,7 +109,9 @@ def _winner_grid(crs: list[int], columns: list[str], per_lane: dict[int, dict[st
     return idx, val, winners
 
 
-def _plot_heatmap(grid: np.ndarray, vals: np.ndarray, crs: list[int], columns: list[str], out_path: Path, *, title: str) -> None:
+def _plot_heatmap(
+    grid: np.ndarray, vals: np.ndarray, crs: list[int], columns: list[str], out_path: Path, *, title: str
+) -> None:
     fig, ax = plt.subplots(figsize=(1.0 * len(columns) + 2.8, 0.7 * len(crs) + 2.8))
     cmap = ListedColormap([LANE_COLOR[k] for k in LANE_ORDER])
     masked = np.ma.masked_invalid(grid)
@@ -125,7 +129,9 @@ def _plot_heatmap(grid: np.ndarray, vals: np.ndarray, crs: list[int], columns: l
                 continue
             lane = LANE_ORDER[int(grid[r, c])]
             text_color = "white" if lane in WHITE_TEXT else "black"
-            ax.text(c, r, f"{LANE_SHORT[lane]}\n{vals[r, c]:.1f}", ha="center", va="center", fontsize=7, color=text_color)
+            ax.text(
+                c, r, f"{LANE_SHORT[lane]}\n{vals[r, c]:.1f}", ha="center", va="center", fontsize=7, color=text_color
+            )
     legend = [Patch(facecolor=LANE_COLOR[k], edgecolor="none", label=LANE_LABEL[k]) for k in LANE_ORDER]
     ax.legend(handles=legend, loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, frameon=False)
     fig.tight_layout()
@@ -137,7 +143,7 @@ def _plot_heatmap(grid: np.ndarray, vals: np.ndarray, crs: list[int], columns: l
 def _write_csv(path: Path, crs: list[int], columns: list[str], winners: list[list[str]], values: np.ndarray) -> None:
     with path.open("w", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["cr"] + columns)
+        writer.writerow(["cr", *columns])
         for r, cr in enumerate(crs):
             row = [f"{cr}x"]
             for c, _ in enumerate(columns):
@@ -149,7 +155,11 @@ def _write_csv(path: Path, crs: list[int], columns: list[str], winners: list[lis
     print(f"Wrote {path}")
 
 
-def _build_metric_map(modality: str, results_dir: Path) -> tuple[list[int], dict[int, dict[str, dict[str, float]]], dict[int, dict[str, dict[str, float]]], list[str], list[str]]:
+def _build_metric_map(
+    modality: str, results_dir: Path
+) -> tuple[
+    list[int], dict[int, dict[str, dict[str, float]]], dict[int, dict[str, dict[str, float]]], list[str], list[str]
+]:
     run_map = _lane_runs(modality, results_dir)
     crs = sorted(run_map)
     snr_map: dict[int, dict[str, dict[str, float]]] = {}
