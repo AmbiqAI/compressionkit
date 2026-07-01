@@ -44,6 +44,127 @@ It is not a general physiological inference framework. It does not try to own ar
 
 ---
 
+## Where compressionKIT fits
+
+compression sits between the sensor and everything downstream: local storage,
+radio transport, gateway buffering, cloud ingestion, analytics, and model
+training. That position makes the codec a product boundary, not only a model
+choice. A release package needs to be small enough for edge deployment, explicit
+enough for validation, and stable enough that future codec versions can be
+compared against previously supported ones.
+
+<div class="ck-signal-strip" markdown="1">
+
+| Modality | Current status | What preservation means |
+|----------|----------------|-------------------------|
+| **PPG** | v1 golden bundles and scorecards | Pulse timing, HR/HRV agreement, morphology, motion/noise behavior |
+| **ECG** | v1 golden bundles and scorecards | R-peak timing, QRS-band fidelity, morphology, artifact robustness |
+| **IMU** | Extension target | Activity-band energy, event timing, orientation/motion features |
+| **Other wearables** | Block-level extension path | Define the observables first, then choose codec and scorecard |
+
+</div>
+
+---
+
+## What current goldens show
+
+The first release-grade packages exercise the artifact contract on PPG and ECG.
+The tables below are intentionally small; deeper plots and per-ratio scorecards
+live on the model and CR-vs-fidelity pages.
+
+<div class="ck-metric-band" markdown="1">
+
+| Signal | Published neural CR range | Recommended readout | Representative high-CR behavior |
+|--------|---------------------------|---------------------|----------------------------------|
+| **PPG @ 64 Hz** | 2x to 32x | PRD, HR MAE, HRV deltas, pulse-band behavior | 32x remains useful for aggressive storage/radio reduction; lower CRs preserve HR/HRV more tightly |
+| **ECG @ 256 Hz** | 2x to 64x | PRD, HR MAE, QRS-band error, morphology buckets | 32x/64x are available for bandwidth-limited paths; 4x-16x are the main morphology-preserving range |
+
+</div>
+
+<div class="ck-plot-grid" markdown="1">
+
+![PPG PRD vs compression ratio](assets/plots/ppg_prd_light.png#only-light)
+![PPG PRD vs compression ratio](assets/plots/ppg_prd_dark.png#only-dark)
+
+![ECG PRD vs compression ratio](assets/plots/ecg_prd_light.png#only-light)
+![ECG PRD vs compression ratio](assets/plots/ecg_prd_dark.png#only-dark)
+
+![PPG heart-rate error](assets/plots/ppg_hr_light.png#only-light)
+![PPG heart-rate error](assets/plots/ppg_hr_dark.png#only-dark)
+
+![ECG cosine similarity vs compression ratio](assets/plots/ecg_cos_light.png#only-light)
+![ECG cosine similarity vs compression ratio](assets/plots/ecg_cos_dark.png#only-dark)
+
+</div>
+
+See [PPG models](models/ppg.md), [ECG models](models/ecg.md),
+[PPG CR vs fidelity](methods/cr_vs_fidelity_ppg.md), and
+[ECG CR vs fidelity](methods/cr_vs_fidelity_ecg.md) for the full tables,
+noise-stratified rows, and reproduction links.
+
+---
+
+## Evidence surfaces
+
+compressionKIT results are meant to be updated release after release without
+losing comparability. Officially supported codecs should be evaluated through
+the same scorecard shape, even when the underlying method changes.
+
+<div class="grid cards" markdown="1">
+
+-   :material-chart-bell-curve:{ .lg .middle } **CR vs. fidelity**
+
+    ---
+
+    Report codec CR, effective CR when entropy models are present, waveform
+    fidelity, physiological agreement, and stitching behavior in one table.
+
+-   :material-weather-windy:{ .lg .middle } **Noise and artifacts**
+
+    ---
+
+    Split results by clean, median, noisy, empirical artifact, and SNR regimes;
+    distinguish faithful PRD from clean-truth PRD and PRDN-noise so denoising
+    behavior is visible.
+
+-   :material-fingerprint:{ .lg .middle } **Local imprinting**
+
+    ---
+
+    Check that a codec does not hallucinate subject- or segment-specific detail,
+    hide signal quality problems, or make noisy inputs look falsely clean.
+
+-   :material-scale-balance:{ .lg .middle } **Standardized comparisons**
+
+    ---
+
+    Compare new candidates against every still-supported golden using the same
+    datasets, sampling rules, scorecard schema, and artifact validation checks.
+
+</div>
+
+The guiding rule is simple: comparisons belong in generated scorecards,
+noise/artifact sweeps, and CR-vs-fidelity pages, not in one-off prose. When a new
+method or release arrives, the tables are regenerated from the supported
+artifacts so old and new versions remain comparable.
+
+---
+
+## Guiding principles
+
+These principles keep the toolkit practical without making every experiment use
+the same control flow.
+
+| Principle | What it means in practice |
+|-----------|---------------------------|
+| **Artifact-first** | Runtime loading, validation, docs, and publication are driven by deploy packages rather than training scripts. |
+| **Observable-preserving** | Each modality defines what must survive compression: timing, morphology, spectral content, or motion features. |
+| **Progressive disclosure** | Users can try a bundle in minutes, validate a deploy directory, then reproduce or extend only when needed. |
+| **Method-flexible** | RVQ, DSP, hybrid, entropy priors, and future codecs share the same release boundary. |
+| **Embedded-aware** | Blocks should be portable toward fixed-memory C/LiteRT deployment paths. |
+
+---
+
 ## Why it matters
 
 <div class="grid cards" markdown="1">
