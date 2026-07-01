@@ -131,7 +131,10 @@ The two-stage path is for advanced users who want additional bitrate reduction b
 Stage 1 uses the standard RVQ codec to produce token indices. Stage 2 runs a causal entropy prior over those tokens and arithmetic-codes them into a compressed bitstream.
 
 !!! note
-    The example below is illustrative. Paired two-stage golden artifacts (`prior.tflite` alongside the codec deploy package) ship with the two-stage golden family tracked in #27. Until then, train a prior with `scripts/train_rvq_prior.py` and point `EntropyPrior` at its output.
+    The example below is illustrative and uses a locally built prior package.
+    Published v1 HuggingFace bundles are single-stage RVQ codecs; two-stage
+    prior packages are reproducible from the `*-prior` golden registry entries
+    and should be loaded from local deploy packages for now.
 
 ```python
 import numpy as np

@@ -14,8 +14,8 @@ can be measured in a standardized way.
 | Method | Type | Current role | Deployment status |
 |--------|------|--------------|-------------------|
 | [**RVQ Autoencoder**](rvq.md) | Learned neural codec | Published v1 PPG/ECG bundles and primary runtime path | INT8 LiteRT/TFLite encoder + codebook artifacts |
-| **Wavelet + SPIHT** | Classical DSP codec | Clean-signal and faithfulness baseline; registered golden comparison lane | Local deploy package support; HuggingFace publication pending |
-| **Hybrid + SPIHT** | Learned/DSP hybrid | Wearable-noise and artifact comparison lane | Local deploy package support; HuggingFace publication pending |
+| **Wavelet + SPIHT** | Classical DSP codec | Clean-signal and faithfulness baseline; registered golden comparison lane | Local deploy package support; not in v1 HuggingFace bundles |
+| **Hybrid + SPIHT** | Learned/DSP hybrid | Wearable-noise and artifact comparison lane | Local deploy package support; not in v1 HuggingFace bundles |
 | **Decimation** | Simple baseline | Sanity baseline for compression-ratio studies | Trivial local implementation |
 
 ## How to choose what to inspect first
@@ -39,7 +39,10 @@ All release-facing methods in compressionKIT follow these principles:
 
 ## CR vs. Fidelity Decision Artefacts
 
-Summary tables of the v1 goldens with both codec-only and codec+prior **effective** compression ratios alongside the noise-aware fidelity metrics (PRD, PRDN-noise, HR MAE, QRS- / pulse-band PSD error, coherence, stitching seam ratio):
+Summary tables of the v1 RVQ goldens with codec compression ratios, optional
+codec+prior **effective** compression ratios where available, and noise-aware
+fidelity metrics (PRD, PRDN-noise, HR MAE, QRS- / pulse-band PSD error,
+coherence, stitching seam ratio):
 
 - [ECG CR vs. Fidelity](cr_vs_fidelity_ecg.md)
 - [PPG CR vs. Fidelity](cr_vs_fidelity_ppg.md)

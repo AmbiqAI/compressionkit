@@ -50,14 +50,18 @@ IMU remains an intended extension of the contract, but it does not block the fir
 
 ## Golden Matrix
 
-The minimum first-cut v1 matrix is:
+The v1 contract supports multiple method families, but the current public
+release surface separates downloadable bundles from local comparison lanes:
 
-| Modality | DSP | AI | Hybrid |
-|----------|-----|----|--------|
-| PPG | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x | Optional |
-| ECG | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x, 64x | Required golden matrix coverage at 2x, 4x, 8x, 16x, 32x, 64x | Optional |
+| Modality | Published RVQ bundles | Local comparison lanes | Deferred |
+|----------|------------------------|------------------------|----------|
+| PPG | 2x, 4x, 8x, 16x, 32x | SPIHT and hybrid comparisons at matching operating points | entropy-prior bundles, IMU |
+| ECG | 2x, 4x, 8x, 16x, 32x, 64x | SPIHT and hybrid comparisons at matching operating points | entropy-prior bundles, IMU |
 
-DSP and AI should therefore be treated symmetrically at the registry and package boundary for ECG and PPG. Hybrid remains supported, but it should not block v1 unless a specific hybrid operating point is intentionally promoted to release-grade.
+DSP and AI should still be treated symmetrically at the registry and package
+boundary when a lane is promoted to release grade. Hybrid remains supported, but
+it should not block v1 unless a specific hybrid operating point is intentionally
+promoted to release-grade.
 
 Each golden experiment must have:
 
@@ -65,8 +69,8 @@ Each golden experiment must have:
 - one canonical `run_name`
 - one frozen deploy package under `results/<run_name>/deploy/`
 - one frozen scorecard
-- one HuggingFace destination repo
-- one rendered website page derived from the packaged artifact
+- one HuggingFace destination repo when the package is published
+- one rendered website page when the package is promoted into the public release surface
 
 ## Release Artifact Model
 

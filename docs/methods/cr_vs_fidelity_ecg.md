@@ -1,6 +1,6 @@
 # ECG CR vs. Fidelity
 
-This page summarizes how compression ratio (CR) trades off against signal- and physiology-level fidelity for the v1 goldens. The **Effective CR** column folds in the entropy-prior uplift over the uniform-codebook baseline; CRs are reported alongside the [noise-aware metrics](../experiments/index.md) so it is easy to see that higher CR predominantly removes noise rather than physiologically meaningful structure.
+This page summarizes how compression ratio (CR) trades off against signal- and physiology-level fidelity for the v1 RVQ goldens. The **Effective CR** column is populated when an entropy-prior run is available; otherwise, the codec CR is the release-facing operating point. CRs are reported alongside the [noise-aware metrics](../experiments/index.md) so it is easy to inspect the difference between waveform faithfulness, clean-reference fidelity, and physiological metric preservation.
 
 ## Headline summary (all samples)
 

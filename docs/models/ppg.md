@@ -49,9 +49,9 @@ PPG has three release-facing comparison lanes:
 
 | Lane | Role | Current publication status |
 |------|------|----------------------------|
-| **SPIHT** | DSP faithfulness baseline; preserves clean/noisy inputs with minimal learned behavior | Registered and reproducible locally; HuggingFace publication pending |
+| **SPIHT** | DSP faithfulness baseline; preserves clean/noisy inputs with minimal learned behavior | Registered and reproducible locally; not in v1 HuggingFace bundles |
 | **RVQ** | Published neural codec bundles; compact learned representation with physiological scorecards | Published for 2x, 4x, 8x, 16x, and 32x |
-| **Hybrid** | Learned denoising front end with a SPIHT backend; designed for wearable-noise regimes | Registered and reproducible locally; HuggingFace publication pending |
+| **Hybrid** | Learned denoising front end with a SPIHT backend; designed for wearable-noise regimes | Registered and reproducible locally; not in v1 HuggingFace bundles |
 
 The robustness sweep scores each lane against a filtered clean-truth proxy after
 injecting empirical noise or additive artifacts. Lower PRD is better. This is a
@@ -220,5 +220,5 @@ To create a new PPG model variant:
 
 1. Copy an existing golden config: `cp configs/ppg_rvq_64hz_08x_golden.yaml configs/ppg_rvq_64hz_08x_v2.yaml`
 2. Modify parameters (e.g. `base_filters`, `num_levels`, `learning_rate`)
-3. Train: `python -m compressionkit.recipes.train_ppg_rvq --config configs/ppg_rvq_64hz_08x_v2.yaml`
+3. Train: `uv run train-ppg-rvq --config configs/ppg_rvq_64hz_08x_v2.yaml`
 4. Compare results against the golden baseline

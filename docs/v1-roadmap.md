@@ -18,51 +18,46 @@ For the code-organization rules behind the plan, see
 ## Frozen V1 Cut
 
 For the current v1 push, the release surface is intentionally narrower than the
-full space of possible experiments. The goal is to ship one defensible,
-artifact-complete comparison surface for ECG and PPG, not to keep expanding the
- matrix while packaging and scorecards are still settling.
+full space of possible experiments. The goal is to ship a defensible RVQ release
+surface for ECG and PPG, with standardized local comparison evidence for SPIHT,
+hybrid, and denoise experiments.
 
 The frozen v1 cut is:
 
-- faithful PPG RVQ goldens at 2x, 4x, 8x, 16x, 32x
-- faithful PPG SPIHT goldens at 2x, 4x, 8x, 16x, 32x
-- faithful ECG RVQ goldens at 2x, 4x, 8x, 16x, 32x, 64x
-- faithful ECG SPIHT goldens at 2x, 4x, 8x, 16x, 32x, 64x
-- one PPG denoise comparison lane at 8x: wearable RVQ candidate plus SPIHT reference
-- one ECG denoise comparison lane at 8x: RVQ denoise candidate plus SPIHT reference
+- published PPG RVQ bundles at 2x, 4x, 8x, 16x, 32x
+- published ECG RVQ bundles at 2x, 4x, 8x, 16x, 32x, 64x
+- reproducible local PPG SPIHT and hybrid comparison lanes
+- reproducible local ECG SPIHT and hybrid comparison lanes
+- documented PPG and ECG robustness evidence for noise and artifact regimes
 
 Explicitly not blocking this v1 cut:
 
+- publishing SPIHT, hybrid, or entropy-prior bundles to HuggingFace
 - expanding denoise to a full CR ladder
-- promoting additional prior-stage or hybrid variants into the public release surface
+- promoting prior-stage or hybrid variants into the public downloadable release surface
 - adding IMU or other modalities
 
 ## Current Release Tracker
 
-This is the remaining work tracker for the frozen v1 cut.
-
-### In Progress
-
-- Capture ECG denoise evidence.
-	The evidence is now measured, but the current 8x denoise candidate does not yet support a
-	release-grade claim across clean and low-noise conditions.
+This roadmap is retained as implementation context. Customer-facing release
+claims should be read from the [Model Zoo](models/index.md), the modality model
+pages, and the [Release Contract](release-contract.md).
 
 ### Remaining
 
-- Capture ECG denoise evidence.
-	Decide whether to retrain or narrow the claim surface. The current 8x RVQ denoise run only
-	outperforms the noisy-input baseline at heavier synthetic corruption and badly degrades clean
-	windows, so it is not yet a safe release-facing denoise lane.
-- Standardize v1 scorecards.
-	Emit one canonical release-facing shape across faithful and denoise lanes, including
-	dataset provenance, clean-reference deltas, and dropped-window accounting where relevant.
-- Validate deploy packaging parity.
-	Every promoted RVQ and SPIHT run must ship the same release-contract surface:
-	`deploy_manifest.json`, `codec_spec.json`, `checksums.json`, `reference_vectors.npz`,
-	scorecard artifacts, and publishable metadata.
+- Standardize promoted-package scorecards.
+	Emit one canonical release-facing shape for any lane that is promoted beyond
+	local comparison status, including dataset provenance, clean-reference deltas,
+	and dropped-window accounting where relevant.
+- Validate deploy packaging parity for promoted non-RVQ lanes.
+	When SPIHT, hybrid, or prior-stage variants become public bundles, they should
+	ship the same release-contract surface: `deploy_manifest.json`,
+	`codec_spec.json`, `checksums.json`, `reference_vectors.npz`, scorecard
+	artifacts, and publishable metadata.
 - Write the v1 release summary.
-	Publish one concise release-facing summary describing the frozen matrix, datasets,
-	reproduction path, and the specific claims supported by faithful and denoise scorecards.
+	Publish one concise release-facing summary describing the published RVQ matrix,
+	datasets, reproduction path, and the specific claims supported by comparison
+	scorecards.
 
 ### Already Landed
 
@@ -379,24 +374,24 @@ Exit criteria:
 
 This is the frozen v1 matrix for the current release push.
 
-| Lane | Modality | DSP Baseline | AI Baseline | Operating Points | Notes |
-|------|----------|--------------|-------------|------------------|-------|
-| Faithful | PPG | SPIHT | RVQ | 2x, 4x, 8x, 16x, 32x | Registry-backed goldens on the frozen unified strict-sanitized PPG dataset |
-| Faithful | ECG | SPIHT | RVQ | 2x, 4x, 8x, 16x, 32x, 64x | Registry-backed goldens on PTB-XL |
-| Denoise | PPG | SPIHT reference | RVQ wearable candidate | 8x | Synthetic-truth clean/noisy/reconstruction evaluation to demonstrate wearable denoising value |
-| Denoise | ECG | SPIHT reference | RVQ denoise candidate | 8x | Same release-facing evaluation shape as PPG denoise |
+| Lane | Modality | Published bundle | Local comparison evidence | Operating Points | Notes |
+|------|----------|------------------|---------------------------|------------------|-------|
+| Faithful | PPG | RVQ | SPIHT and hybrid | 2x, 4x, 8x, 16x, 32x | RVQ bundles are published; comparison lanes are registry-backed local runs on the frozen unified strict-sanitized PPG dataset |
+| Faithful | ECG | RVQ | SPIHT and hybrid | 2x, 4x, 8x, 16x, 32x, 64x | RVQ bundles are published; comparison lanes are registry-backed local runs on PTB-XL |
+| Robustness | PPG | RVQ | SPIHT and hybrid | measured CR ladder | Synthetic and empirical noise/artifact evidence supports the model-page tradeoff tables |
+| Robustness | ECG | RVQ | SPIHT and hybrid | measured CR ladder | Synthetic and empirical noise/artifact evidence supports the model-page tradeoff tables |
 
 IMU is intentionally out of scope for the first v1 cut.
 
-Minimum release expectation per matrix cell:
+Minimum release expectation for a promoted public bundle:
 
 - one canonical experiment ID
 - one source-controlled config
 - one reproducible command
 - one frozen deploy package
 - one frozen scorecard
-- one HuggingFace destination
-- one rendered docs page
+- one HuggingFace destination when published
+- one rendered docs page or model-page section
 
 ## Backlog Seeds
 
@@ -416,10 +411,10 @@ These should become tracked issues or epics:
 compressionKIT is ready for v1 when all of the following are true:
 
 - ECG and PPG each have documented v1 golden releases at the chosen operating points.
-- ECG and PPG each have documented DSP and AI golden releases at the chosen operating points.
+- ECG and PPG each have published RVQ releases and documented DSP/hybrid comparison evidence at the chosen operating points.
 - each promoted golden release is reproducible from config and one documented command.
 - each golden release emits a validated package and frozen scorecard.
-- HuggingFace repos are populated from validated release packages.
+- HuggingFace repos are populated from validated release packages for the lanes promoted to public bundles.
 - users can tweak a golden config and rerun without changing core framework code.
 - contributors can add a new experiment without introducing a new orchestration silo.
 - release decisions are driven by packaged scorecards and validation checks, not by ad hoc notebook outputs.

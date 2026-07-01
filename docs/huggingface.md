@@ -6,8 +6,8 @@ icon: lucide/cloud-download
 
 Published v1 RVQ bundles live at `Ambiq/compressionkit-{modality}-{cr}x`.
 This page shows the minimum code to download one and run the encoder + decoder on a sample frame.
-Entropy-prior packages are reproducible from the golden registry but are not published in the v1
-HuggingFace bundles yet.
+Entropy-prior packages are reproducible from the golden registry, but the v1
+HuggingFace bundle surface is limited to single-stage RVQ codecs.
 
 ## 1. Install
 
@@ -52,12 +52,12 @@ print("shape:", recon.shape)
 
 ## 3. Two-stage codec (codec + entropy prior)
 
-!!! info "Not in the v1 published bundles yet"
+!!! info "Outside the v1 HuggingFace bundle surface"
     The optional entropy-prior stage (`prior_int8.tflite` + `prior_manifest.json`) is
     reproducible from the `*-prior` golden registry entries
     (`compressionkit golden list` → `ppg-rvq-4x-prior`, `ppg-rvq-8x-prior`,
-    `ecg-rvq-4x-prior`, `ecg-rvq-8x-prior`) but is **not yet shipped in the published
-    HuggingFace repos**. The snippet below runs against a locally built deploy package, so
+    `ecg-rvq-4x-prior`, `ecg-rvq-8x-prior`) and runs from locally built deploy
+    packages. The snippet below uses that local-package path, so
     reproduce one first, e.g. `uv run compressionkit golden run ppg-rvq-8x-prior`.
 
 Two-stage deploy packages add `prior_int8.tflite` and `prior_manifest.json`. Use

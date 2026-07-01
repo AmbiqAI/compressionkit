@@ -50,9 +50,9 @@ ECG has three release-facing comparison lanes:
 
 | Lane | Role | Current publication status |
 |------|------|----------------------------|
-| **SPIHT** | DSP faithfulness baseline; very strong on clean low-CR ECG morphology | Registered and reproducible locally; HuggingFace publication pending |
+| **SPIHT** | DSP faithfulness baseline; very strong on clean low-CR ECG morphology | Registered and reproducible locally; not in v1 HuggingFace bundles |
 | **RVQ** | Published neural codec bundles; compact learned representation with ECG morphology scorecards | Published for 2x, 4x, 8x, 16x, 32x, and 64x |
-| **Hybrid** | Learned denoising front end with a SPIHT backend; designed for empirical-noise and artifact regimes | Registered and reproducible locally; HuggingFace publication pending |
+| **Hybrid** | Learned denoising front end with a SPIHT backend; designed for empirical-noise and artifact regimes | Registered and reproducible locally; not in v1 HuggingFace bundles |
 
 The robustness sweep scores each lane against a filtered clean-truth proxy after
 injecting empirical noise or additive ECG artifact families. Lower PRD is better.
