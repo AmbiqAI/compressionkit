@@ -15,8 +15,9 @@ Three families exist:
 - **`codec` + `rvq`** — single-stage AI codec (encoder → RVQ → decoder).
 - **`codec` + `spiht`** — single-stage DSP codec with a fully declared operating point in the registry.
 - **`two_stage`** — paired entropy prior on top of a parent codec. Trains a small
-  causal-transformer prior over the codec's token stream and bundles `prior_int8.tflite`
-  alongside the codec artifacts in the same HuggingFace repo.
+  causal-transformer prior over the codec's token stream and adds `prior_int8.tflite`
+  to a local deploy package. Prior-augmented bundles are reproducible today but are not
+  part of the published v1 HuggingFace packages yet.
 
 For first-cut v1, ECG and PPG both carry a dual-family golden matrix: DSP SPIHT and AI RVQ
 at the chosen compression ratios. Use `compressionkit golden list --method rvq` or
@@ -25,9 +26,9 @@ at the chosen compression ratios. Use `compressionkit golden list --method rvq` 
 ## v1 Registry
 
 !!! info "Publication status"
-    **AI (RVQ) baselines are published** and downloadable from HuggingFace today —
-    the links in the table below resolve. **DSP (SPIHT) and hybrid baselines are
-    registered and fully reproducible** from their configs via
+    **Single-stage AI (RVQ) baselines are published** and downloadable from
+    HuggingFace today — those links resolve. **DSP (SPIHT), hybrid, and entropy-prior
+    variants are registered and reproducible** from their configs via
     `compressionkit golden run <id>`, but their HuggingFace repos are **not yet
     published**; the slugs shown are reserved targets.
 
@@ -40,16 +41,16 @@ at the chosen compression ratios. Use `compressionkit golden list --method rvq` 
 | [`ppg-rvq-8x`](ppg-rvq-8x.md) | PPG | codec | 8× | — | `mesa` | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
 | [`ppg-rvq-16x`](ppg-rvq-16x.md) | PPG | codec | 16× | — | `mesa` | [`Ambiq/compressionkit-ppg-16x`](https://huggingface.co/Ambiq/compressionkit-ppg-16x) |
 | [`ppg-rvq-32x`](ppg-rvq-32x.md) | PPG | codec | 32× | — | `mesa` | [`Ambiq/compressionkit-ppg-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-32x) |
-| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `mesa` | [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x) |
-| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `mesa` | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
+| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `mesa` | pending (`Ambiq/compressionkit-ppg-4x`) |
+| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `mesa` | pending (`Ambiq/compressionkit-ppg-8x`) |
 | [`ecg-rvq-2x`](ecg-rvq-2x.md) | ECG | codec | 2× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-2x`](https://huggingface.co/Ambiq/compressionkit-ecg-2x) |
 | [`ecg-rvq-4x`](ecg-rvq-4x.md) | ECG | codec | 4× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
 | [`ecg-rvq-8x`](ecg-rvq-8x.md) | ECG | codec | 8× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
 | [`ecg-rvq-16x`](ecg-rvq-16x.md) | ECG | codec | 16× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-16x`](https://huggingface.co/Ambiq/compressionkit-ecg-16x) |
 | [`ecg-rvq-32x`](ecg-rvq-32x.md) | ECG | codec | 32× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-32x`](https://huggingface.co/Ambiq/compressionkit-ecg-32x) |
 | [`ecg-rvq-64x`](ecg-rvq-64x.md) | ECG | codec | 64× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-64x`](https://huggingface.co/Ambiq/compressionkit-ecg-64x) |
-| [`ecg-rvq-4x-prior`](ecg-rvq-4x-prior.md) | ECG | two_stage | 4× | ecg-rvq-4x | `ptb-xl` | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
-| [`ecg-rvq-8x-prior`](ecg-rvq-8x-prior.md) | ECG | two_stage | 8× | ecg-rvq-8x | `ptb-xl` | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
+| [`ecg-rvq-4x-prior`](ecg-rvq-4x-prior.md) | ECG | two_stage | 4× | ecg-rvq-4x | `ptb-xl` | pending (`Ambiq/compressionkit-ecg-4x`) |
+| [`ecg-rvq-8x-prior`](ecg-rvq-8x-prior.md) | ECG | two_stage | 8× | ecg-rvq-8x | `ptb-xl` | pending (`Ambiq/compressionkit-ecg-8x`) |
 
 ### DSP Baselines
 
@@ -70,18 +71,35 @@ repos are **not yet published** (slugs reserved).
 | `ecg-spiht-32x` | ECG | codec | 32× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-32x` |
 | `ecg-spiht-64x` | ECG | codec | 64× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-64x` |
 
+## Validate an existing deploy package
+
+```bash
+# Fast, dataset-free check of a local release bundle.
+uv run compressionkit golden validate-deploy results/ppg_rvq_64hz_08x_golden/deploy --max-vectors 1
+
+# Stage the HuggingFace package without uploading (requires an existing deploy/ dir).
+uv run compressionkit golden run ppg-rvq-4x --skip-train --publish --dry-run
+```
+
+`--skip-train` and `validate-deploy` are for existing artifacts. They do not regenerate
+metrics or weights.
+
 ## Reproduce one experiment
 
 ```bash
-# 1. Fetch the dataset (MESA requires NSRR_TOKEN; PTB-XL is open).
-uv run compressionkit golden run ppg-rvq-4x --skip-dataset-check  # smoke
+# 1. Fetch or mount the dataset first (MESA requires NSRR_TOKEN; PTB-XL is open).
+uv run compressionkit golden run ppg-rvq-4x
 
-# 1b. DSP goldens use the same lifecycle entry point.
-uv run compressionkit golden run ppg-spiht-4x --skip-dataset-check  # smoke
+# DSP goldens use the same lifecycle entry point.
+uv run compressionkit golden run ppg-spiht-4x
 
 # 2. Real run, publish to HuggingFace (set HF_TOKEN first).
 uv run compressionkit golden run ppg-rvq-4x --publish
 ```
+
+Use `--skip-dataset-check` only when you intentionally bypass the pre-flight dataset
+availability check, for example in a custom environment where the loader resolves data
+through another path. Training and evaluation still need the underlying data.
 
 ## Reproduce every experiment in a modality
 
