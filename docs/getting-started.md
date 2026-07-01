@@ -15,9 +15,6 @@ cd compressionkit
 
 # Create virtual environment and install
 uv sync
-
-# Or install in editable mode
-uv pip install -e .
 ```
 
 !!! tip "Try a codec first — no dataset needed"
