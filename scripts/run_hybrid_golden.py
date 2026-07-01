@@ -41,6 +41,7 @@ from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.codec import LearnedShrinkSpihtCodec
 from compressionkit.evaluation.scorecard import build_quality_scorecard
 from compressionkit.experiments.registry import GoldenExperiment, get_golden
+from compressionkit.export.release import write_checksums
 from compressionkit.export.spiht_deploy import export_spiht_deploy
 from compressionkit.pipeline.learned_stages import load_wavelet_gain_preprocessor
 from compressionkit.runtime.spiht import SpihtCodec
@@ -404,9 +405,8 @@ def _export_deploy(
             scorecard_summary=scorecard_summary,
         )
         logger.info("SPIHT deploy artifacts written to %s", deploy_dir)
-    except Exception:
-        logger.exception("SPIHT deploy export failed; continuing with denoiser + manifest only.")
-        arts = None
+    except Exception as exc:
+        raise RuntimeError("SPIHT backend deploy export failed; cannot build a loadable hybrid package.") from exc
 
     # Stage the trained denoiser alongside the SPIHT package.
     denoiser_dst = deploy_dir / "denoiser_gain_model.keras"
@@ -444,6 +444,54 @@ def _export_deploy(
     }
     (deploy_dir / "hybrid_manifest.json").write_text(json.dumps(manifest, indent=2))
     logger.info("Wrote hybrid deploy manifest to %s", deploy_dir / "hybrid_manifest.json")
+
+    deploy_manifest_path = deploy_dir / "deploy_manifest.json"
+    deploy_manifest = json.loads(deploy_manifest_path.read_text())
+    deploy_manifest["family"] = "hybrid"
+    deploy_manifest["method"] = "hybrid"
+    deploy_manifest["pipeline"] = "hybrid"
+    deploy_manifest.setdefault("artifacts", {})["denoiser_gain_model"] = "denoiser_gain_model.keras"
+    deploy_manifest["artifacts"]["hybrid_manifest"] = "hybrid_manifest.json"
+    if (deploy_dir / "denoiser_train_config.json").exists():
+        deploy_manifest["artifacts"]["denoiser_train_config"] = "denoiser_train_config.json"
+    deploy_manifest_path.write_text(json.dumps(deploy_manifest, indent=2))
+
+    codec_spec_path = deploy_dir / "codec_spec.json"
+    codec_spec = json.loads(codec_spec_path.read_text())
+    codec_spec["family"] = "hybrid"
+    codec_spec["method"] = "hybrid"
+    codec_spec["pipeline"] = manifest
+    codec_spec_path.write_text(json.dumps(codec_spec, indent=2))
+
+    stimulus_path = deploy_dir / "sample_stimulus.npz"
+    if stimulus_path.exists():
+        stimulus_blob = np.load(stimulus_path)
+        stimulus = np.asarray(stimulus_blob["stimulus"], dtype=np.float32)
+        payloads: list[np.ndarray] = []
+        nbits_arr = np.zeros(stimulus.shape[0], dtype=np.int32)
+        reconstructions = np.zeros_like(stimulus)
+        for idx, frame in enumerate(stimulus):
+            enc = codec.encode(frame)
+            payload_bytes = bytes(enc.payload)
+            payloads.append(np.frombuffer(payload_bytes, dtype=np.uint8))
+            nbits_arr[idx] = int(enc.nbits)
+            reconstructions[idx] = codec.decode(enc)
+        max_len = max((p.size for p in payloads), default=0)
+        packed = np.zeros((len(payloads), max_len), dtype=np.uint8)
+        payload_lengths = np.zeros(len(payloads), dtype=np.int32)
+        for idx, payload in enumerate(payloads):
+            packed[idx, : payload.size] = payload
+            payload_lengths[idx] = payload.size
+        np.savez_compressed(
+            deploy_dir / "reference_vectors.npz",
+            input_frames=stimulus,
+            bitstreams=packed,
+            bitstream_lengths_bytes=payload_lengths,
+            nbits=nbits_arr,
+            reconstructions=reconstructions,
+        )
+
+    write_checksums(deploy_dir)
 
 
 if __name__ == "__main__":

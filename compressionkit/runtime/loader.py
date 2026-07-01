@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["load_codec", "resolve_deploy_dir"]
 
-_KNOWN_FAMILIES: tuple[str, ...] = ("rvq", "spiht")
+_KNOWN_FAMILIES: tuple[str, ...] = ("rvq", "spiht", "hybrid")
 
 
 def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
@@ -134,5 +134,9 @@ def load_codec(repo_or_dir: str | Path) -> Codec:
         from compressionkit.runtime.spiht import SpihtCodec
 
         return SpihtCodec.from_deploy_dir(deploy_dir)
+    if family == "hybrid":
+        from compressionkit.runtime.hybrid import HybridSpihtCodec
+
+        return HybridSpihtCodec.from_deploy_dir(deploy_dir)
 
     raise ValueError(f"Unknown codec family {family!r} in {deploy_dir}. Known families: {_KNOWN_FAMILIES!r}.")

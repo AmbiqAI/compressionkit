@@ -68,39 +68,27 @@ compared against previously supported ones.
 
 ## What current goldens show
 
-The first release-grade packages exercise the artifact contract on PPG and ECG.
-The tables below are intentionally small; deeper plots and per-ratio scorecards
-live on the model and CR-vs-fidelity pages.
+The first release-grade packages exercise the artifact contract on PPG and ECG,
+but the top-level question is not a single PRD curve. A customer needs to choose
+an operating point from compression level, physiology preservation, robustness,
+stitching behavior, and deploy footprint together.
 
 <div class="ck-metric-band" markdown="1">
 
-| Signal | Published neural CR range | Recommended readout | Representative high-CR behavior |
-|--------|---------------------------|---------------------|----------------------------------|
-| **PPG @ 64 Hz** | 2x to 32x | PRD, HR MAE, HRV deltas, pulse-band behavior | 32x remains useful for aggressive storage/radio reduction; lower CRs preserve HR/HRV more tightly |
-| **ECG @ 256 Hz** | 2x to 64x | PRD, HR MAE, QRS-band error, morphology buckets | 32x/64x are available for bandwidth-limited paths; 4x-16x are the main morphology-preserving range |
+| Customer question | Evidence surface | Where to inspect it |
+|-------------------|------------------|---------------------|
+| What compression levels are available? | Published CR ladder, frame duration, effective payload | [Customer evidence](customer-evidence.md), [Model zoo](models/index.md) |
+| How much signal utility survives? | Truth PRD, PRDN-noise, HR/peak timing, band error, coherence | [PPG models](models/ppg.md), [ECG models](models/ecg.md) |
+| What happens under noise or artifacts? | Noise-tertile rows, SNR/artifact comparisons, and robustness scorecards | [PPG CR vs fidelity](methods/cr_vs_fidelity_ppg.md), [ECG CR vs fidelity](methods/cr_vs_fidelity_ecg.md) |
+| Is stitching a problem? | Seam ratio and long-recording stability checks | [Customer evidence](customer-evidence.md), modality scorecards |
+| Will it fit on my edge target? | Encoder/decoder TFLite size, codebook size, deploy package contents | [Customer evidence](customer-evidence.md), [Deployment](deployment.md) |
 
 </div>
 
-<div class="ck-plot-grid" markdown="1">
-
-![PPG PRD vs compression ratio](assets/plots/ppg_prd_light.png#only-light)
-![PPG PRD vs compression ratio](assets/plots/ppg_prd_dark.png#only-dark)
-
-![ECG PRD vs compression ratio](assets/plots/ecg_prd_light.png#only-light)
-![ECG PRD vs compression ratio](assets/plots/ecg_prd_dark.png#only-dark)
-
-![PPG heart-rate error](assets/plots/ppg_hr_light.png#only-light)
-![PPG heart-rate error](assets/plots/ppg_hr_dark.png#only-dark)
-
-![ECG cosine similarity vs compression ratio](assets/plots/ecg_cos_light.png#only-light)
-![ECG cosine similarity vs compression ratio](assets/plots/ecg_cos_dark.png#only-dark)
-
-</div>
-
-See [PPG models](models/ppg.md), [ECG models](models/ecg.md),
-[PPG CR vs fidelity](methods/cr_vs_fidelity_ppg.md), and
-[ECG CR vs fidelity](methods/cr_vs_fidelity_ecg.md) for the full tables,
-noise-stratified rows, and reproduction links.
+The generated [customer evidence summary](customer-evidence.md) is the compact
+entry point for this decision. Detailed plots now belong on the modality and
+CR-vs-fidelity pages, where they can be read with the matching sample counts,
+noise buckets, and reproduction links.
 
 ---
 

@@ -162,6 +162,7 @@ def test_run_golden_spiht_uses_evaluator_script(monkeypatch, tmp_path) -> None:
     summary = runner.run_golden(
         experiment.experiment_id,
         results_root=tmp_path,
+        skip_dataset_check=True,
     )
 
     assert len(calls) == 1

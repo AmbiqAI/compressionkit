@@ -21,27 +21,20 @@ DSP, hybrid, and entropy-prior lanes are registered and locally reproducible for
 comparison and release packaging work. Their HuggingFace publication status is
 tracked in the [golden experiments](../experiments/index.md) registry.
 
-## Representative results
+## Evidence router
 
-These plots show the current release trend without listing every metric on this
-index page. The detailed model pages contain the full per-ratio tables, while the
-CR-vs-fidelity pages add noise-stratified and effective-rate views.
+Start from the customer question, then move to the page that carries the right
+context. The model zoo index intentionally avoids embedding every metric plot;
+plots belong beside their scorecard tables, sample counts, noise buckets, and
+reproduction commands.
 
-<div class="ck-plot-grid" markdown="1">
-
-![PPG PRD vs compression ratio](../assets/plots/ppg_prd_light.png#only-light)
-![PPG PRD vs compression ratio](../assets/plots/ppg_prd_dark.png#only-dark)
-
-![PPG heart-rate error](../assets/plots/ppg_hr_light.png#only-light)
-![PPG heart-rate error](../assets/plots/ppg_hr_dark.png#only-dark)
-
-![ECG PRD vs compression ratio](../assets/plots/ecg_prd_light.png#only-light)
-![ECG PRD vs compression ratio](../assets/plots/ecg_prd_dark.png#only-dark)
-
-![ECG cosine similarity vs compression ratio](../assets/plots/ecg_cos_light.png#only-light)
-![ECG cosine similarity vs compression ratio](../assets/plots/ecg_cos_dark.png#only-dark)
-
-</div>
+| Question | First page to open | What to look for |
+|----------|--------------------|------------------|
+| Which compression ratios are published? | [Customer evidence](../customer-evidence.md) | CR ladder, frame duration, edge payload, recommended operating bands |
+| How does PPG behave across CR? | [PPG models](ppg.md) | HR/HRV preservation, pulse-band error, waveform fidelity, robustness links |
+| How does ECG behave across CR? | [ECG models](ecg.md) | R-peak timing, QRS-band error, morphology behavior, robustness links |
+| What happens in clean vs noisy regimes? | [PPG CR vs fidelity](../methods/cr_vs_fidelity_ppg.md), [ECG CR vs fidelity](../methods/cr_vs_fidelity_ecg.md) | truth PRD, faithful PRD, PRDN-noise, clean/median/noisy tertiles |
+| Is the package deployable? | [Deployment](../deployment.md), [V1 release contract](../release-contract.md) | manifests, checksums, TFLite models, C headers, reference vectors |
 
 ## What each model page should answer
 

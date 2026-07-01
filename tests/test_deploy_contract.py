@@ -100,6 +100,34 @@ def test_strict_spiht_contract_accepts_complete_file_set(tmp_path) -> None:
     assert "sample_stimulus.npz" in result.checked_files
 
 
+def test_strict_hybrid_contract_accepts_complete_file_set(tmp_path) -> None:
+    _write_minimal_manifest(tmp_path, family="hybrid")
+    for rel in [
+        "sample_stimulus.npz",
+        "reference_vectors.npz",
+        "spiht_app_config.h",
+        "denoiser_gain_model.keras",
+        "denoiser_train_config.json",
+        "hybrid_manifest.json",
+        "model_card.json",
+        "scorecard.json",
+        "README.md",
+    ]:
+        (tmp_path / rel).write_bytes(b"artifact")
+    write_checksums(tmp_path)
+
+    result = validate_deploy_package(
+        tmp_path,
+        check_runtime=False,
+        check_reference_vectors=False,
+        strict_release=True,
+    )
+
+    assert result.ok
+    assert "hybrid_manifest.json" in result.checked_files
+    assert "denoiser_gain_model.keras" in result.checked_files
+
+
 def test_checksum_mismatch_is_error(tmp_path) -> None:
     _write_minimal_manifest(tmp_path, family="rvq")
     for rel in ["encoder.tflite", "codebook.npz", "codebook.h"]:

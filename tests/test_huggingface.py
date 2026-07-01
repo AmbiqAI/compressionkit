@@ -308,6 +308,81 @@ class TestFamilyAgnosticLoader:
 
         assert isinstance(load_codec(tmp_path), FakeRVQCodec)
 
+    def test_load_codec_dispatches_hybrid_runtime(self, tmp_path, monkeypatch):
+        (tmp_path / "deploy_manifest.json").write_text(
+            json.dumps(
+                {
+                    "family": "hybrid",
+                    "method": "hybrid",
+                    "model_name": "ppg_hybrid_test",
+                    "spec": "codec_spec.json",
+                    "codec": {
+                        "modality": "ppg",
+                        "sample_rate": 64,
+                        "frame_size": 320,
+                        "target_cr": 8.0,
+                        "wavelet": "bior4.4",
+                        "levels": 6,
+                        "use_ac": True,
+                        "bits_per_sample": 16,
+                    },
+                }
+            )
+        )
+        (tmp_path / "codec_spec.json").write_text(
+            json.dumps(
+                {
+                    "family": "hybrid",
+                    "method": "hybrid",
+                    "codec": {
+                        "modality": "ppg",
+                        "sample_rate": 64,
+                        "frame_size": 320,
+                        "target_cr": 8.0,
+                        "wavelet": "bior4.4",
+                        "levels": 6,
+                        "use_ac": True,
+                        "bits_per_sample": 16,
+                    },
+                }
+            )
+        )
+        (tmp_path / "hybrid_manifest.json").write_text(
+            json.dumps(
+                {
+                    "pipeline": "hybrid",
+                    "stages": [
+                        {
+                            "stage": "denoise",
+                            "type": "wavelet_gain_spiht",
+                            "artifact": "denoiser_gain_model.keras",
+                            "wavelet": "bior4.4",
+                            "levels": 6,
+                            "frame_size": 320,
+                        },
+                        {"stage": "codec", "type": "spiht"},
+                    ],
+                }
+            )
+        )
+        (tmp_path / "denoiser_gain_model.keras").write_bytes(b"fake")
+
+        class FakeDenoiser:
+            def forward(self, frame):
+                return frame, {}
+
+        import compressionkit.runtime.hybrid as hybrid_runtime
+
+        monkeypatch.setattr(hybrid_runtime, "load_wavelet_gain_preprocessor", lambda *args, **kwargs: FakeDenoiser())
+
+        from compressionkit.runtime import HybridSpihtCodec, load_codec
+
+        codec = load_codec(tmp_path)
+
+        assert isinstance(codec, HybridSpihtCodec)
+        assert codec.name == "ppg_hybrid_test"
+        assert codec.frame_size == 320
+
 
 # ── Golden deploy model card (integration) ────────────────────────
 

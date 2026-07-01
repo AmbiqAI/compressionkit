@@ -9,6 +9,7 @@ nav = [
   { "Overview" = [
     { "Home" = "index.md" },
     { "Use Cases" = "use-cases.md" },
+    { "Customer Evidence" = "customer-evidence.md" },
     { "Getting Started" = "getting-started.md" },
     { "Dataset Setup" = "datasets.md" },
     { "Example Notebooks" = "examples.md" },

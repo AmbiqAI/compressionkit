@@ -94,7 +94,7 @@ def _validate_reference_vectors(
 
     codec = load_codec(deploy_dir)
     blob = np.load(ref_path)
-    if family == "spiht":
+    if family in {"spiht", "hybrid"}:
         frames = np.asarray(blob[SampleArray.INPUT_FRAMES], dtype=np.float32)
         payloads = np.asarray(blob["bitstreams"], dtype=np.uint8)
         lengths = np.asarray(blob["bitstream_lengths_bytes"], dtype=np.int32)
@@ -105,12 +105,12 @@ def _validate_reference_vectors(
             actual = np.frombuffer(bytes(encoded.payload), dtype=np.uint8)
             expected = payloads[idx, : lengths[idx]]
             if encoded.nbits != int(nbits[idx]):
-                errors.append(f"SPIHT reference nbits mismatch at sample {idx}")
+                errors.append(f"{family.upper()} reference nbits mismatch at sample {idx}")
             if actual.shape != expected.shape or not np.array_equal(actual, expected):
-                errors.append(f"SPIHT reference bitstream mismatch at sample {idx}")
+                errors.append(f"{family.upper()} reference bitstream mismatch at sample {idx}")
             decoded = codec.decompress(encoded)
             if not np.allclose(decoded, recon[idx], atol=1e-6):
-                errors.append(f"SPIHT reference reconstruction mismatch at sample {idx}")
+                errors.append(f"{family.upper()} reference reconstruction mismatch at sample {idx}")
         return
 
     if family == "rvq":
@@ -181,6 +181,13 @@ def validate_deploy_package(
     family_required: dict[str, list[str]] = {
         "rvq": ["encoder.tflite", "codebook.npz", "codebook.h"],
         "spiht": ["sample_stimulus.npz", "reference_vectors.npz", "spiht_app_config.h"],
+        "hybrid": [
+            "sample_stimulus.npz",
+            "reference_vectors.npz",
+            "spiht_app_config.h",
+            "denoiser_gain_model.keras",
+            "hybrid_manifest.json",
+        ],
     }
     for rel in family_required.get(family, []):
         _check_file(root, rel, checked_files, errors, warnings, required=True, label=f"required {family} artifact")
@@ -188,6 +195,14 @@ def validate_deploy_package(
     release_extras: dict[str, list[str]] = {
         "rvq": ["model_card.json", "README.md", "scorecard.json", "reference_vectors.npz", "sample_data.npz"],
         "spiht": ["model_card.json", "README.md", "scorecard.json", "reference_vectors.npz", "sample_stimulus.npz"],
+        "hybrid": [
+            "model_card.json",
+            "README.md",
+            "scorecard.json",
+            "reference_vectors.npz",
+            "sample_stimulus.npz",
+            "denoiser_train_config.json",
+        ],
     }
     for rel in release_extras.get(family, ["model_card.json", "README.md", "scorecard.json", "reference_vectors.npz"]):
         _check_file(root, rel, checked_files, errors, warnings, required=strict_release, label="release artifact")
