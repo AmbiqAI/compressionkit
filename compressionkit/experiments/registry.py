@@ -1,9 +1,9 @@
 """Golden experiment registry — Pydantic model and v1 entries.
 
-The :data:`GOLDEN_REGISTRY` is the canonical list of v1 release-grade
-runs. Each :class:`GoldenExperiment` declares everything a user (or the
-lifecycle runner in :mod:`compressionkit.experiments.runner`) needs to
-reproduce it from a clean checkout:
+The :data:`GOLDEN_REGISTRY` is the canonical list of v1 published bundles
+and local comparison lanes. Each :class:`GoldenExperiment` declares what a
+user (or the lifecycle runner in :mod:`compressionkit.experiments.runner`)
+needs to reproduce it from a clean checkout:
 
 * ``experiment_id`` — slug used on the CLI (``compressionkit golden run <id>``).
 * ``modality`` — ``"ppg"`` or ``"ecg"`` (extensible to future signals).
@@ -16,17 +16,18 @@ reproduce it from a clean checkout:
 * ``config_path`` — YAML config path, relative to the repository root.
 * ``run_name`` — ``{modality}_{method}_{sample_rate}hz_{cr:02d}x_golden``
   (matches AGENTS.md naming; ``method="rvq"`` preserves the historical infix).
-* ``hf_repo_id`` — ``Ambiq/compressionkit-{modality}-{cr}x`` for the default
-  RVQ family (back-compat), ``Ambiq/compressionkit-{modality}-{method}-{cr}x`` otherwise.
+* ``hf_repo_id`` — reserved publication target. The v1 public bundles are RVQ;
+    SPIHT, hybrid, and two-stage entries are local comparison/package lanes until
+    they are promoted to a public HuggingFace surface.
 * ``dataset_id`` — short, stable identifier consumed by the dataset
   acquisition contract (#26).
 * ``expected_metrics`` — optional, frozen scorecard summary populated
     once a golden run is published.
 
-The registry is intentionally the owning abstraction for the v1 golden
-matrix. If a modality / method / CR operating point is considered part of
-the official golden surface, it should exist here even if its deploy
-artifacts still need to be regenerated.
+The registry is intentionally the owning abstraction for the v1 golden matrix.
+If a modality / method / CR operating point is part of the published surface or
+the standardized comparison evidence, it should exist here even if its deploy
+artifacts still need to be regenerated locally.
 """
 
 from __future__ import annotations
@@ -347,7 +348,7 @@ def _ecg_hybrid(cr: int) -> GoldenExperiment:
     )
 
 
-# v1 golden codec experiments. Two-stage paired entries land via #27.
+# v1 golden codec experiments and local comparison lanes.
 GOLDEN_REGISTRY: list[GoldenExperiment] = [
     *(_ppg_codec(cr) for cr in _PPG_GOLDEN_CRS),
     *(_ecg_codec(cr) for cr in _ECG_GOLDEN_CRS),

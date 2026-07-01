@@ -59,7 +59,12 @@ datasets/
 │   └── *.h5
 ├── mesa-commercial-use/   # PPG · MESA (NSRR, restricted)
 │   └── polysomnography/edfs/*.edf
-├── ppg_cache/             # Generated TFRecord cache (built once)
+├── ppg_cache_strict_sanitize/  # Generated PPG v1 golden cache (built once)
+│   ├── bidmc/{train,val}.tfrecord
+│   ├── butppg/{train,val}.tfrecord
+│   ├── ppg_dalia/{train,val}.tfrecord
+│   └── wesad/{train,val}.tfrecord
+├── ppg_cache/             # Optional ad hoc PPG caches
 └── ecg_tfrecord_cache/    # Generated TFRecord cache (built once)
 ```
 
@@ -98,21 +103,53 @@ The remaining sources are openly available:
     The v1 PPG goldens train on `bidmc`, `butppg`, `ppg_dalia`, and `wesad`
     so they can be reproduced without restricted data.
 
+### Download or prepare the open PPG sources
+
+Install the ingestion helpers, then fetch or convert each open source into the
+canonical `datasets/<slug>/*.h5` layout. The download scripts accept `--limit`
+for a smoke test before a full pull.
+
+```bash
+uv sync --group ingest
+
+# Optional smoke tests first.
+uv run python scripts/datasets/download_bidmc.py --limit 3
+uv run python scripts/datasets/download_butppg.py --limit 5
+uv run python scripts/datasets/download_ppg_dalia.py --limit 2
+uv run python scripts/datasets/download_wesad.py --limit 2
+
+# Full source preparation for the v1 PPG golden cache.
+uv run python scripts/datasets/download_bidmc.py
+uv run python scripts/datasets/download_butppg.py
+uv run python scripts/datasets/download_ppg_dalia.py
+uv run python scripts/datasets/download_wesad.py
+```
+
+If a source is already present, the scripts skip work or reuse existing files
+where possible. Keep each source under the same root selected by
+`COMPRESSIONKIT_DATASETS_DIR`.
+
 ### Build the PPG cache
 
 Each source is cached once into TFRecords, then any combination can be mixed
 during training:
 
 ```bash
-# Build the open sources used by the v1 PPG goldens.
+# Build the exact open-source cache expected by the v1 PPG goldens.
 uv run python scripts/build_ppg_cache.py \
-    --sources bidmc butppg ppg_dalia wesad
+  --sources bidmc butppg ppg_dalia wesad \
+  --cache-root datasets/ppg_cache_strict_sanitize
 
 # Custom locations (otherwise resolved from COMPRESSIONKIT_DATASETS_DIR).
 uv run python scripts/build_ppg_cache.py --sources bidmc \
     --datasets-root /data/datasets \
-    --cache-root /data/ppg_cache
+  --cache-root /data/ppg_cache_strict_sanitize
 ```
+
+The golden runner checks for `train.tfrecord`, `val.tfrecord`, and
+`metadata.json` under each required source directory. If the cache is missing,
+`compressionkit golden run ppg-rvq-8x` fails early with the same build command
+instead of failing deep in training.
 
 ## Bring your own data
 

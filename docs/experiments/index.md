@@ -4,24 +4,27 @@ icon: lucide/flask-conical
 
 # Golden Experiments
 
-A **golden experiment** is a release-grade run that ships with compressionKIT for v1.
-Each entry is fully declarative: a source-controlled config or fully declared DSP
-operating point, a registered runner path, and a fixed dataset + HuggingFace repo target.
-The lifecycle runner (`compressionkit golden run <id>`) reproduces it end-to-end from a
-clean checkout.
+A **golden experiment** is either a published v1 bundle or a standardized local
+comparison lane. Each entry is fully declarative: a source-controlled config or
+fully declared DSP/hybrid operating point, a registered runner path, and a fixed
+dataset plus reserved publication target. The lifecycle runner
+(`compressionkit golden run <id>`) reproduces it end-to-end from a clean
+checkout once the required dataset is present.
 
 Three families exist:
 
 - **`codec` + `rvq`** — single-stage AI codec (encoder → RVQ → decoder).
 - **`codec` + `spiht`** — single-stage DSP codec with a fully declared operating point in the registry.
+- **`codec` + `hybrid`** — learned wavelet-gain denoiser feeding a SPIHT backend for noise/artifact comparisons.
 - **`two_stage`** — paired entropy prior on top of a parent codec. Trains a small
   causal-transformer prior over the codec's token stream and adds `prior_int8.tflite`
-  to a local deploy package. Prior-augmented bundles are reproducible today but are not
-  part of the published v1 HuggingFace packages yet.
+   to a local deploy package. Prior-augmented bundles are reproducible locally but are outside
+   the v1 HuggingFace bundle surface.
 
-For first-cut v1, ECG and PPG both carry a dual-family golden matrix: DSP SPIHT and AI RVQ
-at the chosen compression ratios. Use `compressionkit golden list --method rvq` or
-`compressionkit golden list --method spiht` to slice the registry by family.
+For first-cut v1, ECG and PPG publish RVQ bundles at the chosen compression
+ratios and keep SPIHT/hybrid lanes registered for standardized comparison. Use
+`compressionkit golden list --method rvq`, `--method spiht`, or `--method
+hybrid` to slice the registry by family.
 
 ## Choose the lightest path that answers your question
 
@@ -47,10 +50,10 @@ artifact.
 
 !!! info "Publication status"
     **Single-stage AI (RVQ) baselines are published** and downloadable from
-    HuggingFace today — those links resolve. **DSP (SPIHT), hybrid, and entropy-prior
-    variants are registered and reproducible** from their configs via
-    `compressionkit golden run <id>`, but their HuggingFace repos are **not yet
-    published**; the slugs shown are reserved targets.
+   HuggingFace today — those links resolve. **DSP (SPIHT), hybrid, and entropy-prior
+   variants are registered and reproducible locally** via
+   `compressionkit golden run <id>`, but they are outside the v1 HuggingFace
+   bundle surface; the slugs shown are reserved targets.
 
 ### AI Baselines
 
@@ -61,23 +64,23 @@ artifact.
 | [`ppg-rvq-8x`](ppg-rvq-8x.md) | PPG | codec | 8× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
 | [`ppg-rvq-16x`](ppg-rvq-16x.md) | PPG | codec | 16× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-16x`](https://huggingface.co/Ambiq/compressionkit-ppg-16x) |
 | [`ppg-rvq-32x`](ppg-rvq-32x.md) | PPG | codec | 32× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-32x) |
-| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `ppg-unified-strict-sanitize-v1` | pending (`Ambiq/compressionkit-ppg-4x`) |
-| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `ppg-unified-strict-sanitize-v1` | pending (`Ambiq/compressionkit-ppg-8x`) |
+| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `ppg-unified-strict-sanitize-v1` | local package (`Ambiq/compressionkit-ppg-4x`) |
+| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `ppg-unified-strict-sanitize-v1` | local package (`Ambiq/compressionkit-ppg-8x`) |
 | [`ecg-rvq-2x`](ecg-rvq-2x.md) | ECG | codec | 2× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-2x`](https://huggingface.co/Ambiq/compressionkit-ecg-2x) |
 | [`ecg-rvq-4x`](ecg-rvq-4x.md) | ECG | codec | 4× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
 | [`ecg-rvq-8x`](ecg-rvq-8x.md) | ECG | codec | 8× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
 | [`ecg-rvq-16x`](ecg-rvq-16x.md) | ECG | codec | 16× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-16x`](https://huggingface.co/Ambiq/compressionkit-ecg-16x) |
 | [`ecg-rvq-32x`](ecg-rvq-32x.md) | ECG | codec | 32× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-32x`](https://huggingface.co/Ambiq/compressionkit-ecg-32x) |
 | [`ecg-rvq-64x`](ecg-rvq-64x.md) | ECG | codec | 64× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-64x`](https://huggingface.co/Ambiq/compressionkit-ecg-64x) |
-| [`ecg-rvq-4x-prior`](ecg-rvq-4x-prior.md) | ECG | two_stage | 4× | ecg-rvq-4x | `ptb-xl` | pending (`Ambiq/compressionkit-ecg-4x`) |
-| [`ecg-rvq-8x-prior`](ecg-rvq-8x-prior.md) | ECG | two_stage | 8× | ecg-rvq-8x | `ptb-xl` | pending (`Ambiq/compressionkit-ecg-8x`) |
+| [`ecg-rvq-4x-prior`](ecg-rvq-4x-prior.md) | ECG | two_stage | 4× | ecg-rvq-4x | `ptb-xl` | local package (`Ambiq/compressionkit-ecg-4x`) |
+| [`ecg-rvq-8x-prior`](ecg-rvq-8x-prior.md) | ECG | two_stage | 8× | ecg-rvq-8x | `ptb-xl` | local package (`Ambiq/compressionkit-ecg-8x`) |
 
 ### DSP Baselines
 
-These operating points are registered and reproducible today; their HuggingFace
-repos are **not yet published** (slugs reserved).
+These operating points are registered and reproducible today; they are local
+comparison lanes outside the v1 HuggingFace bundle surface (slugs reserved).
 
-| Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace (pending) |
+| Experiment | Modality | Family | CR | Parent | Dataset | Reserved target |
 |------------|----------|--------|----|--------|---------|-----------------------|
 | `ppg-spiht-2x` | PPG | codec | 2× | — | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-spiht-2x` |
 | `ppg-spiht-4x` | PPG | codec | 4× | — | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-spiht-4x` |
@@ -90,6 +93,25 @@ repos are **not yet published** (slugs reserved).
 | `ecg-spiht-16x` | ECG | codec | 16× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-16x` |
 | `ecg-spiht-32x` | ECG | codec | 32× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-32x` |
 | `ecg-spiht-64x` | ECG | codec | 64× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-64x` |
+
+### Hybrid Comparison Lanes
+
+Hybrid lanes pair a learned wavelet-gain denoiser with the SPIHT backend. They
+are local comparison runs outside the v1 HuggingFace bundle surface.
+
+| Experiment | Modality | Family | CR | Dataset | Reserved target |
+|------------|----------|--------|----|---------|-----------------|
+| `ppg-hybrid-2x` | PPG | codec | 2× | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-hybrid-2x` |
+| `ppg-hybrid-4x` | PPG | codec | 4× | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-hybrid-4x` |
+| `ppg-hybrid-8x` | PPG | codec | 8× | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-hybrid-8x` |
+| `ppg-hybrid-16x` | PPG | codec | 16× | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-hybrid-16x` |
+| `ppg-hybrid-32x` | PPG | codec | 32× | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-hybrid-32x` |
+| `ecg-hybrid-2x` | ECG | codec | 2× | `ptb-xl` | `Ambiq/compressionkit-ecg-hybrid-2x` |
+| `ecg-hybrid-4x` | ECG | codec | 4× | `ptb-xl` | `Ambiq/compressionkit-ecg-hybrid-4x` |
+| `ecg-hybrid-8x` | ECG | codec | 8× | `ptb-xl` | `Ambiq/compressionkit-ecg-hybrid-8x` |
+| `ecg-hybrid-16x` | ECG | codec | 16× | `ptb-xl` | `Ambiq/compressionkit-ecg-hybrid-16x` |
+| `ecg-hybrid-32x` | ECG | codec | 32× | `ptb-xl` | `Ambiq/compressionkit-ecg-hybrid-32x` |
+| `ecg-hybrid-64x` | ECG | codec | 64× | `ptb-xl` | `Ambiq/compressionkit-ecg-hybrid-64x` |
 
 ## Validate an existing deploy package
 
@@ -112,6 +134,9 @@ uv run compressionkit golden run ppg-rvq-4x
 
 # DSP goldens use the same lifecycle entry point.
 uv run compressionkit golden run ppg-spiht-4x
+
+# Hybrid comparison lanes use it too.
+uv run compressionkit golden run ppg-hybrid-8x
 
 # 2. Real run, publish to HuggingFace (set HF_TOKEN first).
 uv run compressionkit golden run ppg-rvq-4x --publish
@@ -146,8 +171,10 @@ custom experiment.
 ```bash
 uv run compressionkit golden run-all --modality ppg --method rvq
 uv run compressionkit golden run-all --modality ppg --method spiht
+uv run compressionkit golden run-all --modality ppg --method hybrid
 uv run compressionkit golden run-all --modality ecg --method rvq
 uv run compressionkit golden run-all --modality ecg --method spiht
+uv run compressionkit golden run-all --modality ecg --method hybrid
 ```
 
 See also:

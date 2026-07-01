@@ -62,9 +62,9 @@ _PPG_UNIFIED_STRICT_SANITIZE_INFO = DatasetInfo(
         "Strict-sanitized unified 64 Hz PPG cache used by the faithful v1 PPG goldens "
         "(bidmc, butppg, ppg_dalia, wesad)."
     ),
-    license="mixed/restricted",
-    license_tier="restricted",
-    requires_agreement=True,
+    license="mixed/open-source terms",
+    license_tier="open",
+    requires_agreement=False,
 )
 
 
@@ -86,7 +86,7 @@ class UnifiedPpgCacheDataset:
                     missing.append(str(candidate))
         if missing:
             remediation = (
-                "python scripts/build_ppg_cache.py --sources bidmc butppg ppg_dalia wesad "
+                "uv run python scripts/build_ppg_cache.py --sources bidmc butppg ppg_dalia wesad "
                 "--cache-root datasets/ppg_cache_strict_sanitize"
             )
             raise DatasetNotAvailableError(

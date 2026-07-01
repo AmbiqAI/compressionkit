@@ -46,7 +46,7 @@ def _print_table(modality: GoldenModality | None, method: GoldenMethod | None) -
     print(header)
     print("-" * len(header))
     for exp in rows:
-        config_path_str = str(exp.config_path)
+        config_path_str = str(exp.config_path) if exp.config_path is not None else "—"
         print(
             f"{exp.experiment_id:16s}  {exp.modality:8s}  {exp.method:8s}  {exp.family:9s}  "
             f"{exp.compression_ratio:>3d}  {config_path_str:45s}  {exp.hf_repo_id}"

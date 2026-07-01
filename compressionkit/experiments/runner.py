@@ -5,16 +5,18 @@ Single entry point that drives a registered golden experiment through:
 1. **Config load** — read the recipe's Pydantic config (for trainable
     methods) or select the dedicated evaluator script for DSP-only SPIHT.
 2. **Build + evaluate + export** — for ``method == "rvq"`` this invokes
-    the registered training recipe; for ``method == "spiht"`` it shells
-    out to the modality-specific golden evaluator so SPIHT runs emit the
-    same run-level artifacts as RVQ (``summary.json``, ``sample_*.csv``,
-    ``quality_scorecard.json``, and ``deploy/``).
+    the registered training recipe; for ``method == "spiht"`` or
+    ``method == "hybrid"`` it shells out to the modality-specific evaluator
+    so comparison lanes emit the same run-level artifacts as RVQ
+    (``summary.json``, ``sample_*.csv``, ``quality_scorecard.json``, and
+    ``deploy/``).
 3. **HuggingFace publish (optional)** — shell out to
     :mod:`scripts.publish_to_huggingface` to upload the deploy package
     to ``hf_repo_id``.
 
-Dataset acquisition is currently a manual prerequisite. The contract
-that makes ingestion fully runner-driven is tracked in #26.
+Dataset acquisition is still an explicit user step, but the runner performs a
+pre-flight availability check and reports the remediation command before
+training or evaluation begins.
 """
 
 from __future__ import annotations
@@ -57,7 +59,20 @@ def _resolve_run_dir(experiment: GoldenExperiment, results_root: Path) -> Path:
     return results_root / experiment.run_name
 
 
-def _build_spiht(experiment: GoldenExperiment, run_dir: Path) -> dict[str, object]:
+def _dataset_args(experiment: GoldenExperiment, datasets_root: Path | None) -> list[str]:
+    if datasets_root is None:
+        return []
+    if experiment.modality == "ppg":
+        return ["--cache-root", str(datasets_root / "ppg_cache_strict_sanitize")]
+    return ["--datasets-dir", str(datasets_root)]
+
+
+def _build_spiht(
+    experiment: GoldenExperiment,
+    run_dir: Path,
+    *,
+    datasets_root: Path | None,
+) -> dict[str, object]:
     """Run the modality-specific SPIHT golden evaluator.
 
     The evaluator scripts are the source of truth for DSP-only goldens because
@@ -80,12 +95,42 @@ def _build_spiht(experiment: GoldenExperiment, run_dir: Path) -> dict[str, objec
         experiment.experiment_id,
         "--results-root",
         str(run_dir.parent),
+        *_dataset_args(experiment, datasets_root),
     ]
     logger.info("Running SPIHT golden evaluator for %s via %s", experiment.experiment_id, script_path)
     result = subprocess.run(cmd, check=False)
     if result.returncode != 0:
         raise RuntimeError(
             f"SPIHT golden evaluator failed for {experiment.experiment_id!r} with exit code {result.returncode}"
+        )
+    return {
+        "command": cmd,
+        "deploy_dir": str(run_dir / "deploy"),
+    }
+
+
+def _build_hybrid(
+    experiment: GoldenExperiment,
+    run_dir: Path,
+    *,
+    datasets_root: Path | None,
+) -> dict[str, object]:
+    """Run the hybrid golden evaluator for learned-denoiser + SPIHT lanes."""
+    script_path = Path("scripts/run_hybrid_golden.py")
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--experiment-id",
+        experiment.experiment_id,
+        "--results-root",
+        str(run_dir.parent),
+        *_dataset_args(experiment, datasets_root),
+    ]
+    logger.info("Running hybrid golden evaluator for %s via %s", experiment.experiment_id, script_path)
+    result = subprocess.run(cmd, check=False)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Hybrid golden evaluator failed for {experiment.experiment_id!r} with exit code {result.returncode}"
         )
     return {
         "command": cmd,
@@ -161,10 +206,10 @@ def run_golden(
     """Run a single golden experiment end-to-end.
 
     For trainable methods (``method == "rvq"``) this delegates to the
-    registered recipe. For DSP-only methods (``method == "spiht"``) it
-    instantiates the codec directly and writes a weightless deploy
-    package. For ``two_stage`` experiments the parent codec is trained
-    first (unless already on disk or ``skip_parent`` is set), then the
+    registered recipe. For local comparison lanes (``method == "spiht"`` or
+    ``method == "hybrid"``), it invokes the corresponding evaluator script and
+    writes a deploy package. For ``two_stage`` experiments the parent codec is
+    trained first (unless already on disk or ``skip_parent`` is set), then the
     prior is trained against the parent's run directory.
 
     Args:
@@ -195,13 +240,26 @@ def run_golden(
     parent_trained = False
     prior_summary: dict[str, object] | None = None
     spiht_summary: dict[str, object] | None = None
+    hybrid_summary: dict[str, object] | None = None
     trained = False
 
     if not skip_train:
+        if not skip_dataset_check:
+            from compressionkit.datasets.contract import ensure_dataset_available
+
+            root = Path(datasets_root) if datasets_root is not None else None
+            ensure_dataset_available(experiment.dataset_id, root=root)
+
         # DSP-only SPIHT path: no dataset / recipe needed, just build + export.
         if experiment.method == "spiht":
             run_dir.mkdir(parents=True, exist_ok=True)
-            spiht_summary = _build_spiht(experiment, run_dir)
+            root = Path(datasets_root) if datasets_root is not None else None
+            spiht_summary = _build_spiht(experiment, run_dir, datasets_root=root)
+            trained = True
+        elif experiment.method == "hybrid":
+            run_dir.mkdir(parents=True, exist_ok=True)
+            root = Path(datasets_root) if datasets_root is not None else None
+            hybrid_summary = _build_hybrid(experiment, run_dir, datasets_root=root)
             trained = True
         else:
             if experiment.config_path is None or not experiment.config_path.is_file():
@@ -210,12 +268,6 @@ def run_golden(
                 raise ValueError(
                     f"experiment {experiment.experiment_id!r} has method={experiment.method!r} but no recipe declared"
                 )
-            if not skip_dataset_check:
-                from compressionkit.datasets.contract import ensure_dataset_available
-
-                root = Path(datasets_root) if datasets_root is not None else None
-                ensure_dataset_available(experiment.dataset_id, root=root)
-
             if experiment.family == "two_stage":
                 assert experiment.parent is not None  # validator enforces this
                 parent_exp = get_golden(experiment.parent)
@@ -282,6 +334,8 @@ def run_golden(
         summary["prior_summary"] = prior_summary
     if experiment.method == "spiht":
         summary["spiht_build"] = spiht_summary
+    if experiment.method == "hybrid":
+        summary["hybrid_build"] = hybrid_summary
     return summary
 
 
