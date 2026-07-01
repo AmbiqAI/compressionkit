@@ -4,7 +4,9 @@ icon: lucide/heart-pulse
 
 # ECG Models (v1.0)
 
-Golden reference models for ECG compression, trained on the PTB-XL dataset at 256 Hz (Lead II).
+ECG release artifacts and comparison lanes at 256 Hz using PTB-XL Lead II. The
+published HuggingFace bundles are RVQ neural codecs; the local golden registry
+also includes SPIHT DSP and hybrid AI+DSP lanes for standardized comparison.
 
 !!! tip "Per-experiment reproduction pages"
     Each entry has a dedicated [experiment page](../experiments/index.md):
@@ -17,7 +19,10 @@ Golden reference models for ECG compression, trained on the PTB-XL dataset at 25
     Two-stage variants: [`ecg-rvq-4x-prior`](../experiments/ecg-rvq-4x-prior.md) ·
     [`ecg-rvq-8x-prior`](../experiments/ecg-rvq-8x-prior.md).
 
-## Results Summary
+## Published RVQ results
+
+The table below summarizes the published RVQ bundles. These are the v1 packages
+available through HuggingFace and the runtime loader.
 
 | Model | Config | CR | PRD (%) | MSE | Cosine |
 |-------|--------|----|---------|-----|--------|
@@ -38,6 +43,39 @@ All metrics are on the validation set.
 
 ![ECG Cosine Similarity vs compression ratio](../assets/plots/ecg_cos_light.png#only-light)
 ![ECG Cosine Similarity vs compression ratio](../assets/plots/ecg_cos_dark.png#only-dark)
+
+## Codec tradeoffs under noise and artifacts
+
+ECG has three release-facing comparison lanes:
+
+| Lane | Role | Current publication status |
+|------|------|----------------------------|
+| **SPIHT** | DSP faithfulness baseline; very strong on clean low-CR ECG morphology | Registered and reproducible locally; HuggingFace publication pending |
+| **RVQ** | Published neural codec bundles; compact learned representation with ECG morphology scorecards | Published for 2x, 4x, 8x, 16x, 32x, and 64x |
+| **Hybrid** | Learned denoising front end with a SPIHT backend; designed for empirical-noise and artifact regimes | Registered and reproducible locally; HuggingFace publication pending |
+
+The robustness sweep scores each lane against a filtered clean-truth proxy after
+injecting empirical noise or additive ECG artifact families. Lower PRD is better.
+This complements the validation-set RVQ table above: clean-frame faithfulness and
+recoverable morphology under noisy wearable conditions are different questions.
+
+| Condition family | Current ECG crossover pattern |
+|------------------|-------------------------------|
+| **Clean input** | SPIHT wins at 2x-16x; RVQ wins at 32x-64x in the current robustness fixture. |
+| **Native / empirical SNR ladder** | Hybrid wins native conditions through 32x. RVQ is strongest at high-SNR injected noise; hybrid takes over as SNR falls, with the crossover moving by CR. |
+| **Additive artifacts** | Hybrid wins most colored, lead-off, motion, and weak-leak cells. RVQ wins mains interference at 16x-64x and motion at 64x in the current fixture. |
+| **Morphology checks** | SPIHT is strongest on clean 2x-8x morphology probes; RVQ remains close but is the published neural deployment surface. |
+
+![ECG robustness winners across SNR](../assets/plots/ecg_robustness_winners_snr.png)
+
+![ECG robustness winners across artifacts](../assets/plots/ecg_robustness_winners_artifacts.png)
+
+The practical read is that SPIHT is a strong clean ECG baseline, RVQ gives the
+published neural CR ladder, and hybrid lanes are most useful when the input is
+closer to wearable ECG with empirical noise or contact artifacts. See
+[ECG CR vs fidelity](../methods/cr_vs_fidelity_ecg.md) and
+[Validation Scorecard](../validation-scorecard.md) for the detailed scorecard
+definitions and noise-aware metrics.
 
 ## Model Details
 
