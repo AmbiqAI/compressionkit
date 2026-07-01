@@ -6,7 +6,8 @@ authors = [
     {name = "Ambiq AI", email = "support.aitg@ambiq.com"},
 ]
 readme = "README.md"
-license = {text = "Proprietary"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "LICENSE-MODEL-WEIGHTS.md"]
 requires-python = ">=3.12,<3.13"
 
 dependencies = [

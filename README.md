@@ -8,7 +8,7 @@ The toolkit is built around reusable codec blocks rather than one fixed architec
 
 [![Docs](https://img.shields.io/badge/docs-ambiqai.github.io-blue)](https://ambiqai.github.io/compressionkit/)
 [![HuggingFace](https://img.shields.io/badge/HF-Ambiq%2Fcompressionkit--*-yellow)](https://huggingface.co/Ambiq)
-[![License](https://img.shields.io/badge/license-Ambiq%20Silicon%20Only-green)](LICENSE-MODEL-WEIGHTS.md)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 
 > **Pre-v1.** APIs, configs, and release conventions may shift on major versions until v1.
 
@@ -162,4 +162,4 @@ uv run pytest tests/ -ra
 
 ## License
 
-Apache 2.0. Model weights and published bundles may carry additional Ambiq model-weight terms; see [LICENSE-MODEL-WEIGHTS.md](LICENSE-MODEL-WEIGHTS.md).
+Source code is licensed under the [BSD 3-Clause License](LICENSE). Model weights, codebooks, and published deployment artifacts may carry additional Ambiq model-weight terms; see [LICENSE-MODEL-WEIGHTS.md](LICENSE-MODEL-WEIGHTS.md).
