@@ -88,6 +88,26 @@ def _ensure_deploy_manifest(deploy_dir: Path) -> None:
             shutil.copyfile(config_path, manifest_path)
 
 
+def _ensure_alias(deploy_dir: Path, source_name: ArtifactFile, alias_name: ArtifactFile) -> None:
+    source_path = deploy_dir / source_name
+    alias_path = deploy_dir / alias_name
+    if not source_path.exists() or alias_path.exists():
+        return
+    try:
+        alias_path.symlink_to(source_path.name)
+    except OSError:
+        import shutil
+
+        shutil.copyfile(source_path, alias_path)
+
+
+def _ensure_rvq_hf_aliases(deploy_dir: Path) -> None:
+    """Create local deploy names for RVQ HuggingFace snapshots when needed."""
+    _ensure_alias(deploy_dir, ArtifactFile.ENCODER_INT8_HF_TFLITE, ArtifactFile.ENCODER_TFLITE)
+    _ensure_alias(deploy_dir, ArtifactFile.DECODER_INT8_HF_TFLITE, ArtifactFile.DECODER_TFLITE)
+    _ensure_alias(deploy_dir, ArtifactFile.SAMPLE_STIMULUS, ArtifactFile.SAMPLE_DATA)
+
+
 def load_codec(repo_or_dir: str | Path) -> Codec:
     """Hydrate a codec from a local deploy directory or HF repo id.
 
@@ -106,6 +126,7 @@ def load_codec(repo_or_dir: str | Path) -> Codec:
     _ensure_deploy_manifest(deploy_dir)
 
     if family == "rvq":
+        _ensure_rvq_hf_aliases(deploy_dir)
         from compressionkit.runtime.codec import RVQCodec
 
         return RVQCodec(deploy_dir)

@@ -56,13 +56,13 @@ artifact.
 
 | Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace |
 |------------|----------|--------|----|--------|---------|-------------|
-| [`ppg-rvq-2x`](ppg-rvq-2x.md) | PPG | codec | 2× | — | `mesa` | [`Ambiq/compressionkit-ppg-2x`](https://huggingface.co/Ambiq/compressionkit-ppg-2x) |
-| [`ppg-rvq-4x`](ppg-rvq-4x.md) | PPG | codec | 4× | — | `mesa` | [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x) |
-| [`ppg-rvq-8x`](ppg-rvq-8x.md) | PPG | codec | 8× | — | `mesa` | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
-| [`ppg-rvq-16x`](ppg-rvq-16x.md) | PPG | codec | 16× | — | `mesa` | [`Ambiq/compressionkit-ppg-16x`](https://huggingface.co/Ambiq/compressionkit-ppg-16x) |
-| [`ppg-rvq-32x`](ppg-rvq-32x.md) | PPG | codec | 32× | — | `mesa` | [`Ambiq/compressionkit-ppg-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-32x) |
-| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `mesa` | pending (`Ambiq/compressionkit-ppg-4x`) |
-| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `mesa` | pending (`Ambiq/compressionkit-ppg-8x`) |
+| [`ppg-rvq-2x`](ppg-rvq-2x.md) | PPG | codec | 2× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-2x`](https://huggingface.co/Ambiq/compressionkit-ppg-2x) |
+| [`ppg-rvq-4x`](ppg-rvq-4x.md) | PPG | codec | 4× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x) |
+| [`ppg-rvq-8x`](ppg-rvq-8x.md) | PPG | codec | 8× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x) |
+| [`ppg-rvq-16x`](ppg-rvq-16x.md) | PPG | codec | 16× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-16x`](https://huggingface.co/Ambiq/compressionkit-ppg-16x) |
+| [`ppg-rvq-32x`](ppg-rvq-32x.md) | PPG | codec | 32× | — | `ppg-unified-strict-sanitize-v1` | [`Ambiq/compressionkit-ppg-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-32x) |
+| [`ppg-rvq-4x-prior`](ppg-rvq-4x-prior.md) | PPG | two_stage | 4× | ppg-rvq-4x | `ppg-unified-strict-sanitize-v1` | pending (`Ambiq/compressionkit-ppg-4x`) |
+| [`ppg-rvq-8x-prior`](ppg-rvq-8x-prior.md) | PPG | two_stage | 8× | ppg-rvq-8x | `ppg-unified-strict-sanitize-v1` | pending (`Ambiq/compressionkit-ppg-8x`) |
 | [`ecg-rvq-2x`](ecg-rvq-2x.md) | ECG | codec | 2× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-2x`](https://huggingface.co/Ambiq/compressionkit-ecg-2x) |
 | [`ecg-rvq-4x`](ecg-rvq-4x.md) | ECG | codec | 4× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x) |
 | [`ecg-rvq-8x`](ecg-rvq-8x.md) | ECG | codec | 8× | — | `ptb-xl` | [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x) |
@@ -79,11 +79,11 @@ repos are **not yet published** (slugs reserved).
 
 | Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace (pending) |
 |------------|----------|--------|----|--------|---------|-----------------------|
-| `ppg-spiht-2x` | PPG | codec | 2× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-2x` |
-| `ppg-spiht-4x` | PPG | codec | 4× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-4x` |
-| `ppg-spiht-8x` | PPG | codec | 8× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-8x` |
-| `ppg-spiht-16x` | PPG | codec | 16× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-16x` |
-| `ppg-spiht-32x` | PPG | codec | 32× | — | `mesa` | `Ambiq/compressionkit-ppg-spiht-32x` |
+| `ppg-spiht-2x` | PPG | codec | 2× | — | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-spiht-2x` |
+| `ppg-spiht-4x` | PPG | codec | 4× | — | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-spiht-4x` |
+| `ppg-spiht-8x` | PPG | codec | 8× | — | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-spiht-8x` |
+| `ppg-spiht-16x` | PPG | codec | 16× | — | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-spiht-16x` |
+| `ppg-spiht-32x` | PPG | codec | 32× | — | `ppg-unified-strict-sanitize-v1` | `Ambiq/compressionkit-ppg-spiht-32x` |
 | `ecg-spiht-2x` | ECG | codec | 2× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-2x` |
 | `ecg-spiht-4x` | ECG | codec | 4× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-4x` |
 | `ecg-spiht-8x` | ECG | codec | 8× | — | `ptb-xl` | `Ambiq/compressionkit-ecg-spiht-8x` |

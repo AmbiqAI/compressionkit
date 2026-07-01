@@ -16,7 +16,6 @@ import numpy as np
 
 from compressionkit.export.artifact_contract import ArtifactFile, SampleArray
 from compressionkit.export.release import sha256_file
-from compressionkit.runtime import load_codec
 
 __all__ = ["DeployValidationResult", "validate_deploy_package"]
 
@@ -90,6 +89,8 @@ def _validate_reference_vectors(
     if not ref_path.exists():
         warnings.append(f"{ArtifactFile.REFERENCE_VECTORS} not present")
         return
+
+    from compressionkit.runtime import load_codec
 
     codec = load_codec(deploy_dir)
     blob = np.load(ref_path)
@@ -193,6 +194,8 @@ def validate_deploy_package(
 
     if check_runtime:
         try:
+            from compressionkit.runtime import load_codec
+
             load_codec(root)
         except Exception as exc:
             errors.append(f"runtime hydration failed: {exc}")

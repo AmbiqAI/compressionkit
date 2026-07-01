@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -268,6 +270,43 @@ class TestFromPretrainedSymlinks:
 
         _ensure_symlink(tmp_path, "nonexistent.tflite", "encoder.tflite")
         assert not (tmp_path / "encoder.tflite").exists()
+
+
+class TestFamilyAgnosticLoader:
+    """Test HF compatibility aliases on the family-agnostic load_codec path."""
+
+    def test_load_codec_creates_rvq_hf_aliases(self, tmp_path, monkeypatch):
+        (tmp_path / "config.json").write_text(json.dumps({"family": "rvq", "spec": "codec_spec.json"}))
+        (tmp_path / "codec_spec.json").write_text(
+            json.dumps(
+                {
+                    "family": "rvq",
+                    "encoder": {"tflite": "encoder.tflite"},
+                    "decoder": {"int8_tflite": "decoder.tflite"},
+                    "codebook": {"npz": "codebook.npz"},
+                }
+            )
+        )
+        (tmp_path / "encoder_int8.tflite").write_bytes(b"encoder")
+        (tmp_path / "decoder_int8.tflite").write_bytes(b"decoder")
+        (tmp_path / "sample_stimulus.npz").write_bytes(b"samples")
+        (tmp_path / "codebook.npz").write_bytes(b"codebook")
+
+        class FakeRVQCodec:
+            def __init__(self, deploy_dir):
+                deploy_path = Path(deploy_dir)
+                assert (deploy_path / "deploy_manifest.json").exists()
+                assert (deploy_path / "encoder.tflite").exists()
+                assert (deploy_path / "decoder.tflite").exists()
+                assert (deploy_path / "sample_data.npz").exists()
+
+        fake_module = types.ModuleType("compressionkit.runtime.codec")
+        fake_module.RVQCodec = FakeRVQCodec
+        monkeypatch.setitem(sys.modules, "compressionkit.runtime.codec", fake_module)
+
+        from compressionkit.runtime import load_codec
+
+        assert isinstance(load_codec(tmp_path), FakeRVQCodec)
 
 
 # ── Golden deploy model card (integration) ────────────────────────
