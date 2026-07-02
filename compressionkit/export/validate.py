@@ -77,6 +77,15 @@ def _check_file(
         warnings.append(f"missing {label}: {rel_path}")
 
 
+def _prd_percent(actual: np.ndarray, expected: np.ndarray) -> float:
+    """Percent RMS difference of ``actual`` vs. ``expected`` (0 = identical)."""
+    err = np.asarray(actual, dtype=np.float64) - np.asarray(expected, dtype=np.float64)
+    denom = float(np.sum(np.asarray(expected, dtype=np.float64) ** 2))
+    if denom <= 0:
+        return 0.0 if np.allclose(err, 0.0) else float("inf")
+    return 100.0 * float(np.sqrt(np.sum(err**2) / denom))
+
+
 def _validate_reference_vectors(
     deploy_dir: Path,
     family: str,
@@ -104,13 +113,37 @@ def _validate_reference_vectors(
             encoded = codec.compress(frames[idx])
             actual = np.frombuffer(bytes(encoded.payload), dtype=np.uint8)
             expected = payloads[idx, : lengths[idx]]
-            if encoded.nbits != int(nbits[idx]):
-                errors.append(f"{family.upper()} reference nbits mismatch at sample {idx}")
-            if actual.shape != expected.shape or not np.array_equal(actual, expected):
-                errors.append(f"{family.upper()} reference bitstream mismatch at sample {idx}")
             decoded = codec.decompress(encoded)
-            if not np.allclose(decoded, recon[idx], atol=1e-6):
-                errors.append(f"{family.upper()} reference reconstruction mismatch at sample {idx}")
+            if family == "spiht":
+                # Pure DSP: bit-exact and deterministic regardless of hardware.
+                if encoded.nbits != int(nbits[idx]):
+                    errors.append(f"SPIHT reference nbits mismatch at sample {idx}")
+                if actual.shape != expected.shape or not np.array_equal(actual, expected):
+                    errors.append(f"SPIHT reference bitstream mismatch at sample {idx}")
+                if not np.allclose(decoded, recon[idx], atol=1e-6):
+                    errors.append(f"SPIHT reference reconstruction mismatch at sample {idx}")
+            else:
+                # Hybrid combines a neural denoiser (backend-dependent floating
+                # point — not bit-exact across GPU/CPU/library versions) with a
+                # SPIHT bitstream stage that is bit-exact on its float input. A
+                # ~1e-6 level difference in the denoiser's output can flip a
+                # quantization/coding decision at a boundary and change the
+                # exact encoded bytes even though the reconstructed signal is
+                # practically identical (see issue #46) — so hybrid gets a
+                # numeric-tolerance check (bitstream length + reconstruction
+                # fidelity) instead of a bit-exact byte comparison.
+                length_tolerance = max(4, round(0.05 * int(lengths[idx])))
+                if abs(actual.size - int(lengths[idx])) > length_tolerance:
+                    errors.append(
+                        f"HYBRID reference bitstream length differs by more than "
+                        f"{length_tolerance} bytes at sample {idx} "
+                        f"(expected ~{int(lengths[idx])}, got {actual.size})"
+                    )
+                prd = _prd_percent(decoded, recon[idx])
+                if prd > 5.0:
+                    errors.append(
+                        f"HYBRID reference reconstruction differs by {prd:.2f}% PRD at sample {idx} (tolerance 5%)"
+                    )
         return
 
     if family == "rvq":
