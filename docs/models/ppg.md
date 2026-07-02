@@ -203,7 +203,7 @@ from compressionkit.runtime import RVQCodec
 t = np.arange(320, dtype=np.float32) / 64.0
 signal = (0.6 * np.sin(2.0 * np.pi * 1.2 * t) + 0.1 * np.sin(2.0 * np.pi * 2.4 * t)).reshape(1, 1, 320, 1)
 
-codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x")
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x-v1.0")
 indices = codec.encode(signal.astype(np.float32))
 reconstruction = codec.decode(indices)
 ```

@@ -84,7 +84,7 @@ This is useful when the encoder runs on-device and the decoder runs elsewhere.
 
 ## HuggingFace Quickstart
 
-Published model repos follow the convention `Ambiq/compressionkit-{modality}-{cr}x`, for example `Ambiq/compressionkit-ppg-4x` or `Ambiq/compressionkit-ecg-8x`.
+Published model repos follow the convention `Ambiq/compressionkit-{modality}-{cr}x-{version}`, for example `Ambiq/compressionkit-ppg-4x-v1.0` or `Ambiq/compressionkit-ecg-8x-v1.0`.
 
 Install the optional Hub dependency:
 
@@ -110,7 +110,7 @@ def synthetic_ecg_frame(frame_size: int = 512, sample_rate: int = 256) -> np.nda
     return waveform.reshape(1, 1, frame_size, 1).astype(np.float32)
 
 
-codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x")
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x-v1.0")
 signal = synthetic_ecg_frame()
 
 indices = codec.encode(signal)

@@ -43,7 +43,7 @@ Load a published v1 codec and round-trip a frame. No training dataset is require
 import numpy as np
 from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-4x")
+codec = load_codec("Ambiq/compressionkit-ppg-4x-v1.0")
 
 frame = np.zeros(codec.frame_size, dtype=np.float32)  # replace with your signal frame
 encoded = codec.compress(frame)
@@ -57,7 +57,7 @@ For RVQ-specific workflows that need raw token indices:
 ```python
 from compressionkit.runtime import RVQCodec
 
-codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x")
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x-v1.0")
 indices = codec.encode(signal)
 reconstructed = codec.decode(indices)
 ```
@@ -96,7 +96,7 @@ Choose the lightest path that answers your question:
 
 | Goal | Command or API | Dataset required? |
 |------|----------------|-------------------|
-| Try a published codec | `load_codec("Ambiq/compressionkit-ppg-4x")` | No |
+| Try a published codec | `load_codec("Ambiq/compressionkit-ppg-4x-v1.0")` | No |
 | Validate a local deploy package | `uv run compressionkit golden validate-deploy results/.../deploy` | No |
 | Stage a HuggingFace package | `uv run compressionkit golden run <id> --skip-train --publish --dry-run` | No, if `deploy/` exists |
 | Reproduce a golden run | `uv run compressionkit golden run <id>` | Yes |

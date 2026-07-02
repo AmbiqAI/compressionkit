@@ -5,18 +5,18 @@ Usage::
     # Publish from a golden deploy directory
     python scripts/publish_to_huggingface.py \\
         --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
-        --repo-id Ambiq/compressionkit-ppg-4x
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.0
 
     # With a quality scorecard
     python scripts/publish_to_huggingface.py \\
         --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
-        --repo-id Ambiq/compressionkit-ppg-4x \\
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \\
         --scorecard results/ppg_rvq_64hz_04x_golden/quality_scorecard.json
 
     # Dry run (generate model card only, don't upload)
     python scripts/publish_to_huggingface.py \\
         --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
-        --repo-id Ambiq/compressionkit-ppg-4x \\
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \\
         --dry-run
 
 Requires ``HF_TOKEN`` environment variable or ``huggingface-cli login``.
@@ -112,7 +112,7 @@ def publish(
 
     Args:
         deploy_dir: Path to deployment directory with ``deploy_manifest.json``.
-        repo_id: HuggingFace repo ID (e.g. ``Ambiq/compressionkit-ppg-4x``).
+        repo_id: HuggingFace repo ID (e.g. ``Ambiq/compressionkit-ppg-4x-v1.0``).
         scorecard_path: Optional path to ``quality_scorecard.json``.
         license_id: SPDX license ID for the model card.
         private: Whether to create a private repo.
@@ -226,7 +226,7 @@ def main() -> None:
         "--repo-id",
         type=str,
         required=True,
-        help="HuggingFace repo ID (e.g. Ambiq/compressionkit-ppg-4x).",
+        help="HuggingFace repo ID (e.g. Ambiq/compressionkit-ppg-4x-v1.0).",
     )
     parser.add_argument(
         "--scorecard",
