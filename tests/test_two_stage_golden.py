@@ -14,7 +14,7 @@ from compressionkit.experiments.registry import (
 )
 from compressionkit.recipes import get_recipe
 
-_TWO_STAGE_EXPERIMENTS = [exp for exp in GOLDEN_REGISTRY if exp.family == "two_stage"]
+_TWO_STAGE_EXPERIMENTS = [exp for exp in GOLDEN_REGISTRY if exp.structure == "two_stage"]
 
 
 def test_two_stage_entries_registered() -> None:
@@ -26,7 +26,7 @@ def test_two_stage_entries_registered() -> None:
 def test_two_stage_entry_invariants(exp) -> None:
     # Parent exists and is a codec.
     parent = get_golden(exp.parent)
-    assert parent.family == "codec"
+    assert parent.structure == "codec"
     assert parent.modality == exp.modality
     assert parent.compression_ratio == exp.compression_ratio
     # Bundled HF repo: same as parent codec.

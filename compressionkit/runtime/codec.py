@@ -18,6 +18,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import re
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +26,26 @@ import numpy as np
 from compressionkit.export.artifact_contract import ArtifactFile
 
 logger = logging.getLogger(__name__)
+
+# Legacy deploy manifests (e.g. HuggingFace bundles published before the
+# artifact-contract additions) carry no top-level ``modality``/``sample_rate``/
+# ``compression_ratio`` fields. Model/run names follow a stable
+# ``{modality}_..._{rate}hz_{cr}x_...`` convention (e.g.
+# ``ppg_rvq_64hz_04x_golden``), so we parse those as a last-resort fallback.
+_NAME_OPERATING_POINT_RE = re.compile(r"^(?P<modality>ppg|ecg)_.*?_(?P<rate>\d+(?:\.\d+)?)hz_(?P<cr>\d+(?:\.\d+)?)x")
+
+
+def _parse_operating_point_from_name(name: str) -> dict[str, str | float | None]:
+    """Best-effort ``modality``/``sample_rate``/``compression_ratio`` from a model/run name."""
+    match = _NAME_OPERATING_POINT_RE.match(name)
+    if not match:
+        return {"modality": None, "sample_rate": None, "compression_ratio": None}
+    return {
+        "modality": match.group("modality"),
+        "sample_rate": float(match.group("rate")),
+        "compression_ratio": float(match.group("cr")),
+    }
+
 
 # Try ai-edge-litert first, then tflite-runtime, then tf.lite
 _Interpreter = None
@@ -138,6 +159,11 @@ class RVQCodec:
             self._num_embeddings,
             self._embedding_dim,
         )
+
+        # Fallback hints for legacy manifests missing modality/sample_rate/
+        # compression_ratio at the top level (see _parse_operating_point_from_name).
+        name_for_parsing = str(self._manifest.get("model_name") or self._spec.get("run_name") or "")
+        self._name_hints = _parse_operating_point_from_name(name_for_parsing)
 
     def _load_codec_spec(self) -> dict:
         spec_name = self._manifest.get("spec", "codec_spec.json")
@@ -395,13 +421,18 @@ class RVQCodec:
 
     @property
     def modality(self) -> str:
-        """``"ppg"`` or ``"ecg"`` (from codec spec / manifest)."""
-        return str(self._spec.get("modality") or self._manifest.get("modality") or "unknown")
+        """``"ppg"`` or ``"ecg"`` (from codec spec / manifest, falling back to the model name)."""
+        value = self._spec.get("modality") or self._manifest.get("modality") or self._name_hints["modality"]
+        return str(value or "unknown")
 
     @property
     def sample_rate(self) -> int:
-        """Sample rate in Hz (from codec spec / manifest; ``0`` if unknown)."""
-        return int(self._spec.get("sample_rate") or self._manifest.get("sample_rate", 0) or 0)
+        """Sample rate in Hz (from codec spec / manifest, falling back to the model name; ``0`` if unknown)."""
+        value = self._spec.get("sample_rate") or self._manifest.get("sample_rate") or self._name_hints["sample_rate"]
+        # round() rather than int() truncation: the legacy-name regex allows decimal
+        # rates (e.g. a hypothetical "44.1hz") and truncating would silently produce
+        # the wrong integer Hz value for anything with a fractional part >= 0.5.
+        return round(value) if value else 0
 
     @property
     def frame_size(self) -> int:
@@ -414,8 +445,13 @@ class RVQCodec:
 
     @property
     def target_cr(self) -> float:
-        """Target compression ratio (from codec spec / manifest)."""
-        return float(self._spec.get("compression_ratio") or self._manifest.get("compression_ratio", 0.0) or 0.0)
+        """Target compression ratio (from codec spec / manifest, falling back to the model name)."""
+        value = (
+            self._spec.get("compression_ratio")
+            or self._manifest.get("compression_ratio")
+            or self._name_hints["compression_ratio"]
+        )
+        return float(value) if value else 0.0
 
     def compress(self, frame):
         """Encode a frame for the uniform :class:`Codec` protocol.

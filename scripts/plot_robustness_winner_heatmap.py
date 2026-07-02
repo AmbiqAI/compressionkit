@@ -50,7 +50,7 @@ def _load_scorecard(path: Path) -> dict:
 def _lane_runs(modality: str, results_dir: Path) -> dict[int, dict[str, Path]]:
     out: dict[int, dict[str, Path]] = {}
     for exp in list_goldens(modality=modality):
-        if exp.family != "codec":
+        if exp.structure != "codec":
             continue
         out.setdefault(exp.compression_ratio, {})[exp.method] = results_dir / exp.run_name / "quality_scorecard.json"
     return out

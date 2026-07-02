@@ -15,6 +15,58 @@ def _fmt(val: float, decimals: int = 4) -> str:
     return f"{val:.{decimals}f}"
 
 
+# Known dataset slugs -> (display name, license note). Extend as new sources
+# are added to unified_cache configs; unknown slugs degrade gracefully.
+_KNOWN_SOURCE_LICENSES: dict[str, tuple[str, str]] = {
+    "bidmc": ("BIDMC", "open, PhysioNet"),
+    "butppg": ("BUT PPG", "open, PhysioNet"),
+    "ppg_dalia": ("PPG-DaLiA", "open, UCI"),
+    "wesad": ("WESAD", "open, UCI"),
+    "mesa": ("MESA", "NSRR restricted"),
+    "ptbxl": ("PTB-XL", "CC BY 4.0"),
+    "ptb-xl": ("PTB-XL", "CC BY 4.0"),
+}
+
+
+def _dataset_provenance_note(
+    dataset_sources: list[str] | None,
+    modality: str,
+    *,
+    context: str = "Training",
+) -> str:
+    """Describe dataset provenance from recorded source slugs.
+
+    Falls back to a neutral, non-committal statement when no source list was
+    recorded on the package rather than asserting a specific dataset, since
+    doing so has previously produced stale/incorrect claims (e.g. reporting
+    MESA on packages actually trained on the open unified cache).
+    """
+    if dataset_sources:
+        names: list[str] = []
+        restricted: list[str] = []
+        for slug in dataset_sources:
+            display, note = _KNOWN_SOURCE_LICENSES.get(slug, (slug, "license unknown"))
+            names.append(display)
+            if "restricted" in note.lower():
+                restricted.append(display)
+        joined = " + ".join(names)
+        if restricted:
+            return (
+                f"{context} data: {joined}. Includes restricted source(s) ({', '.join(restricted)}); "
+                "sample data uses synthetic physiokit waveforms only — no patient data is redistributed."
+            )
+        return (
+            f"{context} data: {joined} (all open, no restricted-access dependency). "
+            "Sample data uses synthetic physiokit waveforms only — no patient data is redistributed."
+        )
+    if modality == "ecg":
+        return f"{context} data: PTB-XL (CC BY 4.0). Sample data may include excerpts under the original license terms."
+    return (
+        f"{context} data provenance is not recorded in this package; "
+        "sample data uses synthetic physiokit waveforms only — no patient data is redistributed."
+    )
+
+
 def generate_model_card(
     deploy_dir: str | Path,
     scorecard_path: str | Path | None = None,
@@ -178,15 +230,7 @@ def generate_model_card(
     # Dataset licensing
     lines.append("## Dataset & License")
     lines.append("")
-    if modality == "ppg":
-        lines.append(
-            "Training data: MESA (NSRR restricted). Sample data uses synthetic "
-            "physiokit waveforms only — no patient data is redistributed."
-        )
-    elif modality == "ecg":
-        lines.append(
-            "Training data: PTB-XL (CC BY 4.0). Sample data may include excerpts under the original license terms."
-        )
+    lines.append(_dataset_provenance_note(model_card_info.get("dataset_sources"), modality, context="Training"))
     lines.append("")
     if license_id == "other":
         lines.append(
@@ -360,8 +404,14 @@ def generate_spiht_model_card(
     with (deploy_dir / "deploy_manifest.json").open() as f:
         manifest = json.load(f)
 
-    if manifest.get("family") != "spiht":
-        raise ValueError(f"generate_spiht_model_card expects family='spiht', got {manifest.get('family')!r}")
+    if manifest.get("family") not in ("spiht", "hybrid"):
+        raise ValueError(
+            f"generate_spiht_model_card expects family in ('spiht', 'hybrid'), got {manifest.get('family')!r}"
+        )
+    # A hybrid package layers a learned wavelet-gain denoiser (trained weights)
+    # in front of the same SPIHT bitstream contract. ``hybrid_manifest.json`` is
+    # the authoritative marker regardless of the manifest's own ``family`` value.
+    is_hybrid = (deploy_dir / "hybrid_manifest.json").exists()
 
     codec = manifest.get("codec", {})
     modality = codec.get("modality", "unknown")
@@ -403,12 +453,21 @@ def generate_spiht_model_card(
         modality,
         "spiht",
         "wavelet",
-        "dsp",
         "edge-ai",
     ]
+    if is_hybrid:
+        tags.append("hybrid")
+        tags.append("denoising")
+    else:
+        tags.append("dsp")
 
+    family_label = "hybrid" if is_hybrid else "spiht"
     cr_label = f"{target_cr:g}x" if target_cr else ""
-    hf_name = f"compressionkit-{modality}-spiht-{cr_label}" if cr_label else f"compressionkit-{modality}-spiht"
+    hf_name = (
+        f"compressionkit-{modality}-{family_label}-{cr_label}"
+        if cr_label
+        else f"compressionkit-{modality}-{family_label}"
+    )
 
     lines: list[str] = []
     lines.append("---")
@@ -423,12 +482,21 @@ def generate_spiht_model_card(
 
     lines.append(f"# {hf_name}")
     lines.append("")
-    lines.append(
-        f"A **{modality.upper()}** signal compression codec built on "
-        "wavelet + SPIHT + arithmetic coding. **DSP-only — no trained "
-        "weights.** The deployable artifact is the bitstream contract "
-        "plus a portable C99 reference implementation."
-    )
+    if is_hybrid:
+        lines.append(
+            f"A **{modality.upper()}** signal compression codec: a learned "
+            "wavelet-gain denoiser (trained weights) followed by wavelet + "
+            "SPIHT + arithmetic coding. The deployable artifact is the "
+            "denoiser weights, the bitstream contract, and a portable C99 "
+            "reference implementation for the SPIHT stage."
+        )
+    else:
+        lines.append(
+            f"A **{modality.upper()}** signal compression codec built on "
+            "wavelet + SPIHT + arithmetic coding. **DSP-only — no trained "
+            "weights.** The deployable artifact is the bitstream contract "
+            "plus a portable C99 reference implementation."
+        )
     lines.append("")
 
     lines.append("## Operating point")
@@ -469,12 +537,21 @@ def generate_spiht_model_card(
 
     lines.append("## C quickstart")
     lines.append("")
+    if is_hybrid:
+        lines.append(
+            "The SPIHT stage ships a portable C99 reference; the denoiser "
+            "(`denoiser_gain_model.keras`) currently only has a Python/TFLite "
+            "runtime path. Run the denoiser stage first (Python, or a "
+            "converted TFLite Micro model) and feed its output into the C "
+            "SPIHT encoder below."
+        )
+        lines.append("")
     lines.append("```c")
     lines.append('#include "spiht_app_config.h"')
     lines.append("")
     lines.append("float frame[APP_SPIHT_FRAME_SIZE];")
     lines.append("uint8_t bitstream[APP_SPIHT_MAX_BYTES];")
-    lines.append("/* ... fill frame from sensor ... */")
+    lines.append("/* ... fill frame from sensor (post-denoise, if hybrid) ... */")
     lines.append("size_t nbits = spiht_encode_frame(&enc, bitstream, APP_SPIHT_MAX_BITS);")
     lines.append("```")
     lines.append("")
@@ -483,25 +560,24 @@ def generate_spiht_model_card(
     lines.append("")
     lines.append("| File | Description |")
     lines.append("|------|-------------|")
-    lines.append('| `config.json` | Deploy manifest (`family: "spiht"`) |')
+    lines.append(f'| `config.json` | Deploy manifest (`family: "{family_label}"`) |')
     lines.append("| `spiht_config.json` | Codec parameters (language-neutral) |")
     lines.append("| `sample_stimulus.npz` | Synthetic test frames |")
     lines.append("| `reference_vectors.npz` | Reference encode/decode vectors |")
     lines.append("| `c_sources/spiht.[ch]` | Portable C99 reference |")
-    lines.append("| `c_sources/spiht_app_config.h` | Codec-specific defines |")
+    lines.append("| `spiht_app_config.h` | Codec-specific defines (deploy root, not under `c_sources/`) |")
     lines.append("| `model_card.json` | Provenance metadata |")
     lines.append("| `scorecard.json` | Frozen evaluation summary |")
+    if is_hybrid:
+        lines.append("| `denoiser_gain_model.keras` | Learned wavelet-gain denoiser (trained weights) |")
+        lines.append("| `hybrid_manifest.json` | Pipeline stage order (denoise → SPIHT) |")
     lines.append("")
 
     lines.append("## Dataset & license")
     lines.append("")
-    if modality == "ppg":
-        lines.append(
-            "Evaluation data: MESA (NSRR restricted). Synthetic stimulus only "
-            "(generated via physiokit) is redistributed — no patient data."
-        )
-    elif modality == "ecg":
-        lines.append("Evaluation data: PTB-XL (CC BY 4.0). Synthetic stimulus only is redistributed.")
+    spiht_model_card_info = manifest.get("model_card")
+    dataset_sources = spiht_model_card_info.get("dataset_sources") if isinstance(spiht_model_card_info, dict) else None
+    lines.append(_dataset_provenance_note(dataset_sources, modality, context="Evaluation"))
     lines.append("")
     lines.append(f"Codec source released under the **{license_id.upper()}** license.")
     lines.append("")

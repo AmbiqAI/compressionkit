@@ -268,7 +268,7 @@ def run_golden(
                 raise ValueError(
                     f"experiment {experiment.experiment_id!r} has method={experiment.method!r} but no recipe declared"
                 )
-            if experiment.family == "two_stage":
+            if experiment.structure == "two_stage":
                 assert experiment.parent is not None  # validator enforces this
                 parent_exp = get_golden(experiment.parent)
                 parent_run_dir = _resolve_run_dir(parent_exp, results_root)
@@ -329,7 +329,7 @@ def run_golden(
         "publish_returncode": publish_rc,
         "validation": validation,
     }
-    if experiment.family == "two_stage":
+    if experiment.structure == "two_stage":
         summary["parent_trained"] = parent_trained
         summary["prior_summary"] = prior_summary
     if experiment.method == "spiht":

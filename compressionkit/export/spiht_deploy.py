@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "SpihtDeploymentArtifacts",
     "export_spiht_deploy",
+    "refresh_hybrid_reference_vectors",
 ]
 
 
@@ -181,6 +182,81 @@ size_t nbits = spiht_encode_frame(&enc, bitstream, APP_SPIHT_MAX_BITS);
 """
 
 
+def _encode_reference_vectors(codec, stimulus: np.ndarray, output_dir: Path) -> Path:
+    """Round-trip ``stimulus`` through ``codec`` and write ``reference_vectors.npz``.
+
+    ``codec`` only needs to satisfy the :class:`~compressionkit.runtime.base.Codec`
+    duck-type (``compress``/``decompress``) — this is shared by the DSP-only
+    :class:`SpihtCodec` backend and the composed
+    :class:`~compressionkit.runtime.hybrid.HybridSpihtCodec`, so callers can
+    compute reference vectors against whichever pipeline actually ships.
+    """
+    logger.info("Computing reference encode/decode vectors...")
+    payloads: list[np.ndarray] = []
+    nbits_arr = np.zeros(stimulus.shape[0], dtype=np.int32)
+    reconstructions = np.zeros_like(stimulus)
+    for i, frame in enumerate(stimulus):
+        enc: EncodedFrame = codec.compress(frame)
+        if isinstance(enc.payload, (bytes, bytearray)):
+            payload_bytes = bytes(enc.payload)
+        elif isinstance(enc.payload, np.ndarray):
+            payload_bytes = enc.payload.astype(np.uint8).tobytes()
+        else:
+            payload_bytes = bytes(enc.payload)
+        payloads.append(np.frombuffer(payload_bytes, dtype=np.uint8))
+        nbits_arr[i] = int(enc.nbits)
+        reconstructions[i] = codec.decompress(enc)
+
+    # Pack ragged payloads into a fixed-width 2D uint8 array (zero-padded to the
+    # longest payload) plus a parallel `payload_lengths` array recording each
+    # payload's true byte length, so consumers can slice `packed[i, :length]`.
+    max_len = max((p.size for p in payloads), default=0)
+    packed = np.zeros((len(payloads), max_len), dtype=np.uint8)
+    payload_lengths = np.zeros(len(payloads), dtype=np.int32)
+    for i, p in enumerate(payloads):
+        packed[i, : p.size] = p
+        payload_lengths[i] = p.size
+
+    reference_vectors_path = output_dir / "reference_vectors.npz"
+    np.savez_compressed(
+        reference_vectors_path,
+        input_frames=stimulus,
+        bitstreams=packed,
+        bitstream_lengths_bytes=payload_lengths,
+        nbits=nbits_arr,
+        reconstructions=reconstructions,
+    )
+    return reference_vectors_path
+
+
+def refresh_hybrid_reference_vectors(deploy_dir: str | Path) -> Path:
+    """Recompute ``reference_vectors.npz`` for an assembled hybrid deploy package.
+
+    ``export_spiht_deploy`` only ever sees the bare SPIHT backend codec, so
+    the reference vectors it writes reflect denoiser-OFF encode/decode. Call
+    this *after* the hybrid package is fully assembled (denoiser staged,
+    ``hybrid_manifest.json`` written, ``deploy_manifest.json``/``codec_spec.json``
+    ``family`` patched to ``"hybrid"``) to overwrite ``reference_vectors.npz``
+    with vectors computed through the real hybrid (denoise -> SPIHT) pipeline,
+    reusing the same synthetic frames already staged in ``sample_stimulus.npz``.
+    Also regenerates ``checksums.json`` since the reference vectors changed.
+
+    Args:
+        deploy_dir: A hybrid deploy directory (``family == "hybrid"``).
+
+    Returns:
+        Path to the rewritten ``reference_vectors.npz``.
+    """
+    from compressionkit.runtime.hybrid import HybridSpihtCodec
+
+    deploy_dir = Path(deploy_dir)
+    codec = HybridSpihtCodec.from_deploy_dir(deploy_dir)
+    stimulus = np.load(deploy_dir / "sample_stimulus.npz")["stimulus"].astype(np.float32, copy=False)
+    ref_path = _encode_reference_vectors(codec, stimulus, deploy_dir)
+    write_checksums(deploy_dir)
+    return ref_path
+
+
 def export_spiht_deploy(
     codec: SpihtCodec,
     *,
@@ -236,39 +312,7 @@ def export_spiht_deploy(
     artifacts.sample_stimulus = output_dir / "sample_stimulus.npz"
     np.savez_compressed(artifacts.sample_stimulus, stimulus=stimulus)
 
-    logger.info("Computing reference encode/decode vectors...")
-    payloads: list[np.ndarray] = []
-    nbits_arr = np.zeros(stimulus.shape[0], dtype=np.int32)
-    reconstructions = np.zeros_like(stimulus)
-    for i, frame in enumerate(stimulus):
-        enc: EncodedFrame = codec.compress(frame)
-        if isinstance(enc.payload, (bytes, bytearray)):
-            payload_bytes = bytes(enc.payload)
-        elif isinstance(enc.payload, np.ndarray):
-            payload_bytes = enc.payload.astype(np.uint8).tobytes()
-        else:
-            payload_bytes = bytes(enc.payload)
-        payloads.append(np.frombuffer(payload_bytes, dtype=np.uint8))
-        nbits_arr[i] = int(enc.nbits)
-        reconstructions[i] = codec.decompress(enc)
-
-    # Pack ragged payloads as an object-array + offsets for portability.
-    max_len = max((p.size for p in payloads), default=0)
-    packed = np.zeros((len(payloads), max_len), dtype=np.uint8)
-    payload_lengths = np.zeros(len(payloads), dtype=np.int32)
-    for i, p in enumerate(payloads):
-        packed[i, : p.size] = p
-        payload_lengths[i] = p.size
-
-    artifacts.reference_vectors = output_dir / "reference_vectors.npz"
-    np.savez_compressed(
-        artifacts.reference_vectors,
-        input_frames=stimulus,
-        bitstreams=packed,
-        bitstream_lengths_bytes=payload_lengths,
-        nbits=nbits_arr,
-        reconstructions=reconstructions,
-    )
+    artifacts.reference_vectors = _encode_reference_vectors(codec, stimulus, output_dir)
 
     # 2. spiht_config.json (language-neutral parameters).
     artifacts.spiht_config = output_dir / "spiht_config.json"

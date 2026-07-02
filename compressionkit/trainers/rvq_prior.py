@@ -30,9 +30,9 @@ def _resolve_parent(cfg: RvqPriorConfig) -> tuple[Any, Path]:
     from compressionkit.experiments.registry import get_golden
 
     parent_exp = get_golden(cfg.parent_experiment)
-    if parent_exp.family != "codec":
+    if parent_exp.structure != "codec":
         raise ValueError(
-            f"prior parent {cfg.parent_experiment!r} must be a codec experiment (got {parent_exp.family!r})"
+            f"prior parent {cfg.parent_experiment!r} must be a codec experiment (got {parent_exp.structure!r})"
         )
     run_dir = cfg.parent_run_dir if cfg.parent_run_dir is not None else Path("results") / parent_exp.run_name
     if not run_dir.is_dir():

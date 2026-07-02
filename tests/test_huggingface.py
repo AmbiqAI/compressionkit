@@ -203,16 +203,18 @@ class TestPublishStaging:
     def test_dry_run_hybrid_stages_denoiser(self, tmp_path):
         """A hybrid deploy (DSP backend + learned denoiser) must publish the denoiser.
 
-        The backend reports ``family='spiht'`` in its manifest; the presence of
-        ``hybrid_manifest.json`` is what marks the package as hybrid. The learned
-        ``denoiser_gain_model.keras`` would be silently dropped if it were staged
-        with the plain SPIHT file map.
+        ``run_hybrid_golden.py`` (the real hybrid export path) writes
+        ``family='hybrid'`` in ``deploy_manifest.json`` — this is also what the
+        runtime loader (``HybridSpihtCodec.from_deploy_dir``) requires. The
+        learned ``denoiser_gain_model.keras`` would be silently dropped if it
+        were staged with the plain SPIHT file map, or the manifest rejected if
+        ``hybrid`` weren't a known publish family.
         """
         deploy = tmp_path / "deploy"
         deploy.mkdir()
         manifest = {
-            "family": "spiht",
-            "method": "dsp",
+            "family": "hybrid",
+            "method": "hybrid",
             "compression_ratio": 16.0,
             "codec": {"modality": "ecg", "sample_rate": 256, "frame_size": 512, "target_cr": 16.0},
         }
@@ -237,6 +239,9 @@ class TestPublishStaging:
             assert (staging_dir / "config.json").exists()  # renamed deploy_manifest.json
             assert (staging_dir / "spiht_app_config.h").exists()
             assert (staging_dir / "README.md").exists()
+            readme = (staging_dir / "README.md").read_text()
+            assert "hybrid" in readme.lower()
+            assert "denoiser" in readme.lower()
         finally:
             shutil.rmtree(staging_dir)
 

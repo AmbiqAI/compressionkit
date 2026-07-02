@@ -60,7 +60,7 @@ def main() -> None:
     experiment = GoldenExperiment(
         experiment_id=f"{args.modality}-rvq-{args.compression_ratio}x",
         modality=args.modality,
-        family="codec",
+        structure="codec",
         method="rvq",
         recipe=None,
         config_path=None,

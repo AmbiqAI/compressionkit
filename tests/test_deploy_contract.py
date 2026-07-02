@@ -177,3 +177,129 @@ def test_sync_scorecard_to_deploy_updates_manifest_model_card_and_checksums(tmp_
 
     checksums = json.loads((tmp_path / "checksums.json").read_text())
     assert "scorecard.json" in checksums
+
+
+def _write_hybrid_reference_vectors(root, *, frame, payload, recon) -> None:
+    import numpy as np
+
+    np.savez_compressed(
+        root / "reference_vectors.npz",
+        input_frames=frame[None, :],
+        bitstreams=payload[None, :],
+        bitstream_lengths_bytes=np.array([payload.size], dtype=np.int32),
+        nbits=np.array([payload.size * 8], dtype=np.int32),
+        reconstructions=recon[None, :],
+    )
+
+
+class _FakeHybridCodec:
+    """Minimal Codec stand-in for exercising the hybrid reference-vector check."""
+
+    def __init__(self, *, payload_size: int, decoded) -> None:
+        self._payload_size = payload_size
+        self._decoded = decoded
+
+    def compress(self, frame):
+        from compressionkit.runtime.base import EncodedFrame
+
+        return EncodedFrame(payload=bytes(range(self._payload_size)), nbits=self._payload_size * 8)
+
+    def decompress(self, encoded):
+        return self._decoded
+
+
+def test_hybrid_reference_vectors_tolerate_tiny_numeric_drift(tmp_path, monkeypatch) -> None:
+    """GPU vs CPU denoiser jitter should NOT fail hybrid strict validation (issue #46)."""
+    import numpy as np
+
+    from compressionkit.export import validate as validate_mod
+
+    frame = np.linspace(-1.0, 1.0, 32, dtype=np.float32)
+    payload = np.arange(16, dtype=np.uint8)
+    recon = frame.copy()
+    # A tiny (~1e-5) numeric perturbation, representative of GPU/CPU float drift.
+    decoded = recon + 1e-5
+
+    _write_hybrid_reference_vectors(tmp_path, frame=frame, payload=payload, recon=recon)
+    monkeypatch.setattr(
+        "compressionkit.runtime.load_codec",
+        lambda deploy_dir: _FakeHybridCodec(payload_size=16, decoded=decoded),
+    )
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    validate_mod._validate_reference_vectors(tmp_path, "hybrid", errors, warnings, max_vectors=1)
+
+    assert errors == []
+
+
+def test_hybrid_reference_vectors_still_catch_real_regressions(tmp_path, monkeypatch) -> None:
+    """A large systematic shift (e.g. the DC-shift denoiser bug) must still fail."""
+    import numpy as np
+
+    from compressionkit.export import validate as validate_mod
+
+    frame = np.linspace(-1.0, 1.0, 32, dtype=np.float32)
+    payload = np.arange(16, dtype=np.uint8)
+    recon = frame.copy()
+    # A large systematic offset, like the approx-band DC-shift bug (~48% PRD).
+    decoded = recon - 0.5
+
+    _write_hybrid_reference_vectors(tmp_path, frame=frame, payload=payload, recon=recon)
+    monkeypatch.setattr(
+        "compressionkit.runtime.load_codec",
+        lambda deploy_dir: _FakeHybridCodec(payload_size=16, decoded=decoded),
+    )
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    validate_mod._validate_reference_vectors(tmp_path, "hybrid", errors, warnings, max_vectors=1)
+
+    assert any("PRD" in e for e in errors)
+
+
+def test_hybrid_reference_vectors_flag_grossly_different_bitstream_length(tmp_path, monkeypatch) -> None:
+    import numpy as np
+
+    from compressionkit.export import validate as validate_mod
+
+    frame = np.linspace(-1.0, 1.0, 32, dtype=np.float32)
+    payload = np.arange(16, dtype=np.uint8)
+    recon = frame.copy()
+
+    _write_hybrid_reference_vectors(tmp_path, frame=frame, payload=payload, recon=recon)
+    monkeypatch.setattr(
+        "compressionkit.runtime.load_codec",
+        lambda deploy_dir: _FakeHybridCodec(payload_size=64, decoded=recon),  # far larger than expected 16 bytes
+    )
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    validate_mod._validate_reference_vectors(tmp_path, "hybrid", errors, warnings, max_vectors=1)
+
+    assert any("bitstream length" in e for e in errors)
+
+
+def test_spiht_reference_vectors_remain_bit_exact(tmp_path, monkeypatch) -> None:
+    """Pure DSP SPIHT is deterministic — it should NOT get the hybrid tolerance."""
+    import numpy as np
+
+    from compressionkit.export import validate as validate_mod
+
+    frame = np.linspace(-1.0, 1.0, 32, dtype=np.float32)
+    payload = np.arange(16, dtype=np.uint8)
+    recon = frame.copy()
+    # Even a tiny drift must fail for SPIHT, since it has no floating-point model stage.
+    decoded = recon + 1e-5
+
+    _write_hybrid_reference_vectors(tmp_path, frame=frame, payload=payload, recon=recon)
+    monkeypatch.setattr(
+        "compressionkit.runtime.load_codec",
+        lambda deploy_dir: _FakeHybridCodec(payload_size=16, decoded=decoded),
+    )
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    validate_mod._validate_reference_vectors(tmp_path, "spiht", errors, warnings, max_vectors=1)
+
+    assert any("reconstruction mismatch" in e for e in errors)

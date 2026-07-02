@@ -295,7 +295,7 @@ def _select_experiments(args: argparse.Namespace) -> list:
         exps = [e for e in exps if e.method in args.methods]
     if args.crs:
         exps = [e for e in exps if e.compression_ratio in args.crs]
-    return [e for e in exps if e.family == "codec"]
+    return [e for e in exps if e.structure == "codec"]
 
 
 def main() -> None:

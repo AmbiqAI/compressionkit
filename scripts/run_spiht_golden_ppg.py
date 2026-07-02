@@ -41,6 +41,7 @@ from compressionkit.evaluation.scorecard import build_quality_scorecard
 from compressionkit.evaluation.spiht_stitching import evaluate_spiht_stitching
 from compressionkit.experiments.registry import get_golden
 from compressionkit.export.spiht_deploy import export_spiht_deploy
+from compressionkit.export.validate import validate_deploy_package
 from compressionkit.runtime.spiht import SpihtCodec
 
 logger = logging.getLogger(__name__)
@@ -477,6 +478,12 @@ def main() -> None:
         scorecard_summary=scorecard_summary,
     )
     logger.info("Deploy artifacts written to %s", deploy_dir)
+
+    validation_result = validate_deploy_package(deploy_dir, strict_release=True)
+    if validation_result.errors:
+        logger.error("Deploy package failed strict release validation: %s", "; ".join(validation_result.errors))
+    else:
+        logger.info("Deploy package passed strict release validation.")
 
     print()
     print(f"=== SPIHT golden complete: {exp.experiment_id} ===")

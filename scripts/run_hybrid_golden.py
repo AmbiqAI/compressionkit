@@ -41,8 +41,7 @@ from compressionkit.configs.paths import default_datasets_dir
 from compressionkit.evaluation.codec import LearnedShrinkSpihtCodec
 from compressionkit.evaluation.scorecard import build_quality_scorecard
 from compressionkit.experiments.registry import GoldenExperiment, get_golden
-from compressionkit.export.release import write_checksums
-from compressionkit.export.spiht_deploy import export_spiht_deploy
+from compressionkit.export.spiht_deploy import export_spiht_deploy, refresh_hybrid_reference_vectors
 from compressionkit.pipeline.learned_stages import load_wavelet_gain_preprocessor
 from compressionkit.runtime.spiht import SpihtCodec
 
@@ -463,35 +462,14 @@ def _export_deploy(
     codec_spec["pipeline"] = manifest
     codec_spec_path.write_text(json.dumps(codec_spec, indent=2))
 
-    stimulus_path = deploy_dir / "sample_stimulus.npz"
-    if stimulus_path.exists():
-        stimulus_blob = np.load(stimulus_path)
-        stimulus = np.asarray(stimulus_blob["stimulus"], dtype=np.float32)
-        payloads: list[np.ndarray] = []
-        nbits_arr = np.zeros(stimulus.shape[0], dtype=np.int32)
-        reconstructions = np.zeros_like(stimulus)
-        for idx, frame in enumerate(stimulus):
-            enc = codec.encode(frame)
-            payload_bytes = bytes(enc.payload)
-            payloads.append(np.frombuffer(payload_bytes, dtype=np.uint8))
-            nbits_arr[idx] = int(enc.nbits)
-            reconstructions[idx] = codec.decode(enc)
-        max_len = max((p.size for p in payloads), default=0)
-        packed = np.zeros((len(payloads), max_len), dtype=np.uint8)
-        payload_lengths = np.zeros(len(payloads), dtype=np.int32)
-        for idx, payload in enumerate(payloads):
-            packed[idx, : payload.size] = payload
-            payload_lengths[idx] = payload.size
-        np.savez_compressed(
-            deploy_dir / "reference_vectors.npz",
-            input_frames=stimulus,
-            bitstreams=packed,
-            bitstream_lengths_bytes=payload_lengths,
-            nbits=nbits_arr,
-            reconstructions=reconstructions,
-        )
-
-    write_checksums(deploy_dir)
+    # ``export_spiht_deploy`` above only ever saw the bare SPIHT backend, so
+    # its reference_vectors.npz reflects denoiser-OFF encode/decode. Now that
+    # the package is fully assembled (denoiser staged, hybrid_manifest.json
+    # written, family patched to "hybrid"), recompute the reference vectors
+    # through the actual shipped runtime (HybridSpihtCodec: denoise -> SPIHT)
+    # so downstream consumers validate against what actually ships.
+    refresh_hybrid_reference_vectors(deploy_dir)
+    logger.info("Refreshed reference_vectors.npz using the assembled hybrid runtime")
 
 
 if __name__ == "__main__":

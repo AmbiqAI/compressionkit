@@ -14,6 +14,13 @@ Subcommands::
     compressionkit golden run-all --modality {ppg,ecg}
                                   [--results-root PATH]
                                   [--publish] [--dry-run]
+    compressionkit golden validate-deploy <deploy_dir> [--strict-release]
+    compressionkit golden validate-all [--modality {ppg,ecg}] [--strict-release]
+                                       -- audits every registered golden's existing
+                                          local deploy package in one pass; use this
+                                          before any release to catch drift between
+                                          the current schema and gitignored results/
+                                          artifacts that predate a code change.
 """
 
 from __future__ import annotations
@@ -40,15 +47,13 @@ def _print_table(modality: GoldenModality | None, method: GoldenMethod | None) -
     if not rows:
         print("(no golden experiments registered)")
         return
-    header = (
-        f"{'EXPERIMENT_ID':16s}  {'MODALITY':8s}  {'METHOD':8s}  {'FAMILY':9s}  {'CR':>3s}  {'CONFIG':45s}  HF_REPO_ID"
-    )
+    header = f"{'EXPERIMENT_ID':16s}  {'MODALITY':8s}  {'METHOD':8s}  {'STRUCTURE':9s}  {'CR':>3s}  {'CONFIG':45s}  HF_REPO_ID"
     print(header)
     print("-" * len(header))
     for exp in rows:
         config_path_str = str(exp.config_path) if exp.config_path is not None else "—"
         print(
-            f"{exp.experiment_id:16s}  {exp.modality:8s}  {exp.method:8s}  {exp.family:9s}  "
+            f"{exp.experiment_id:16s}  {exp.modality:8s}  {exp.method:8s}  {exp.structure:9s}  "
             f"{exp.compression_ratio:>3d}  {config_path_str:45s}  {exp.hf_repo_id}"
         )
 
@@ -131,6 +136,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_validate.add_argument("--max-vectors", type=int, default=2)
 
+    p_validate_all = sub.add_parser(
+        "validate-all",
+        help="Audit every registered golden's existing local deploy package (no training/building).",
+    )
+    p_validate_all.add_argument("--modality", choices=["ppg", "ecg"], default=None)
+    p_validate_all.add_argument("--method", choices=["rvq", "spiht", "hybrid"], default=None)
+    p_validate_all.add_argument("--results-root", type=Path, default=Path("results"))
+    p_validate_all.add_argument("--skip-runtime", action="store_true", help="Skip runtime hydration checks.")
+    p_validate_all.add_argument(
+        "--skip-reference-vectors", action="store_true", help="Skip replaying stored reference vectors."
+    )
+    p_validate_all.add_argument(
+        "--strict-release",
+        action="store_true",
+        help="Treat release-contract extras like model_card.json and scorecard.json as required.",
+    )
+    p_validate_all.add_argument("--max-vectors", type=int, default=2)
+
     return parser
 
 
@@ -198,6 +221,40 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print("validation: ok")
         return 0
+
+    if args.action == "validate-all":
+        seen_deploy_dirs: set[Path] = set()
+        checked = 0
+        passed = 0
+        skipped = 0
+        failed: list[str] = []
+        for exp in list_goldens(args.modality, args.method):
+            deploy_dir = args.results_root / exp.run_name / "deploy"
+            if not deploy_dir.is_dir():
+                skipped += 1
+                print(f"{exp.experiment_id:20s}  SKIP  no local deploy at {deploy_dir}")
+                continue
+            if deploy_dir in seen_deploy_dirs:
+                # two_stage entries share their parent codec's run_name/deploy_dir.
+                continue
+            seen_deploy_dirs.add(deploy_dir)
+            checked += 1
+            result = validate_deploy_package(
+                deploy_dir,
+                check_runtime=not args.skip_runtime,
+                check_reference_vectors=not args.skip_reference_vectors,
+                strict_release=args.strict_release,
+                max_vectors=args.max_vectors,
+            )
+            if result.ok:
+                passed += 1
+                print(f"{exp.experiment_id:20s}  OK    ({result.family})")
+            else:
+                failed.append(exp.experiment_id)
+                print(f"{exp.experiment_id:20s}  FAIL  ({result.family})  {'; '.join(result.errors)}")
+        print()
+        print(f"{passed}/{checked} passed, {len(failed)} failed, {skipped} skipped (no local build)")
+        return 1 if failed else 0
 
     # run-all
     failures: list[str] = []

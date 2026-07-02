@@ -16,7 +16,7 @@ def _experiment(config_path: Path) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id="ppg-rvq-4x",
         modality="ppg",
-        family="codec",
+        structure="codec",
         method="rvq",
         recipe="train-ppg-rvq",
         config_path=config_path,
@@ -130,7 +130,7 @@ def test_run_golden_spiht_uses_evaluator_script(monkeypatch, tmp_path) -> None:
     experiment = GoldenExperiment(
         experiment_id="ppg-spiht-4x",
         modality="ppg",
-        family="codec",
+        structure="codec",
         method="spiht",
         recipe=None,
         config_path=None,
@@ -240,7 +240,7 @@ def test_repackage_golden_rejects_non_rvq(monkeypatch, tmp_path) -> None:
     experiment = GoldenExperiment(
         experiment_id="ppg-spiht-4x",
         modality="ppg",
-        family="codec",
+        structure="codec",
         method="spiht",
         recipe=None,
         config_path=None,
