@@ -207,7 +207,9 @@ def _encode_reference_vectors(codec, stimulus: np.ndarray, output_dir: Path) -> 
         nbits_arr[i] = int(enc.nbits)
         reconstructions[i] = codec.decompress(enc)
 
-    # Pack ragged payloads as an object-array + offsets for portability.
+    # Pack ragged payloads into a fixed-width 2D uint8 array (zero-padded to the
+    # longest payload) plus a parallel `payload_lengths` array recording each
+    # payload's true byte length, so consumers can slice `packed[i, :length]`.
     max_len = max((p.size for p in payloads), default=0)
     packed = np.zeros((len(payloads), max_len), dtype=np.uint8)
     payload_lengths = np.zeros(len(payloads), dtype=np.int32)

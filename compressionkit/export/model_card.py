@@ -565,7 +565,7 @@ def generate_spiht_model_card(
     lines.append("| `sample_stimulus.npz` | Synthetic test frames |")
     lines.append("| `reference_vectors.npz` | Reference encode/decode vectors |")
     lines.append("| `c_sources/spiht.[ch]` | Portable C99 reference |")
-    lines.append("| `c_sources/spiht_app_config.h` | Codec-specific defines |")
+    lines.append("| `spiht_app_config.h` | Codec-specific defines (deploy root, not under `c_sources/`) |")
     lines.append("| `model_card.json` | Provenance metadata |")
     lines.append("| `scorecard.json` | Frozen evaluation summary |")
     if is_hybrid:

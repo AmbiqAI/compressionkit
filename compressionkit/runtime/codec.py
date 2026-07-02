@@ -429,7 +429,10 @@ class RVQCodec:
     def sample_rate(self) -> int:
         """Sample rate in Hz (from codec spec / manifest, falling back to the model name; ``0`` if unknown)."""
         value = self._spec.get("sample_rate") or self._manifest.get("sample_rate") or self._name_hints["sample_rate"]
-        return int(value) if value else 0
+        # round() rather than int() truncation: the legacy-name regex allows decimal
+        # rates (e.g. a hypothetical "44.1hz") and truncating would silently produce
+        # the wrong integer Hz value for anything with a fractional part >= 0.5.
+        return round(value) if value else 0
 
     @property
     def frame_size(self) -> int:
