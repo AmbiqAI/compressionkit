@@ -6,7 +6,7 @@ runtime. Lets callers do::
 
     from compressionkit.runtime import load_codec
 
-    codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x")
+    codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x-v1.0")
     recon = codec.decompress(codec.compress(frame))
 
 without having to know whether the underlying method is DSP-only,
@@ -32,7 +32,7 @@ def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
 
     Args:
         repo_or_dir: Either a local path containing ``deploy_manifest.json``
-            or a HuggingFace repo id (``"Ambiq/compressionkit-ppg-4x"``).
+            or a HuggingFace repo id (``"Ambiq/compressionkit-ppg-4x-v1.0"``).
 
     Returns:
         Local filesystem path to the deploy directory.

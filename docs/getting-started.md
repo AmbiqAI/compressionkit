@@ -41,7 +41,7 @@ import numpy as np
 
 from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-4x")
+codec = load_codec("Ambiq/compressionkit-ppg-4x-v1.0")
 
 t = np.arange(codec.frame_size, dtype=np.float32) / codec.sample_rate
 frame = 0.6 * np.sin(2.0 * np.pi * 1.2 * t)

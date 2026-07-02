@@ -187,7 +187,7 @@ from compressionkit.runtime import RVQCodec
 t = np.arange(512, dtype=np.float32) / 256.0
 signal = (0.75 * np.sin(2.0 * np.pi * 1.1 * t) + 0.12 * np.sin(2.0 * np.pi * 9.0 * t)).reshape(1, 1, 512, 1)
 
-codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x")
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x-v1.0")
 indices = codec.encode(signal.astype(np.float32))
 reconstruction = codec.decode(indices)
 ```

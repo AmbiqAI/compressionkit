@@ -66,7 +66,7 @@ Use the published runtime path when you only need to try a codec:
 ```python
 from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-8x")
+codec = load_codec("Ambiq/compressionkit-ppg-8x-v1.0")
 ```
 
 ## Reference Operating Points

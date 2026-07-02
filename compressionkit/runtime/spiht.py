@@ -5,7 +5,7 @@ loader convention used by RVQ goldens so a user can do::
 
     from compressionkit.runtime import load_codec
 
-    codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x")
+    codec = load_codec("Ambiq/compressionkit-ppg-spiht-4x-v1.0")
     enc = codec.compress(frame)
     recon = codec.decompress(enc)
 

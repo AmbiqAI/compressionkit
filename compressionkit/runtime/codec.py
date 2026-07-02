@@ -86,7 +86,7 @@ class RVQCodec:
         codec = RVQCodec("results/ppg_rvq_64hz_04x_golden/deploy")
 
         # Or load from HuggingFace Hub
-        codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x")
+        codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ppg-4x-v1.0")
 
         # Encode: float32 signal → RVQ indices
         signal = np.random.randn(1, 1, 320, 1).astype(np.float32)
@@ -189,7 +189,7 @@ class RVQCodec:
 
         Args:
             repo_id: HuggingFace repo ID, e.g.
-                ``"Ambiq/compressionkit-ppg-4x"``.
+                ``"Ambiq/compressionkit-ppg-4x-v1.0"``.
             revision: Optional git revision (branch, tag, or commit hash).
             cache_dir: Optional local cache directory for downloaded files.
 

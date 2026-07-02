@@ -4,7 +4,7 @@ icon: lucide/cloud-download
 
 # Load & test a HuggingFace model in 5 minutes
 
-Published v1 RVQ bundles live at `Ambiq/compressionkit-{modality}-{cr}x`.
+Published v1 RVQ bundles live at `Ambiq/compressionkit-{modality}-{cr}x-{version}` (e.g. `-v1.0`).
 This page shows the minimum code to download one and run the encoder + decoder on a sample frame.
 Entropy-prior packages are reproducible from the golden registry, but the v1
 HuggingFace bundle surface is limited to single-stage RVQ codecs.
@@ -32,7 +32,7 @@ from huggingface_hub import snapshot_download
 from compressionkit.runtime import RVQCodec
 import numpy as np
 
-repo = "Ambiq/compressionkit-ppg-4x"
+repo = "Ambiq/compressionkit-ppg-4x-v1.0"
 codec = RVQCodec.from_pretrained(repo)
 
 # Sanity check on the bundled license-safe sample (same cached files).

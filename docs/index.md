@@ -204,7 +204,7 @@ Minimal runtime example:
 import numpy as np
 from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-4x")
+codec = load_codec("Ambiq/compressionkit-ppg-4x-v1.0")
 frame = np.zeros(codec.frame_size, dtype=np.float32)
 
 encoded = codec.compress(frame)
