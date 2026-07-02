@@ -7,7 +7,7 @@ icon: lucide/activity
 ## Overview
 
 - **Modality**: ECG
-- **Family**: `codec`
+- **Structure**: `codec`
 - **Compression ratio**: 4×
 - **Sample rate**: 256 Hz
 - **Recipe**: `train-ecg-rvq`

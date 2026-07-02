@@ -32,6 +32,20 @@ nav = [
       { "ppg-rvq-4x-prior" = "experiments/ppg-rvq-4x-prior.md" },
       { "ppg-rvq-8x-prior" = "experiments/ppg-rvq-8x-prior.md" },
     ]},
+    { "PPG SPIHT" = [
+      { "ppg-spiht-2x" = "experiments/ppg-spiht-2x.md" },
+      { "ppg-spiht-4x" = "experiments/ppg-spiht-4x.md" },
+      { "ppg-spiht-8x" = "experiments/ppg-spiht-8x.md" },
+      { "ppg-spiht-16x" = "experiments/ppg-spiht-16x.md" },
+      { "ppg-spiht-32x" = "experiments/ppg-spiht-32x.md" },
+    ]},
+    { "PPG hybrid" = [
+      { "ppg-hybrid-2x" = "experiments/ppg-hybrid-2x.md" },
+      { "ppg-hybrid-4x" = "experiments/ppg-hybrid-4x.md" },
+      { "ppg-hybrid-8x" = "experiments/ppg-hybrid-8x.md" },
+      { "ppg-hybrid-16x" = "experiments/ppg-hybrid-16x.md" },
+      { "ppg-hybrid-32x" = "experiments/ppg-hybrid-32x.md" },
+    ]},
     { "ECG codecs" = [
       { "ecg-rvq-2x" = "experiments/ecg-rvq-2x.md" },
       { "ecg-rvq-4x" = "experiments/ecg-rvq-4x.md" },
@@ -43,6 +57,22 @@ nav = [
     { "ECG two-stage" = [
       { "ecg-rvq-4x-prior" = "experiments/ecg-rvq-4x-prior.md" },
       { "ecg-rvq-8x-prior" = "experiments/ecg-rvq-8x-prior.md" },
+    ]},
+    { "ECG SPIHT" = [
+      { "ecg-spiht-2x" = "experiments/ecg-spiht-2x.md" },
+      { "ecg-spiht-4x" = "experiments/ecg-spiht-4x.md" },
+      { "ecg-spiht-8x" = "experiments/ecg-spiht-8x.md" },
+      { "ecg-spiht-16x" = "experiments/ecg-spiht-16x.md" },
+      { "ecg-spiht-32x" = "experiments/ecg-spiht-32x.md" },
+      { "ecg-spiht-64x" = "experiments/ecg-spiht-64x.md" },
+    ]},
+    { "ECG hybrid" = [
+      { "ecg-hybrid-2x" = "experiments/ecg-hybrid-2x.md" },
+      { "ecg-hybrid-4x" = "experiments/ecg-hybrid-4x.md" },
+      { "ecg-hybrid-8x" = "experiments/ecg-hybrid-8x.md" },
+      { "ecg-hybrid-16x" = "experiments/ecg-hybrid-16x.md" },
+      { "ecg-hybrid-32x" = "experiments/ecg-hybrid-32x.md" },
+      { "ecg-hybrid-64x" = "experiments/ecg-hybrid-64x.md" },
     ]},
   ]},
   { "Signals" = [

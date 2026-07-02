@@ -2,18 +2,18 @@
 icon: lucide/heart-pulse
 ---
 
-# `ppg-rvq-4x-prior`
+# `ppg-hybrid-8x`
 
 ## Overview
 
 - **Modality**: PPG
-- **Structure**: `two_stage`
-- **Compression ratio**: 4×
+- **Structure**: `codec`
+- **Compression ratio**: 8×
 - **Sample rate**: 64 Hz
-- **Recipe**: `train-rvq-prior`
-- **Config**: [`configs/ppg_rvq_64hz_04x_golden_prior.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_04x_golden_prior.yaml)
-- **Run name**: `ppg_rvq_64hz_04x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x)
+- **Recipe**: `None`
+- **Config**: [`None`](https://github.com/AmbiqAI/compressionkit/blob/main/None)
+- **Run name**: `ppg_hybrid_64hz_08x_golden`
+- **HuggingFace**: [`Ambiq/compressionkit-ppg-hybrid-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-8x)
 
 ## Dataset & License
 
@@ -28,19 +28,13 @@ The lifecycle runner pre-flights dataset availability before training (see #26 a
 
 ```bash
 # Single command, end-to-end.
-uv run compressionkit golden run ppg-rvq-4x-prior
+uv run compressionkit golden run ppg-hybrid-8x
 
 # Publish the deploy package to HuggingFace (requires HF_TOKEN).
-uv run compressionkit golden run ppg-rvq-4x-prior --publish
+uv run compressionkit golden run ppg-hybrid-8x --publish
 ```
 
-Results land under `results/ppg_rvq_64hz_04x_golden/`; deploy artifacts under `results/ppg_rvq_64hz_04x_golden/deploy/`.
-
-## Parent codec
-
-This entry is the entropy-prior stage paired with [`ppg-rvq-4x`](ppg-rvq-4x.md).
-Codec and prior artifacts publish to the same HuggingFace repo
-([`Ambiq/compressionkit-ppg-4x`](https://huggingface.co/Ambiq/compressionkit-ppg-4x)).
+Results land under `results/ppg_hybrid_64hz_08x_golden/`; deploy artifacts under `results/ppg_hybrid_64hz_08x_golden/deploy/`.
 
 ## Evaluation Metrics
 
@@ -59,10 +53,9 @@ Every successful run produces the canonical edge deploy package:
 - `codebook.npz` / `codebook.h` — RVQ codebook tables.
 - `sample_stimulus.npz` — license-safe input/output reference frames.
 - `model_card.json`, `deploy_manifest.json` — metadata.
-- `prior_int8.tflite` / `prior_int8.h` / `prior_manifest.json` — entropy prior (two-stage only).
 
 ## Customization Notes
 
 - Tweak the YAML to explore neighbouring operating points; copy the file before editing.
 - For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.
-- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ppg-rvq-4x-prior --publish`.
+- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ppg-hybrid-8x --publish`.

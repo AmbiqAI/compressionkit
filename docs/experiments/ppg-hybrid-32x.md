@@ -1,25 +1,25 @@
 ---
-icon: lucide/activity
+icon: lucide/heart-pulse
 ---
 
-# `ecg-rvq-32x`
+# `ppg-hybrid-32x`
 
 ## Overview
 
-- **Modality**: ECG
+- **Modality**: PPG
 - **Structure**: `codec`
 - **Compression ratio**: 32×
-- **Sample rate**: 256 Hz
-- **Recipe**: `train-ecg-rvq`
-- **Config**: [`configs/ecg_rvq_256hz_32x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_32x_golden.yaml)
-- **Run name**: `ecg_rvq_256hz_32x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ecg-32x`](https://huggingface.co/Ambiq/compressionkit-ecg-32x)
+- **Sample rate**: 64 Hz
+- **Recipe**: `None`
+- **Config**: [`None`](https://github.com/AmbiqAI/compressionkit/blob/main/None)
+- **Run name**: `ppg_hybrid_64hz_32x_golden`
+- **HuggingFace**: [`Ambiq/compressionkit-ppg-hybrid-32x`](https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-32x)
 
 ## Dataset & License
 
-- **Dataset**: [PTB-XL](https://physionet.org/content/ptb-xl/) (`dataset_id: ptb-xl`)
-- **License**: CC BY 4.0 (open)
-- **Notes**: Auto-downloaded on first use.
+- **Dataset**: [Open unified PPG v1](../datasets.md) (`dataset_id: ppg-unified-strict-sanitize-v1`)
+- **License**: Open (BIDMC, BUT PPG, PPG-DaLiA, WESAD — mixed open licenses, no restricted-access dependency)
+- **Notes**: Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. Published v1 PPG goldens are MESA-free. Build the cache with `scripts/build_ppg_cache.py`.
 
 The lifecycle runner pre-flights dataset availability before training (see #26 and the
 [dataset contract](../api/datasets.md)).
@@ -28,19 +28,19 @@ The lifecycle runner pre-flights dataset availability before training (see #26 a
 
 ```bash
 # Single command, end-to-end.
-uv run compressionkit golden run ecg-rvq-32x
+uv run compressionkit golden run ppg-hybrid-32x
 
 # Publish the deploy package to HuggingFace (requires HF_TOKEN).
-uv run compressionkit golden run ecg-rvq-32x --publish
+uv run compressionkit golden run ppg-hybrid-32x --publish
 ```
 
-Results land under `results/ecg_rvq_256hz_32x_golden/`; deploy artifacts under `results/ecg_rvq_256hz_32x_golden/deploy/`.
+Results land under `results/ppg_hybrid_64hz_32x_golden/`; deploy artifacts under `results/ppg_hybrid_64hz_32x_golden/deploy/`.
 
 ## Evaluation Metrics
 
 See the modality model zoo for the full metrics table:
 
-- [ECG models](../models/ecg.md)
+- [PPG models](../models/ppg.md)
 
 Each run writes `quality_scorecard.json` and `summary.json` under its `results/<run>/`.
 
@@ -58,4 +58,4 @@ Every successful run produces the canonical edge deploy package:
 
 - Tweak the YAML to explore neighbouring operating points; copy the file before editing.
 - For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.
-- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ecg-rvq-32x --publish`.
+- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ppg-hybrid-32x --publish`.

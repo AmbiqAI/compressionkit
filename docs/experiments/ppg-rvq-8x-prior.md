@@ -7,7 +7,7 @@ icon: lucide/heart-pulse
 ## Overview
 
 - **Modality**: PPG
-- **Family**: `two_stage`
+- **Structure**: `two_stage`
 - **Compression ratio**: 8×
 - **Sample rate**: 64 Hz
 - **Recipe**: `train-rvq-prior`
@@ -17,9 +17,9 @@ icon: lucide/heart-pulse
 
 ## Dataset & License
 
-- **Dataset**: Open unified PPG v1 (`dataset_id: ppg-unified-strict-sanitize-v1`)
-- **Sources**: BIDMC, BUT PPG, PPG-DaLiA, and WESAD
-- **Notes**: Published v1 PPG goldens are MESA-free. Build the open-source cache with `scripts/build_ppg_cache.py`.
+- **Dataset**: [Open unified PPG v1](../datasets.md) (`dataset_id: ppg-unified-strict-sanitize-v1`)
+- **License**: Open (BIDMC, BUT PPG, PPG-DaLiA, WESAD — mixed open licenses, no restricted-access dependency)
+- **Notes**: Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. Published v1 PPG goldens are MESA-free. Build the cache with `scripts/build_ppg_cache.py`.
 
 The lifecycle runner pre-flights dataset availability before training (see #26 and the
 [dataset contract](../api/datasets.md)).

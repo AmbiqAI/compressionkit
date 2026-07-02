@@ -2,18 +2,18 @@
 icon: lucide/activity
 ---
 
-# `ecg-rvq-16x`
+# `ecg-spiht-64x`
 
 ## Overview
 
 - **Modality**: ECG
 - **Structure**: `codec`
-- **Compression ratio**: 16×
+- **Compression ratio**: 64×
 - **Sample rate**: 256 Hz
-- **Recipe**: `train-ecg-rvq`
-- **Config**: [`configs/ecg_rvq_256hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml)
-- **Run name**: `ecg_rvq_256hz_16x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ecg-16x`](https://huggingface.co/Ambiq/compressionkit-ecg-16x)
+- **Recipe**: `None`
+- **Config**: [`None`](https://github.com/AmbiqAI/compressionkit/blob/main/None)
+- **Run name**: `ecg_spiht_256hz_64x_golden`
+- **HuggingFace**: [`Ambiq/compressionkit-ecg-spiht-64x`](https://huggingface.co/Ambiq/compressionkit-ecg-spiht-64x)
 
 ## Dataset & License
 
@@ -28,13 +28,13 @@ The lifecycle runner pre-flights dataset availability before training (see #26 a
 
 ```bash
 # Single command, end-to-end.
-uv run compressionkit golden run ecg-rvq-16x
+uv run compressionkit golden run ecg-spiht-64x
 
 # Publish the deploy package to HuggingFace (requires HF_TOKEN).
-uv run compressionkit golden run ecg-rvq-16x --publish
+uv run compressionkit golden run ecg-spiht-64x --publish
 ```
 
-Results land under `results/ecg_rvq_256hz_16x_golden/`; deploy artifacts under `results/ecg_rvq_256hz_16x_golden/deploy/`.
+Results land under `results/ecg_spiht_256hz_64x_golden/`; deploy artifacts under `results/ecg_spiht_256hz_64x_golden/deploy/`.
 
 ## Evaluation Metrics
 
@@ -58,4 +58,4 @@ Every successful run produces the canonical edge deploy package:
 
 - Tweak the YAML to explore neighbouring operating points; copy the file before editing.
 - For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.
-- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ecg-rvq-16x --publish`.
+- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ecg-spiht-64x --publish`.

@@ -36,6 +36,15 @@ _DATASET_BLURBS: dict[str, dict[str, str]] = {
         "source": "https://sleepdata.org/datasets/mesa",
         "notes": "Requires an NSRR token. Set ``NSRR_TOKEN`` and call ``MesaDataset(...).download()``.",
     },
+    "ppg-unified-strict-sanitize-v1": {
+        "name": "Open unified PPG v1",
+        "license": "Open (BIDMC, BUT PPG, PPG-DaLiA, WESAD — mixed open licenses, no restricted-access dependency)",
+        "source": "../datasets.md",
+        "notes": (
+            "Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. Published v1 PPG goldens are "
+            "MESA-free. Build the cache with `scripts/build_ppg_cache.py`."
+        ),
+    },
 }
 
 

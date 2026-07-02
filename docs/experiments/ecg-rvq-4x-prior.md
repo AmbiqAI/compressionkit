@@ -7,7 +7,7 @@ icon: lucide/activity
 ## Overview
 
 - **Modality**: ECG
-- **Family**: `two_stage`
+- **Structure**: `two_stage`
 - **Compression ratio**: 4×
 - **Sample rate**: 256 Hz
 - **Recipe**: `train-rvq-prior`
