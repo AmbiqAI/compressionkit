@@ -175,7 +175,7 @@ For the full runtime guide, see [Deployment Guide](../deployment.md).
 
 - Frame shape: `(1, 1, 512, 1)` float32
 - Sample rate: `256 Hz`
-- Default HuggingFace repo pattern: `Ambiq/compressionkit-ecg-{cr}x`
+- Default HuggingFace repo pattern: `Ambiq/compressionkit-ecg-{cr}x-v1.0`
 
 ### Quickstart
 

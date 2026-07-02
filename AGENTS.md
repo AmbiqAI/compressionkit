@@ -63,7 +63,7 @@ These are the project guidelines for agentic AI models working in this repositor
 - Before cutting a release, run `compressionkit golden validate-all --strict-release` to audit every registered golden's existing local deploy package for schema drift (gitignored `results/` can silently go stale relative to code changes).
 
 ### HuggingFace Releases
-- Model repos follow the naming convention `Ambiq/compressionkit-{modality}-{cr}x`.
+- Model repos follow the naming convention `Ambiq/compressionkit-{modality}-{cr}x-{version}` (RVQ) or `Ambiq/compressionkit-{modality}-{method}-{cr}x-{version}` (SPIHT/hybrid), e.g. `Ambiq/compressionkit-ppg-4x-v1.0`.
 - Use `HF_TOKEN` env var for authentication — **never commit tokens**.
 - Publish via `scripts/publish_to_huggingface.py` (when available).
 - Release checklist: export deploy artifacts → generate scorecard → build model card → publish to HF.
