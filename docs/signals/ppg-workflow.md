@@ -13,7 +13,7 @@ golden lanes for deeper evaluation.
 The current supported task is:
 
 - Input: 64 Hz PPG windows from the open unified PPG v1 cache or from your own signal.
-- Published runtime path: load `Ambiq/compressionkit-ppg-{2,4,8,16,32}x` bundles.
+- Published runtime path: load `Ambiq/compressionkit-ppg-{2,4,8,16,32}x-v1.0` bundles.
 - Golden comparison lanes: RVQ, SPIHT, and hybrid runs evaluated through the same scorecard shape.
 - Deployment path: export encoder/codebook artifacts plus manifests, checksums, and reference vectors.
 - Evaluation path: compare waveform metrics, HR/HRV preservation, noise buckets, and artifact sweeps.
