@@ -7,19 +7,19 @@ icon: lucide/heart-pulse
 ## Overview
 
 - **Modality**: PPG
-- **Family**: `codec`
+- **Structure**: `codec`
 - **Compression ratio**: 8×
 - **Sample rate**: 64 Hz
 - **Recipe**: `train-ppg-rvq`
 - **Config**: [`configs/ppg_rvq_64hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden.yaml)
 - **Run name**: `ppg_rvq_64hz_08x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x)
+- **HuggingFace**: [`Ambiq/compressionkit-ppg-8x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ppg-8x-v1.0)
 
 ## Dataset & License
 
-- **Dataset**: Open unified PPG v1 (`dataset_id: ppg-unified-strict-sanitize-v1`)
-- **Sources**: BIDMC, BUT PPG, PPG-DaLiA, and WESAD
-- **Notes**: Published v1 PPG goldens are MESA-free. Build the open-source cache with `scripts/build_ppg_cache.py`.
+- **Dataset**: [Open unified PPG v1](../datasets.md) (`dataset_id: ppg-unified-strict-sanitize-v1`)
+- **License**: Open (BIDMC, BUT PPG, PPG-DaLiA, WESAD — mixed open licenses, no restricted-access dependency)
+- **Notes**: Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. Published v1 PPG goldens are MESA-free. Build the cache with `scripts/build_ppg_cache.py`.
 
 The lifecycle runner pre-flights dataset availability before training (see #26 and the
 [dataset contract](../api/datasets.md)).

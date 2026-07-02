@@ -7,13 +7,13 @@ icon: lucide/activity
 ## Overview
 
 - **Modality**: ECG
-- **Family**: `two_stage`
+- **Structure**: `two_stage`
 - **Compression ratio**: 4×
 - **Sample rate**: 256 Hz
 - **Recipe**: `train-rvq-prior`
 - **Config**: [`configs/ecg_rvq_256hz_04x_golden_prior.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden_prior.yaml)
 - **Run name**: `ecg_rvq_256hz_04x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ecg-4x`](https://huggingface.co/Ambiq/compressionkit-ecg-4x)
+- **HuggingFace**: [`Ambiq/compressionkit-ecg-4x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ecg-4x-v1.0)
 
 ## Dataset & License
 

@@ -7,13 +7,13 @@ icon: lucide/activity
 ## Overview
 
 - **Modality**: ECG
-- **Family**: `codec`
+- **Structure**: `codec`
 - **Compression ratio**: 8×
 - **Sample rate**: 256 Hz
 - **Recipe**: `train-ecg-rvq`
 - **Config**: [`configs/ecg_rvq_256hz_08x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden.yaml)
 - **Run name**: `ecg_rvq_256hz_08x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x)
+- **HuggingFace**: [`Ambiq/compressionkit-ecg-8x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ecg-8x-v1.0)
 
 ## Dataset & License
 
