@@ -530,6 +530,14 @@ def as_coeff_denoiser(model: keras.Model, *, frame_size: int, wavelet: str, leve
     returns the denoised coefficients directly. Builds the noise-level feature
     channel when the model expects it. Suitable for
     :class:`LearnedShrinkSpihtCodec`.
+
+    The approximation (DC/baseline) band is always passed through unchanged,
+    regardless of what the model predicts for it. It carries the signal's
+    low-frequency/DC level, not sensor noise, so it should never be part of a
+    denoising correction; a model that assigns it a large gain/replacement
+    correction (whether from training imbalance or a noisy label) would
+    otherwise introduce a systematic amplitude/baseline shift in the
+    reconstructed signal that has nothing to do with actual denoising.
     """
     start, length = finest_band_indices(frame_size, wavelet, levels)
     expects_level = int(model.input_shape[-1]) == 2
@@ -551,6 +559,9 @@ def as_coeff_denoiser(model: keras.Model, *, frame_size: int, wavelet: str, leve
             feat = arr.reshape(1, 1, -1, 1)
         out = model(feat, training=False)
         out = np.asarray(out).reshape(-1)[: arr.shape[0]]
-        return arr * out if gain_mode else out
+        denoised = arr * out if gain_mode else out
+        denoised = denoised.copy()
+        denoised[:start] = arr[:start]  # approx/DC band: always pass through unchanged
+        return denoised
 
     return _denoise

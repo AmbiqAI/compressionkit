@@ -21,9 +21,9 @@ from __future__ import annotations
 from compressionkit.experiments.registry import (
     GOLDEN_REGISTRY,
     GoldenExperiment,
-    GoldenFamily,
     GoldenMethod,
     GoldenModality,
+    GoldenStructure,
     get_golden,
     list_goldens,
 )
@@ -32,9 +32,9 @@ from compressionkit.experiments.runner import repackage_golden, run_golden
 __all__ = [
     "GOLDEN_REGISTRY",
     "GoldenExperiment",
-    "GoldenFamily",
     "GoldenMethod",
     "GoldenModality",
+    "GoldenStructure",
     "get_golden",
     "list_goldens",
     "repackage_golden",

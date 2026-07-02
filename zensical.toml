@@ -65,6 +65,7 @@ nav = [
     { "CLI" = "cli.md" },
     { "Deployment" = "deployment.md" },
     { "Experiment Architecture" = "experiment-architecture.md" },
+    { "Adding a Codec Family" = "adding-a-codec-family.md" },
     { "V1 Release Contract" = "release-contract.md" },
     { "Validation Scorecard" = "validation-scorecard.md" },
     { "HuggingFace" = "huggingface.md" },

@@ -42,6 +42,26 @@ def test_as_coeff_denoiser_detects_gain_vs_direct() -> None:
         assert out.shape == x.shape
 
 
+def test_as_coeff_denoiser_preserves_approx_band() -> None:
+    """The approx (DC/baseline) band must pass through unchanged.
+
+    A model that mis-predicts a large gain/replacement for the approx band
+    would otherwise introduce a systematic amplitude/baseline shift in the
+    reconstructed signal (found in the published PPG hybrid golden models:
+    an untrained-away gain of ~0.43 on the approx band alone produced ~48%
+    PRD, unrelated to actual denoising quality).
+    """
+    from compressionkit.models.wavelet_denoiser import finest_band_indices
+
+    start, _ = finest_band_indices(frame_size=512, wavelet="bior4.4", levels=6)
+    gain = build_wavelet_gain_denoiser(frame_size=512)
+    direct = build_wavelet_denoiser_v2(frame_size=512)
+    x = np.random.default_rng(2).standard_normal(512).astype(np.float32) * 10.0 + 5.0
+    for model in (gain, direct):
+        out = as_coeff_denoiser(model, frame_size=512, wavelet="bior4.4", levels=6)(x)
+        np.testing.assert_array_equal(out[:start], x[:start])
+
+
 def test_wide_augmenter_is_not_bimodal() -> None:
     # Severities should spread continuously, not cluster at {0, high}.
     aug = WideArtifactAugmenter(sample_rate=256, clean_prob=0.08)

@@ -82,6 +82,8 @@ SPIHT_HF_FILE_RENAMES: tuple[tuple[ArtifactFile, ArtifactFile], ...] = (
     (ArtifactFile.REFERENCE_VECTORS, ArtifactFile.REFERENCE_VECTORS),
     (ArtifactFile.MODEL_CARD, ArtifactFile.MODEL_CARD),
     (ArtifactFile.SCORECARD, ArtifactFile.SCORECARD),
+    (ArtifactFile.SPIHT_APP_CONFIG_HEADER, ArtifactFile.SPIHT_APP_CONFIG_HEADER),
+    (ArtifactFile.CHECKSUMS, ArtifactFile.CHECKSUMS),
 )
 
 HYBRID_HF_FILE_RENAMES: tuple[tuple[ArtifactFile, ArtifactFile], ...] = (

@@ -24,6 +24,7 @@ import keras
 from compressionkit.evaluation.scorecard import write_quality_scorecard
 from compressionkit.export.deploy import export_for_deployment, sync_scorecard_to_deploy
 from compressionkit.export.release import build_release_metadata
+from compressionkit.export.validate import validate_deploy_package
 from compressionkit.logging.wandb_utils import finalize_wandb_run, init_wandb_run
 from compressionkit.trainers.common import (
     BEST_CKPT_NAME,
@@ -250,14 +251,23 @@ class BaseRVQTrainer[ConfigT](ABC):
         )
         compression = self.build_compression_stats()
 
-        sample_rate = getattr(self.cfg.data, "sampling_rate", None)
+        # Prefer the effective (post-downsample) operating rate when the
+        # config declares one (e.g. ECG's target_sample_rate=256 vs a
+        # sampling_rate=500 source); only fall back to sampling_rate for
+        # configs that don't distinguish source vs operating rate (e.g. PPG).
+        sample_rate = getattr(self.cfg.data, "effective_sample_rate", None)
         if sample_rate is None:
-            sample_rate = getattr(self.cfg.data, "effective_sample_rate", None)
+            sample_rate = getattr(self.cfg.data, "sampling_rate", None)
+        unified_cache = getattr(self.cfg.data, "unified_cache", None)
+        dataset_sources: list[str] | None = None
+        if unified_cache is not None and getattr(unified_cache, "enabled", False):
+            dataset_sources = [source.slug for source in unified_cache.sources]
         model_card_info = build_release_metadata(
             run_name=self.cfg.run_name,
             modality=str(self.cfg.run_name).split("_", 1)[0],
             sample_rate=sample_rate,
             compression_ratio=compression.get("compression_ratio"),
+            dataset_sources=dataset_sources,
         )
 
         rep_dataset = collect_rep_dataset(
@@ -316,6 +326,24 @@ class BaseRVQTrainer[ConfigT](ABC):
                 deploy.scorecard = sync_scorecard_to_deploy(run_dir / "deploy", scorecard_summary)
                 deploy.checksums = deploy.output_dir / "checksums.json"
                 summary["artifacts"]["deploy"] = deploy.as_dict()
+
+                try:
+                    validation_result = validate_deploy_package(run_dir / "deploy", strict_release=True)
+                except Exception:
+                    self.logger.exception("Deploy package self-validation crashed; treat this release as unverified.")
+                else:
+                    if validation_result.errors:
+                        self.logger.error(
+                            "Deploy package failed strict release validation: %s",
+                            "; ".join(validation_result.errors),
+                        )
+                    else:
+                        self.logger.info("Deploy package passed strict release validation.")
+                    summary["artifacts"]["deploy_validation"] = {
+                        "ok": validation_result.ok,
+                        "errors": validation_result.errors,
+                        "warnings": validation_result.warnings,
+                    }
                 write_summary(summary, run_dir)
 
         _long_payload = _build_long_recording_payload(eval_results)

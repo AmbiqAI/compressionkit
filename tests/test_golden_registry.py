@@ -50,7 +50,7 @@ def test_entry_invariants(exp: GoldenExperiment) -> None:
         assert exp.config_path.is_file(), f"missing config for {exp.experiment_id}: {exp.config_path}"
 
     # Run name and HF repo follow AGENTS.md conventions for codec entries.
-    if exp.family == "codec":
+    if exp.structure == "codec":
         match = _RUN_NAME_RE.match(exp.run_name)
         assert match, f"run_name does not match pattern: {exp.run_name!r}"
         assert match.group(2) == exp.method
@@ -93,7 +93,7 @@ def test_two_stage_requires_parent() -> None:
         GoldenExperiment(
             experiment_id="ppg-rvq-4x-prior",
             modality="ppg",
-            family="two_stage",
+            structure="two_stage",
             recipe="train-ppg-rvq",
             config_path=GOLDEN_REGISTRY[0].config_path,
             run_name=GOLDEN_REGISTRY[0].run_name,
@@ -109,7 +109,7 @@ def test_codec_rejects_parent() -> None:
         GoldenExperiment(
             experiment_id="ppg-rvq-4x-bogus",
             modality="ppg",
-            family="codec",
+            structure="codec",
             parent="ppg-rvq-4x",
             recipe="train-ppg-rvq",
             config_path=GOLDEN_REGISTRY[0].config_path,

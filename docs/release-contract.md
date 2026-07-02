@@ -208,6 +208,16 @@ compressionkit golden validate-deploy results/<run_name>/deploy --strict-release
 
 `compressionkit golden run` and `compressionkit golden run-all` validate the deploy package before optional HuggingFace publication by default. Use `--skip-validation` only for local iteration on incomplete packages; use `--strict-release-validation` for release candidates.
 
+Since `results/` is gitignored, a local deploy package can silently go stale relative to the current schema (e.g. a manifest field's semantics change but nobody re-runs the golden that produced an old package). Sweep every registered golden's existing local package in one pass with:
+
+```bash
+compressionkit golden validate-all --strict-release
+```
+
+Run this before cutting a release, and after any change to manifest schema, family semantics, or `export/validate.py`'s requirements.
+
+Family-specific dispatch (which runtime class loads a package, which files are required, which model-card generator applies, the default license) is centralized in one place — `compressionkit.export.family_registry.FAMILY_REGISTRY` — rather than re-derived independently by the loader, validator, model-card generator, and HuggingFace publisher. See [Adding a Codec Family](adding-a-codec-family.md) for the full promotion path from concept to a published golden.
+
 For DSP packages, the package must be usable without Python. That means the release should include either vendored reference sources or a pinned, checksum-verified reference module release.
 
 ## Publication Contract

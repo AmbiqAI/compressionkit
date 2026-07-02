@@ -25,7 +25,11 @@ class _DummyModel:
 class _DummyTrainer(base_rvq.BaseRVQTrainer[SimpleNamespace]):
     @property
     def logger(self):
-        return SimpleNamespace(info=lambda *args, **kwargs: None, exception=lambda *args, **kwargs: None)
+        return SimpleNamespace(
+            info=lambda *args, **kwargs: None,
+            exception=lambda *args, **kwargs: None,
+            error=lambda *args, **kwargs: None,
+        )
 
     def build_preprocessor(self):
         return object()

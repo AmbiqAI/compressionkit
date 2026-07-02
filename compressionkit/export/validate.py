@@ -178,33 +178,19 @@ def validate_deploy_package(
         _verify_checksums(root, checksums_path, errors)
         checked_files.append(checksums_name)
 
-    family_required: dict[str, list[str]] = {
-        "rvq": ["encoder.tflite", "codebook.npz", "codebook.h"],
-        "spiht": ["sample_stimulus.npz", "reference_vectors.npz", "spiht_app_config.h"],
-        "hybrid": [
-            "sample_stimulus.npz",
-            "reference_vectors.npz",
-            "spiht_app_config.h",
-            "denoiser_gain_model.keras",
-            "hybrid_manifest.json",
-        ],
-    }
-    for rel in family_required.get(family, []):
+    family_spec = None
+    try:
+        from compressionkit.export.family_registry import get_family_spec
+
+        family_spec = get_family_spec(family)
+    except ValueError:
+        pass  # Unknown family: fall through to the generic release-extras default below.
+
+    for rel in family_spec.required_artifacts if family_spec is not None else ():
         _check_file(root, rel, checked_files, errors, warnings, required=True, label=f"required {family} artifact")
 
-    release_extras: dict[str, list[str]] = {
-        "rvq": ["model_card.json", "README.md", "scorecard.json", "reference_vectors.npz", "sample_data.npz"],
-        "spiht": ["model_card.json", "README.md", "scorecard.json", "reference_vectors.npz", "sample_stimulus.npz"],
-        "hybrid": [
-            "model_card.json",
-            "README.md",
-            "scorecard.json",
-            "reference_vectors.npz",
-            "sample_stimulus.npz",
-            "denoiser_train_config.json",
-        ],
-    }
-    for rel in release_extras.get(family, ["model_card.json", "README.md", "scorecard.json", "reference_vectors.npz"]):
+    default_release_extras = ("model_card.json", "README.md", "scorecard.json", "reference_vectors.npz")
+    for rel in family_spec.release_extras if family_spec is not None else default_release_extras:
         _check_file(root, rel, checked_files, errors, warnings, required=strict_release, label="release artifact")
 
     if check_runtime:

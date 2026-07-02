@@ -48,6 +48,7 @@ def build_release_metadata(
     sample_rate: int | float | None = None,
     compression_ratio: int | float | None = None,
     experiment_id: str | None = None,
+    dataset_sources: list[str] | None = None,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build common metadata passed from experiments into deploy exporters."""
@@ -59,6 +60,8 @@ def build_release_metadata(
     }
     if experiment_id is not None:
         metadata["experiment_id"] = experiment_id
+    if dataset_sources is not None:
+        metadata["dataset_sources"] = dataset_sources
     if extra:
         metadata.update(extra)
     return metadata
@@ -78,6 +81,7 @@ def build_model_card(
         "sample_rate": model_card_info.get("sample_rate"),
         "compression_ratio": model_card_info.get("compression_ratio"),
         "license": model_card_info.get("license", "other"),
+        "dataset_sources": model_card_info.get("dataset_sources"),
         "scorecard_summary": model_card_info.get("scorecard_summary", {}),
     }
 

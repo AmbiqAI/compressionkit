@@ -32,30 +32,11 @@ import sys
 import tempfile
 from pathlib import Path
 
-from compressionkit.export.artifact_contract import (
-    HYBRID_HF_FILE_RENAMES,
-    RVQ_HF_FILE_RENAMES,
-    SPIHT_HF_FILE_RENAMES,
-    ArtifactFile,
-)
+from compressionkit.export.artifact_contract import ArtifactFile
+from compressionkit.export.family_registry import CodecFamilySpec, get_family_spec
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
-
-# Files from an RVQ deploy directory to upload, mapped to their HF repo names.
-# If a file doesn't exist, it is silently skipped.
-_DEPLOY_FILE_MAP = RVQ_HF_FILE_RENAMES
-
-# Files from a SPIHT (DSP-only) deploy directory. The vendored C sources
-# live in a ``c_sources/`` subdirectory and are uploaded recursively.
-_SPIHT_FILE_MAP = SPIHT_HF_FILE_RENAMES
-
-# Files from a hybrid (DSP + learned denoiser) deploy directory. A hybrid
-# package uses a DSP backend (SPIHT today) for the bitstream, so it carries
-# the full SPIHT contract *plus* the learned denoiser stage and the hybrid
-# pipeline manifest. Without these extra entries the denoiser — the AI half
-# of the codec — would be silently dropped from the published repo.
-_HYBRID_FILE_MAP = HYBRID_HF_FILE_RENAMES
 
 
 def _detect_family(deploy_dir: Path) -> str:
@@ -68,52 +49,16 @@ def _detect_family(deploy_dir: Path) -> str:
     return str(manifest.get("family", "rvq"))
 
 
-def _stage_files(deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None) -> list[str]:
-    """Copy RVQ deploy artifacts to a staging directory with HF naming."""
-    staged: list[str] = []
+def _stage_deploy_files(spec: CodecFamilySpec, deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None) -> list[str]:
+    """Copy deploy artifacts to a staging directory per the family's HF contract.
 
-    for src_name, dst_name in _DEPLOY_FILE_MAP:
-        src = deploy_dir / src_name
-        dst = staging_dir / dst_name
-        if src.exists() and not dst.exists():
-            shutil.copy2(src, dst)
-            staged.append(str(dst_name))
-            logger.info("Staged: %s → %s", src_name, dst_name)
-
-    # Copy scorecard if provided
-    if scorecard_path and scorecard_path.exists():
-        dst = staging_dir / "quality_scorecard.json"
-        shutil.copy2(scorecard_path, dst)
-        staged.append("quality_scorecard.json")
-        logger.info("Staged: scorecard → quality_scorecard.json")
-
-    # Include the custom model weights license if it exists
-    license_file = Path(__file__).resolve().parent.parent / "LICENSE-MODEL-WEIGHTS.md"
-    if license_file.exists():
-        dst = staging_dir / "LICENSE-MODEL-WEIGHTS.md"
-        shutil.copy2(license_file, dst)
-        staged.append("LICENSE-MODEL-WEIGHTS.md")
-        logger.info("Staged: LICENSE-MODEL-WEIGHTS.md")
-
-    return staged
-
-
-def _stage_files_spiht(
-    deploy_dir: Path,
-    staging_dir: Path,
-    scorecard_path: Path | None,
-    file_map: tuple[tuple[ArtifactFile, ArtifactFile], ...] | None = None,
-) -> list[str]:
-    """Copy SPIHT (or hybrid) deploy artifacts to a staging directory.
-
-    Includes the ``c_sources/`` subtree verbatim so consumers get the
-    portable C99 reference plus the generated ``spiht_app_config.h``. Pass
-    ``file_map=_HYBRID_FILE_MAP`` to additionally stage the learned denoiser
-    and hybrid pipeline manifest for hybrid deploy packages.
+    Driven entirely by ``spec`` (see :mod:`compressionkit.export.family_registry`)
+    so RVQ/SPIHT/hybrid share one staging path instead of three independently
+    maintained copies.
     """
     staged: list[str] = []
 
-    for src_name, dst_name in file_map or _SPIHT_FILE_MAP:
+    for src_name, dst_name in spec.hf_file_renames:
         src = deploy_dir / src_name
         dst = staging_dir / dst_name
         if src.exists() and not dst.exists():
@@ -121,23 +66,34 @@ def _stage_files_spiht(
             staged.append(str(dst_name))
             logger.info("Staged: %s → %s", src_name, dst_name)
 
-    # Copy the c_sources/ subtree if present.
-    c_src = deploy_dir / "c_sources"
-    if c_src.is_dir():
-        dst_dir = staging_dir / "c_sources"
-        shutil.copytree(c_src, dst_dir, dirs_exist_ok=True)
-        for p in sorted(dst_dir.rglob("*")):
-            if p.is_file():
-                rel = p.relative_to(staging_dir)
-                staged.append(str(rel))
-                logger.info("Staged: c_sources/%s", p.name)
+    # DSP families (SPIHT, hybrid) vendor a portable C99 reference under
+    # c_sources/ that's uploaded verbatim.
+    if spec.has_c_sources:
+        c_src = deploy_dir / "c_sources"
+        if c_src.is_dir():
+            dst_dir = staging_dir / "c_sources"
+            shutil.copytree(c_src, dst_dir, dirs_exist_ok=True)
+            for p in sorted(dst_dir.rglob("*")):
+                if p.is_file():
+                    rel = p.relative_to(staging_dir)
+                    staged.append(str(rel))
+                    logger.info("Staged: c_sources/%s", p.name)
 
-    # Optional external scorecard.
     if scorecard_path and scorecard_path.exists():
         dst = staging_dir / "quality_scorecard.json"
         shutil.copy2(scorecard_path, dst)
         staged.append("quality_scorecard.json")
         logger.info("Staged: scorecard → quality_scorecard.json")
+
+    # Families with proprietary trained weights (RVQ, hybrid) ship the custom
+    # model-weights license alongside the code license.
+    if spec.has_trained_weights:
+        license_file = Path(__file__).resolve().parent.parent / "LICENSE-MODEL-WEIGHTS.md"
+        if license_file.exists():
+            dst = staging_dir / "LICENSE-MODEL-WEIGHTS.md"
+            shutil.copy2(license_file, dst)
+            staged.append("LICENSE-MODEL-WEIGHTS.md")
+            logger.info("Staged: LICENSE-MODEL-WEIGHTS.md")
 
     return staged
 
@@ -173,14 +129,8 @@ def publish(
         raise FileNotFoundError(f"{ArtifactFile.DEPLOY_MANIFEST} not found in {deploy_dir}")
 
     family = _detect_family(deploy_dir)
-    _KNOWN_FAMILIES = ("rvq", "spiht")
-    if family not in _KNOWN_FAMILIES:
-        raise ValueError(f"Unknown deploy family {family!r}; expected one of {_KNOWN_FAMILIES!r}")
-    # A hybrid package (learned denoiser + DSP backend) reports the backend
-    # family in its manifest (``spiht`` today) but additionally carries a
-    # ``hybrid_manifest.json`` and the denoiser artifacts.
-    is_hybrid = (deploy_dir / ArtifactFile.HYBRID_MANIFEST).exists()
-    logger.info("Detected deploy family: %s%s", family, " (hybrid)" if is_hybrid else "")
+    spec = get_family_spec(family)
+    logger.info("Detected deploy family: %s", family)
 
     # Validate HuggingFace availability before allocating any resources (skip for dry runs)
     if not dry_run:
@@ -204,34 +154,19 @@ def publish(
             logger.info("Using corrected scorecard: %s", sc_path)
     # Stage and generate card; clean up on any error
     try:
-        if is_hybrid:
-            staged = _stage_files_spiht(deploy_dir, staging_dir, sc_path, file_map=_HYBRID_FILE_MAP)
-        elif family == "spiht":
-            staged = _stage_files_spiht(deploy_dir, staging_dir, sc_path)
-        else:
-            staged = _stage_files(deploy_dir, staging_dir, sc_path)
+        staged = _stage_deploy_files(spec, deploy_dir, staging_dir, sc_path)
         if not staged:
             raise ValueError("No files staged — check deploy directory contents")
 
-        if family == "spiht":
-            from compressionkit.export.model_card import generate_spiht_model_card
-
-            # DSP-only SPIHT has no proprietary weights — default to Apache-2.0
-            # unless the caller explicitly overrode license_id.
-            spiht_license = "apache-2.0" if license_id == "other" else license_id
-            card_text = generate_spiht_model_card(
-                deploy_dir=deploy_dir,
-                scorecard_path=sc_path,
-                license_id=spiht_license,
-            )
-        else:
-            from compressionkit.export.model_card import generate_model_card
-
-            card_text = generate_model_card(
-                deploy_dir=deploy_dir,
-                scorecard_path=sc_path,
-                license_id=license_id,
-            )
+        # Each family declares its own default license (e.g. SPIHT defaults to
+        # Apache-2.0 since it has no trained weights) — only applied when the
+        # caller left the CLI's "other" sentinel unchanged.
+        effective_license = spec.default_license if license_id == "other" else license_id
+        card_text = spec.model_card_generator(
+            deploy_dir=deploy_dir,
+            scorecard_path=sc_path,
+            license_id=effective_license,
+        )
         readme_path = staging_dir / "README.md"
         readme_path.write_text(card_text)
         staged.append("README.md")

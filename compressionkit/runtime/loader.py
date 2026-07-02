@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["load_codec", "resolve_deploy_dir"]
 
-_KNOWN_FAMILIES: tuple[str, ...] = ("rvq", "spiht", "hybrid")
-
 
 def resolve_deploy_dir(repo_or_dir: str | Path) -> Path:
     """Return a local deploy directory, downloading from HF if needed.
@@ -111,8 +109,9 @@ def _ensure_rvq_hf_aliases(deploy_dir: Path) -> None:
 def load_codec(repo_or_dir: str | Path) -> Codec:
     """Hydrate a codec from a local deploy directory or HF repo id.
 
-    Dispatches on the manifest ``family`` field. Unknown families raise
-    ``ValueError`` with the list of known families.
+    Dispatches on the manifest ``family`` field via the shared
+    :data:`~compressionkit.export.family_registry.FAMILY_REGISTRY`. Unknown
+    families raise ``ValueError`` with the list of known families.
 
     Args:
         repo_or_dir: Local deploy directory or HuggingFace repo id.
@@ -120,23 +119,14 @@ def load_codec(repo_or_dir: str | Path) -> Codec:
     Returns:
         A concrete codec instance implementing :class:`Codec`.
     """
+    from compressionkit.export.family_registry import get_family_spec
+
     deploy_dir = resolve_deploy_dir(repo_or_dir)
     manifest = _read_manifest(deploy_dir)
     family: str = str(manifest.get("family", "rvq"))  # legacy manifests are RVQ
     _ensure_deploy_manifest(deploy_dir)
 
+    spec = get_family_spec(family)
     if family == "rvq":
         _ensure_rvq_hf_aliases(deploy_dir)
-        from compressionkit.runtime.codec import RVQCodec
-
-        return RVQCodec(deploy_dir)
-    if family == "spiht":
-        from compressionkit.runtime.spiht import SpihtCodec
-
-        return SpihtCodec.from_deploy_dir(deploy_dir)
-    if family == "hybrid":
-        from compressionkit.runtime.hybrid import HybridSpihtCodec
-
-        return HybridSpihtCodec.from_deploy_dir(deploy_dir)
-
-    raise ValueError(f"Unknown codec family {family!r} in {deploy_dir}. Known families: {_KNOWN_FAMILIES!r}.")
+    return spec.loader(deploy_dir)

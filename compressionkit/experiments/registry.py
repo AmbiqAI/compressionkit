@@ -7,9 +7,14 @@ needs to reproduce it from a clean checkout:
 
 * ``experiment_id`` — slug used on the CLI (``compressionkit golden run <id>``).
 * ``modality`` — ``"ppg"`` or ``"ecg"`` (extensible to future signals).
-* ``family`` — ``"codec"`` for single-stage, ``"two_stage"`` for codec + prior.
+* ``structure`` — ``"codec"`` for single-stage, ``"two_stage"`` for codec + prior.
+  Deliberately distinct from the deploy manifest's ``family`` field (``"rvq"``/
+  ``"spiht"``/``"hybrid"``, see :data:`compressionkit.runtime.base.CodecFamily`)
+  — this describes the *release shape* (one artifact vs. a paired codec+prior),
+  not the codec method.
 * ``method`` — ``"rvq"`` (neural), ``"spiht"`` (DSP), or ``"hybrid"`` (DSP+AI).
-  Drives the ``run_name`` infix and the HF repo naming convention.
+  Drives the ``run_name`` infix and the HF repo naming convention. Maps 1:1
+  onto the deploy manifest's ``family`` field once exported.
 * ``parent`` — for ``two_stage`` entries, the ``experiment_id`` of the codec they pair with.
 * ``recipe`` — registered training recipe name (see :mod:`compressionkit.recipes`).
   Optional for DSP-only entries that have nothing to train.
@@ -38,7 +43,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 GoldenModality = Literal["ppg", "ecg"]
-GoldenFamily = Literal["codec", "two_stage"]
+GoldenStructure = Literal["codec", "two_stage"]
 GoldenMethod = Literal["rvq", "spiht", "hybrid"]
 
 _PPG_GOLDEN_CRS: tuple[int, ...] = (2, 4, 8, 16, 32)
@@ -94,10 +99,15 @@ class GoldenExperiment(BaseModel):
         pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$",
     )
     modality: GoldenModality
-    family: GoldenFamily = "codec"
+    structure: GoldenStructure = Field(
+        default="codec",
+        description="Release shape: 'codec' (single-stage) or 'two_stage' (codec + prior). "
+        "Distinct from the deploy manifest's 'family' (rvq/spiht/hybrid) — see 'method' below.",
+    )
     method: GoldenMethod = Field(
         default="rvq",
-        description="Codec method family: 'rvq' (neural), 'spiht' (DSP), or 'hybrid'.",
+        description="Codec method: 'rvq' (neural), 'spiht' (DSP), or 'hybrid' (DSP+AI). "
+        "Maps 1:1 onto the deploy manifest's 'family' field.",
     )
     parent: str | None = Field(
         default=None,
@@ -132,7 +142,7 @@ class GoldenExperiment(BaseModel):
     @model_validator(mode="after")
     def _check_naming(self) -> GoldenExperiment:
         expected_run = f"{self.modality}_{self.method}_{self.sample_rate}hz_{self.compression_ratio:02d}x_golden"
-        if self.family == "codec" and self.run_name != expected_run:
+        if self.structure == "codec" and self.run_name != expected_run:
             raise ValueError(
                 f"run_name {self.run_name!r} does not match the AGENTS.md convention "
                 f"{expected_run!r} for experiment {self.experiment_id!r}"
@@ -142,13 +152,13 @@ class GoldenExperiment(BaseModel):
             expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.compression_ratio}x"
         else:
             expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.method}-{self.compression_ratio}x"
-        if self.family in ("codec", "two_stage") and self.hf_repo_id != expected_repo:
+        if self.structure in ("codec", "two_stage") and self.hf_repo_id != expected_repo:
             raise ValueError(
                 f"hf_repo_id {self.hf_repo_id!r} does not match {expected_repo!r} for experiment {self.experiment_id!r}"
             )
-        if self.family == "two_stage" and self.parent is None:
+        if self.structure == "two_stage" and self.parent is None:
             raise ValueError(f"two_stage experiment {self.experiment_id!r} must declare a parent codec id")
-        if self.family == "codec" and self.parent is not None:
+        if self.structure == "codec" and self.parent is not None:
             raise ValueError(f"codec experiment {self.experiment_id!r} must not declare a parent")
         if self.method == "hybrid" and self.hybrid is None:
             raise ValueError(f"hybrid experiment {self.experiment_id!r} must declare a 'hybrid' spec")
@@ -194,7 +204,7 @@ def _ppg_codec(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ppg-rvq-{cr}x",
         modality="ppg",
-        family="codec",
+        structure="codec",
         recipe="train-ppg-rvq",
         config_path=Path(f"configs/ppg_rvq_64hz_{cr:02d}x_golden.yaml"),
         run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
@@ -210,7 +220,7 @@ def _ecg_codec(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ecg-rvq-{cr}x",
         modality="ecg",
-        family="codec",
+        structure="codec",
         recipe="train-ecg-rvq",
         config_path=Path(f"configs/ecg_rvq_256hz_{cr:02d}x_golden.yaml"),
         run_name=f"ecg_rvq_256hz_{cr:02d}x_golden",
@@ -227,7 +237,7 @@ def _ppg_two_stage(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ppg-rvq-{cr}x-prior",
         modality="ppg",
-        family="two_stage",
+        structure="two_stage",
         parent=parent_id,
         recipe="train-rvq-prior",
         config_path=Path(f"configs/ppg_rvq_64hz_{cr:02d}x_golden_prior.yaml"),
@@ -244,7 +254,7 @@ def _ecg_two_stage(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ecg-rvq-{cr}x-prior",
         modality="ecg",
-        family="two_stage",
+        structure="two_stage",
         parent=parent_id,
         recipe="train-rvq-prior",
         config_path=Path(f"configs/ecg_rvq_256hz_{cr:02d}x_golden_prior.yaml"),
@@ -268,7 +278,7 @@ def _ppg_spiht(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ppg-spiht-{cr}x",
         modality="ppg",
-        family="codec",
+        structure="codec",
         method="spiht",
         run_name=f"ppg_spiht_64hz_{cr:02d}x_golden",
         sample_rate=64,
@@ -284,7 +294,7 @@ def _ecg_spiht(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ecg-spiht-{cr}x",
         modality="ecg",
-        family="codec",
+        structure="codec",
         method="spiht",
         run_name=f"ecg_spiht_256hz_{cr:02d}x_golden",
         sample_rate=256,
@@ -307,7 +317,7 @@ def _ppg_hybrid(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ppg-hybrid-{cr}x",
         modality="ppg",
-        family="codec",
+        structure="codec",
         method="hybrid",
         run_name=f"ppg_hybrid_64hz_{cr:02d}x_golden",
         sample_rate=64,
@@ -331,7 +341,7 @@ def _ecg_hybrid(cr: int) -> GoldenExperiment:
     return GoldenExperiment(
         experiment_id=f"ecg-hybrid-{cr}x",
         modality="ecg",
-        family="codec",
+        structure="codec",
         method="hybrid",
         run_name=f"ecg_hybrid_256hz_{cr:02d}x_golden",
         sample_rate=256,
@@ -373,13 +383,13 @@ if len(_BY_ID) != len(GOLDEN_REGISTRY):
 
 # Every two_stage entry must point at a registered codec parent.
 for _exp in GOLDEN_REGISTRY:
-    if _exp.family == "two_stage" and _exp.parent not in _BY_ID:
+    if _exp.structure == "two_stage" and _exp.parent not in _BY_ID:
         raise RuntimeError(f"two_stage {_exp.experiment_id!r} parent {_exp.parent!r} not in registry")
 
 
 def list_two_stage_children(parent_id: str) -> list[GoldenExperiment]:
     """Return every two_stage experiment paired to the given codec parent."""
-    return [exp for exp in GOLDEN_REGISTRY if exp.family == "two_stage" and exp.parent == parent_id]
+    return [exp for exp in GOLDEN_REGISTRY if exp.structure == "two_stage" and exp.parent == parent_id]
 
 
 def list_goldens(
@@ -406,9 +416,9 @@ def get_golden(experiment_id: str) -> GoldenExperiment:
 __all__ = [
     "GOLDEN_REGISTRY",
     "GoldenExperiment",
-    "GoldenFamily",
     "GoldenMethod",
     "GoldenModality",
+    "GoldenStructure",
     "HybridSpec",
     "get_golden",
     "list_goldens",

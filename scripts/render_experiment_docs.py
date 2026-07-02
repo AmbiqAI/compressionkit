@@ -46,10 +46,10 @@ def _render_index() -> str:
 
     def _row(exp: GoldenExperiment) -> str:
         page = f"[`{exp.experiment_id}`]({exp.experiment_id}.md)"
-        family = exp.family
+        structure = exp.structure
         parent = exp.parent or "—"
         return (
-            f"| {page} | {exp.modality.upper()} | {family} | {exp.compression_ratio}× | "
+            f"| {page} | {exp.modality.upper()} | {structure} | {exp.compression_ratio}× | "
             f"{parent} | `{exp.dataset_id}` | [`{exp.hf_repo_id}`](https://huggingface.co/{exp.hf_repo_id}) |"
         )
 
@@ -74,11 +74,11 @@ def _render_index() -> str:
         "",
         "## v1 Registry",
         "",
-        "| Experiment | Modality | Family | CR | Parent | Dataset | HuggingFace |",
+        "| Experiment | Modality | Structure | CR | Parent | Dataset | HuggingFace |",
         "|------------|----------|--------|----|--------|---------|-------------|",
     ]
     for modality in ("ppg", "ecg"):
-        for exp in sorted(by_modality[modality], key=lambda e: (e.family != "codec", e.compression_ratio)):
+        for exp in sorted(by_modality[modality], key=lambda e: (e.structure != "codec", e.compression_ratio)):
             lines.append(_row(exp))
 
     lines += [
@@ -113,9 +113,9 @@ def _render_index() -> str:
 def _render_experiment(exp: GoldenExperiment) -> str:
     ds = _DATASET_BLURBS.get(exp.dataset_id, {"name": exp.dataset_id, "license": "—", "source": "", "notes": ""})
     icon = "lucide/heart-pulse" if exp.modality == "ppg" else "lucide/activity"
-    children = list_two_stage_children(exp.experiment_id) if exp.family == "codec" else []
+    children = list_two_stage_children(exp.experiment_id) if exp.structure == "codec" else []
     parent_block = ""
-    if exp.family == "two_stage":
+    if exp.structure == "two_stage":
         parent_block = dedent(
             f"""
             ## Parent codec
@@ -147,7 +147,7 @@ def _render_experiment(exp: GoldenExperiment) -> str:
         "## Overview",
         "",
         f"- **Modality**: {exp.modality.upper()}",
-        f"- **Family**: `{exp.family}`",
+        f"- **Structure**: `{exp.structure}`",
         f"- **Compression ratio**: {exp.compression_ratio}×",
         f"- **Sample rate**: {exp.sample_rate} Hz",
         f"- **Recipe**: `{exp.recipe}`",
@@ -203,7 +203,7 @@ def _render_experiment(exp: GoldenExperiment) -> str:
         "- `sample_stimulus.npz` — license-safe input/output reference frames.",
         "- `model_card.json`, `deploy_manifest.json` — metadata.",
     ]
-    if exp.family == "two_stage" or children:
+    if exp.structure == "two_stage" or children:
         lines += [
             "- `prior_int8.tflite` / `prior_int8.h` / `prior_manifest.json` — entropy prior (two-stage only).",
         ]
