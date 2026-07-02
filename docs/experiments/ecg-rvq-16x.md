@@ -13,7 +13,7 @@ icon: lucide/activity
 - **Recipe**: `train-ecg-rvq`
 - **Config**: [`configs/ecg_rvq_256hz_16x_golden.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml)
 - **Run name**: `ecg_rvq_256hz_16x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ecg-16x`](https://huggingface.co/Ambiq/compressionkit-ecg-16x)
+- **HuggingFace**: [`Ambiq/compressionkit-ecg-16x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ecg-16x-v1.0)
 
 ## Dataset & License
 

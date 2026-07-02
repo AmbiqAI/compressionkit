@@ -159,10 +159,23 @@ def _render_experiment(exp: GoldenExperiment) -> str:
         f"- **Structure**: `{exp.structure}`",
         f"- **Compression ratio**: {exp.compression_ratio}×",
         f"- **Sample rate**: {exp.sample_rate} Hz",
-        f"- **Recipe**: `{exp.recipe}`",
-        f"- **Config**: [`{exp.config_path}`](https://github.com/AmbiqAI/compressionkit/blob/main/{exp.config_path})",
+    ]
+    if exp.recipe is not None:
+        lines.append(f"- **Recipe**: `{exp.recipe}`")
+    if exp.config_path is not None:
+        lines.append(
+            f"- **Config**: [`{exp.config_path}`]"
+            f"(https://github.com/AmbiqAI/compressionkit/blob/main/{exp.config_path})"
+        )
+    else:
+        lines.append("- **Config**: — (operating point is fully declared in the registry; no training config)")
+    # All three families (RVQ, SPIHT, hybrid) publish under the "-v1.0" release
+    # track; the registry's own (unsuffixed) hf_repo_id is not itself a published
+    # repo for SPIHT/hybrid, so always link to the real "-v1.0" target here.
+    hf_repo_id = f"{exp.hf_repo_id}-v1.0"
+    lines += [
         f"- **Run name**: `{exp.run_name}`",
-        f"- **HuggingFace**: [`{exp.hf_repo_id}`](https://huggingface.co/{exp.hf_repo_id})",
+        f"- **HuggingFace**: [`{hf_repo_id}`](https://huggingface.co/{hf_repo_id})",
         "",
         "## Dataset & License",
         "",
@@ -206,12 +219,26 @@ def _render_experiment(exp: GoldenExperiment) -> str:
         "",
         "Every successful run produces the canonical edge deploy package:",
         "",
-        "- `encoder.tflite` / `encoder.h` — INT8 encoder.",
-        "- `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).",
-        "- `codebook.npz` / `codebook.h` — RVQ codebook tables.",
-        "- `sample_stimulus.npz` — license-safe input/output reference frames.",
-        "- `model_card.json`, `deploy_manifest.json` — metadata.",
     ]
+    if exp.method == "rvq":
+        lines += [
+            "- `encoder.tflite` / `encoder.h` — INT8 encoder.",
+            "- `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).",
+            "- `codebook.npz` / `codebook.h` — RVQ codebook tables.",
+            "- `sample_stimulus.npz` — license-safe input/output reference frames.",
+            "- `model_card.json`, `deploy_manifest.json` — metadata.",
+        ]
+    else:
+        lines += [
+            "- `spiht_config.json` / `spiht_app_config.h` — codec parameters (language-neutral + C header).",
+            "- `c_sources/spiht.[ch]` — portable C99 SPIHT reference.",
+            "- `sample_stimulus.npz` / `reference_vectors.npz` — license-safe test frames and known-good encode/decode vectors.",
+            "- `model_card.json`, `deploy_manifest.json` — metadata.",
+        ]
+        if exp.method == "hybrid":
+            lines += [
+                "- `denoiser_gain_model.keras`, `hybrid_manifest.json` — learned wavelet-gain denoiser (trained weights) and pipeline stage order.",
+            ]
     if exp.structure == "two_stage" or children:
         lines += [
             "- `prior_int8.tflite` / `prior_int8.h` / `prior_manifest.json` — entropy prior (two-stage only).",
@@ -220,8 +247,16 @@ def _render_experiment(exp: GoldenExperiment) -> str:
         "",
         "## Customization Notes",
         "",
-        "- Tweak the YAML to explore neighbouring operating points; copy the file before editing.",
-        "- For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.",
+    ]
+    if exp.config_path is not None:
+        lines.append("- Tweak the YAML to explore neighbouring operating points; copy the file before editing.")
+        lines.append("- For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.")
+    else:
+        lines.append(
+            "- This operating point is declared directly in `compressionkit/experiments/registry.py` "
+            "(no training YAML) \u2014 add a new registry entry to explore a neighbouring operating point."
+        )
+    lines += [
         f"- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run {exp.experiment_id} --publish`.",
         "",
     ]

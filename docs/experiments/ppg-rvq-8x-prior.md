@@ -13,7 +13,7 @@ icon: lucide/heart-pulse
 - **Recipe**: `train-rvq-prior`
 - **Config**: [`configs/ppg_rvq_64hz_08x_golden_prior.yaml`](https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden_prior.yaml)
 - **Run name**: `ppg_rvq_64hz_08x_golden`
-- **HuggingFace**: [`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x)
+- **HuggingFace**: [`Ambiq/compressionkit-ppg-8x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ppg-8x-v1.0)
 
 ## Dataset & License
 
