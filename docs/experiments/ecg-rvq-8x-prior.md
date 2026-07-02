@@ -40,7 +40,7 @@ Results land under `results/ecg_rvq_256hz_08x_golden/`; deploy artifacts under `
 
 This entry is the entropy-prior stage paired with [`ecg-rvq-8x`](ecg-rvq-8x.md).
 Codec and prior artifacts publish to the same HuggingFace repo
-([`Ambiq/compressionkit-ecg-8x`](https://huggingface.co/Ambiq/compressionkit-ecg-8x)).
+([`Ambiq/compressionkit-ecg-8x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ecg-8x-v1.0)).
 
 ## Evaluation Metrics
 

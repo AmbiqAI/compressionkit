@@ -169,10 +169,10 @@ def _render_experiment(exp: GoldenExperiment) -> str:
         )
     else:
         lines.append("- **Config**: — (operating point is fully declared in the registry; no training config)")
-    # All three families (RVQ, SPIHT, hybrid) publish under the "-v1.0" release
-    # track; the registry's own (unsuffixed) hf_repo_id is not itself a published
-    # repo for SPIHT/hybrid, so always link to the real "-v1.0" target here.
-    hf_repo_id = f"{exp.hf_repo_id}-v1.0"
+    # All three families (RVQ, SPIHT, hybrid) publish under the registry's
+    # own hf_repo_id, which already includes the release-track suffix
+    # (see GoldenExperiment.hf_version).
+    hf_repo_id = exp.hf_repo_id
     lines += [
         f"- **Run name**: `{exp.run_name}`",
         f"- **HuggingFace**: [`{hf_repo_id}`](https://huggingface.co/{hf_repo_id})",

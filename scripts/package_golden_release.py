@@ -57,6 +57,7 @@ def main() -> None:
     from compressionkit.experiments.registry import GoldenExperiment
     from compressionkit.experiments.repackage import repackage_rvq_golden
 
+    hf_version = "v1.0"
     experiment = GoldenExperiment(
         experiment_id=f"{args.modality}-rvq-{args.compression_ratio}x",
         modality=args.modality,
@@ -67,7 +68,8 @@ def main() -> None:
         run_name=golden_dir.name,
         sample_rate=args.sample_rate,
         compression_ratio=args.compression_ratio,
-        hf_repo_id=f"Ambiq/compressionkit-{args.modality}-{args.compression_ratio}x",
+        hf_repo_id=f"Ambiq/compressionkit-{args.modality}-{args.compression_ratio}x-{hf_version}",
+        hf_version=hf_version,
         dataset_id="manual",
     )
     summary = repackage_rvq_golden(

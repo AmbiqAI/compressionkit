@@ -71,6 +71,7 @@ def generate_model_card(
     deploy_dir: str | Path,
     scorecard_path: str | Path | None = None,
     license_id: str = "other",
+    repo_id: str | None = None,
 ) -> str:
     """Generate a HuggingFace-style README.md model card.
 
@@ -80,6 +81,11 @@ def generate_model_card(
         scorecard_path: Optional path to ``quality_scorecard.json``.
             If *None*, looks in the parent of ``deploy_dir``.
         license_id: SPDX license identifier for YAML frontmatter.
+        repo_id: The actual HuggingFace repo id this card will be published
+            to (e.g. ``Ambiq/compressionkit-ppg-4x-v1.0``). When given, the
+            title and usage snippets reference this id instead of one
+            inferred from the manifest's modality/CR (which may not match
+            the real publishing target's release-track suffix).
 
     Returns:
         The model card as a Markdown string with YAML frontmatter.
@@ -155,8 +161,9 @@ def generate_model_card(
 
     # Title
     cr_slug = f"{float(cr):g}" if isinstance(cr, (int, float)) else str(cr)
-    hf_name = f"compressionkit-{modality}-{cr_slug}x" if cr else f"compressionkit-{modality}"
-    lines.append(f"# {hf_name}")
+    inferred_repo_id = f"Ambiq/compressionkit-{modality}-{cr_slug}x" if cr else f"Ambiq/compressionkit-{modality}"
+    hf_repo_id = repo_id or inferred_repo_id
+    lines.append(f"# {hf_repo_id.split('/', 1)[-1]}")
     lines.append("")
     lines.append(
         f"A **{modality.upper()}** signal compression codec using Residual Vector Quantization (RVQ), "
@@ -195,7 +202,7 @@ def generate_model_card(
     lines.append("```python")
     lines.append("from compressionkit.runtime import RVQCodec")
     lines.append("")
-    lines.append(f'codec = RVQCodec.from_pretrained("Ambiq/{hf_name}")')
+    lines.append(f'codec = RVQCodec.from_pretrained("{hf_repo_id}")')
     lines.append("")
     lines.append("# Encode: float32 signal → RVQ indices")
     lines.append("indices = codec.encode(signal)")
@@ -383,6 +390,7 @@ def generate_spiht_model_card(
     deploy_dir: str | Path,
     scorecard_path: str | Path | None = None,
     license_id: str = "apache-2.0",
+    repo_id: str | None = None,
 ) -> str:
     """Generate a HuggingFace model card for a DSP-only SPIHT codec.
 
@@ -396,6 +404,9 @@ def generate_spiht_model_card(
         scorecard_path: Optional path to ``quality_scorecard.json``.
         license_id: SPDX license identifier (defaults to ``apache-2.0``
             because there are no proprietary weights).
+        repo_id: The actual HuggingFace repo id this card will be published
+            to. When given, the title and usage snippets reference this id
+            instead of one inferred from the manifest's modality/method/CR.
 
     Returns:
         The model card as a Markdown string with YAML frontmatter.
@@ -463,11 +474,12 @@ def generate_spiht_model_card(
 
     family_label = "hybrid" if is_hybrid else "spiht"
     cr_label = f"{target_cr:g}x" if target_cr else ""
-    hf_name = (
-        f"compressionkit-{modality}-{family_label}-{cr_label}"
+    inferred_repo_id = (
+        f"Ambiq/compressionkit-{modality}-{family_label}-{cr_label}"
         if cr_label
-        else f"compressionkit-{modality}-{family_label}"
+        else f"Ambiq/compressionkit-{modality}-{family_label}"
     )
+    hf_repo_id = repo_id or inferred_repo_id
 
     lines: list[str] = []
     lines.append("---")
@@ -480,7 +492,7 @@ def generate_spiht_model_card(
     lines.append("---")
     lines.append("")
 
-    lines.append(f"# {hf_name}")
+    lines.append(f"# {hf_repo_id.split('/', 1)[-1]}")
     lines.append("")
     if is_hybrid:
         lines.append(
@@ -529,7 +541,7 @@ def generate_spiht_model_card(
     lines.append("```python")
     lines.append("from compressionkit.runtime import load_codec")
     lines.append("")
-    lines.append(f'codec = load_codec("Ambiq/{hf_name}")')
+    lines.append(f'codec = load_codec("{hf_repo_id}")')
     lines.append("enc = codec.compress(frame)   # frame: (frame_size,) float32")
     lines.append("recon = codec.decompress(enc)")
     lines.append("```")

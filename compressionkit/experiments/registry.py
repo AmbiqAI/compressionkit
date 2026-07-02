@@ -21,9 +21,12 @@ needs to reproduce it from a clean checkout:
 * ``config_path`` — YAML config path, relative to the repository root.
 * ``run_name`` — ``{modality}_{method}_{sample_rate}hz_{cr:02d}x_golden``
   (matches AGENTS.md naming; ``method="rvq"`` preserves the historical infix).
-* ``hf_repo_id`` — reserved publication target. The v1 public bundles are RVQ;
-    SPIHT, hybrid, and two-stage entries are local comparison/package lanes until
-    they are promoted to a public HuggingFace surface.
+* ``hf_repo_id`` — the published HuggingFace repo id, including the release-track
+  suffix from ``hf_version`` (e.g. ``Ambiq/compressionkit-ppg-4x-v1.0``). Two-stage
+  entries share their parent codec's repo id (the prior is bundled alongside it).
+* ``hf_version`` — release-track suffix (default ``"v1.0"``) that ``hf_repo_id``
+  must include. ``_check_naming`` only validates the two fields are consistent —
+  moving an experiment to a new release track means updating both together.
 * ``dataset_id`` — short, stable identifier consumed by the dataset
   acquisition contract (#26).
 * ``expected_metrics`` — optional, frozen scorecard summary populated
@@ -126,8 +129,17 @@ class GoldenExperiment(BaseModel):
     compression_ratio: int = Field(..., gt=1, description="Target compression ratio (×).")
     hf_repo_id: str = Field(
         ...,
-        description="HF repo: 'Ambiq/compressionkit-{modality}-{cr}x' for RVQ, "
-        "'Ambiq/compressionkit-{modality}-{method}-{cr}x' otherwise.",
+        description="HF repo: 'Ambiq/compressionkit-{modality}-{cr}x-{hf_version}' for RVQ, "
+        "'Ambiq/compressionkit-{modality}-{method}-{cr}x-{hf_version}' otherwise. Must be "
+        "kept in sync with hf_version — _check_naming only validates consistency between "
+        "the two fields, it does not derive one from the other.",
+    )
+    hf_version: str = Field(
+        default="v1.0",
+        pattern=r"^[a-z0-9][a-z0-9.]*$",
+        description="Release-track suffix composed into the expected hf_repo_id (e.g. "
+        "'v1.0'). Changing this field alone does not update hf_repo_id — both must be "
+        "edited together to move an experiment to a new HF release track.",
     )
     dataset_id: str = Field(..., description="Stable dataset identifier (see #26).")
     expected_metrics: dict[str, float] | None = Field(
@@ -149,9 +161,11 @@ class GoldenExperiment(BaseModel):
             )
         if self.method == "rvq":
             # Back-compat: RVQ goldens omit the method infix in the HF repo id.
-            expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.compression_ratio}x"
+            expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.compression_ratio}x-{self.hf_version}"
         else:
-            expected_repo = f"Ambiq/compressionkit-{self.modality}-{self.method}-{self.compression_ratio}x"
+            expected_repo = (
+                f"Ambiq/compressionkit-{self.modality}-{self.method}-{self.compression_ratio}x-{self.hf_version}"
+            )
         if self.structure in ("codec", "two_stage") and self.hf_repo_id != expected_repo:
             raise ValueError(
                 f"hf_repo_id {self.hf_repo_id!r} does not match {expected_repo!r} for experiment {self.experiment_id!r}"
@@ -210,7 +224,7 @@ def _ppg_codec(cr: int) -> GoldenExperiment:
         run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
         sample_rate=64,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
         expected_metrics=_PPG_EXPECTED_METRICS.get(cr),
     )
@@ -226,7 +240,7 @@ def _ecg_codec(cr: int) -> GoldenExperiment:
         run_name=f"ecg_rvq_256hz_{cr:02d}x_golden",
         sample_rate=256,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x-v1.0",
         dataset_id="ptb-xl",
         expected_metrics=_ECG_EXPECTED_METRICS.get(cr),
     )
@@ -244,7 +258,7 @@ def _ppg_two_stage(cr: int) -> GoldenExperiment:
         run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
         sample_rate=64,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
     )
 
@@ -261,7 +275,7 @@ def _ecg_two_stage(cr: int) -> GoldenExperiment:
         run_name=f"ecg_rvq_256hz_{cr:02d}x_golden",
         sample_rate=256,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x-v1.0",
         dataset_id="ptb-xl",
     )
 
@@ -283,7 +297,7 @@ def _ppg_spiht(cr: int) -> GoldenExperiment:
         run_name=f"ppg_spiht_64hz_{cr:02d}x_golden",
         sample_rate=64,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ppg-spiht-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ppg-spiht-{cr}x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
         expected_metrics=_PPG_SPIHT_EXPECTED_METRICS.get(cr),
     )
@@ -299,7 +313,7 @@ def _ecg_spiht(cr: int) -> GoldenExperiment:
         run_name=f"ecg_spiht_256hz_{cr:02d}x_golden",
         sample_rate=256,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ecg-spiht-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ecg-spiht-{cr}x-v1.0",
         dataset_id="ptb-xl",
         expected_metrics=_ECG_SPIHT_EXPECTED_METRICS.get(cr),
     )
@@ -322,7 +336,7 @@ def _ppg_hybrid(cr: int) -> GoldenExperiment:
         run_name=f"ppg_hybrid_64hz_{cr:02d}x_golden",
         sample_rate=64,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ppg-hybrid-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ppg-hybrid-{cr}x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
         hybrid=HybridSpec(
             strategy="wavelet_gain_spiht",
@@ -346,7 +360,7 @@ def _ecg_hybrid(cr: int) -> GoldenExperiment:
         run_name=f"ecg_hybrid_256hz_{cr:02d}x_golden",
         sample_rate=256,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ecg-hybrid-{cr}x",
+        hf_repo_id=f"Ambiq/compressionkit-ecg-hybrid-{cr}x-v1.0",
         dataset_id="ptb-xl",
         hybrid=HybridSpec(
             strategy="wavelet_gain_spiht",

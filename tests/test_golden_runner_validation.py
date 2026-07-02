@@ -23,7 +23,7 @@ def _experiment(config_path: Path) -> GoldenExperiment:
         run_name="ppg_rvq_64hz_04x_golden",
         sample_rate=64,
         compression_ratio=4,
-        hf_repo_id="Ambiq/compressionkit-ppg-4x",
+        hf_repo_id="Ambiq/compressionkit-ppg-4x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
     )
 
@@ -137,7 +137,7 @@ def test_run_golden_spiht_uses_evaluator_script(monkeypatch, tmp_path) -> None:
         run_name="ppg_spiht_64hz_04x_golden",
         sample_rate=64,
         compression_ratio=4,
-        hf_repo_id="Ambiq/compressionkit-ppg-spiht-4x",
+        hf_repo_id="Ambiq/compressionkit-ppg-spiht-4x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
     )
     run_dir = tmp_path / experiment.run_name
@@ -247,7 +247,7 @@ def test_repackage_golden_rejects_non_rvq(monkeypatch, tmp_path) -> None:
         run_name="ppg_spiht_64hz_04x_golden",
         sample_rate=64,
         compression_ratio=4,
-        hf_repo_id="Ambiq/compressionkit-ppg-spiht-4x",
+        hf_repo_id="Ambiq/compressionkit-ppg-spiht-4x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
     )
 
