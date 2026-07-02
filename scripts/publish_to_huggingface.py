@@ -168,6 +168,7 @@ def publish(
             deploy_dir=deploy_dir,
             scorecard_path=sc_path,
             license_id=effective_license,
+            repo_id=repo_id,
         )
         readme_path = staging_dir / "README.md"
         readme_path.write_text(card_text)

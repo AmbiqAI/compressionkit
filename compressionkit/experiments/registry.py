@@ -24,8 +24,9 @@ needs to reproduce it from a clean checkout:
 * ``hf_repo_id`` — the published HuggingFace repo id, including the release-track
   suffix from ``hf_version`` (e.g. ``Ambiq/compressionkit-ppg-4x-v1.0``). Two-stage
   entries share their parent codec's repo id (the prior is bundled alongside it).
-* ``hf_version`` — release-track suffix (default ``"v1.0"``) composed into
-  ``hf_repo_id``. Bump this field to move an experiment to a new HF release track.
+* ``hf_version`` — release-track suffix (default ``"v1.0"``) that ``hf_repo_id``
+  must include. ``_check_naming`` only validates the two fields are consistent —
+  moving an experiment to a new release track means updating both together.
 * ``dataset_id`` — short, stable identifier consumed by the dataset
   acquisition contract (#26).
 * ``expected_metrics`` — optional, frozen scorecard summary populated
@@ -129,12 +130,16 @@ class GoldenExperiment(BaseModel):
     hf_repo_id: str = Field(
         ...,
         description="HF repo: 'Ambiq/compressionkit-{modality}-{cr}x-{hf_version}' for RVQ, "
-        "'Ambiq/compressionkit-{modality}-{method}-{cr}x-{hf_version}' otherwise.",
+        "'Ambiq/compressionkit-{modality}-{method}-{cr}x-{hf_version}' otherwise. Must be "
+        "kept in sync with hf_version — _check_naming only validates consistency between "
+        "the two fields, it does not derive one from the other.",
     )
     hf_version: str = Field(
         default="v1.0",
-        description="Release-track suffix composed into hf_repo_id (e.g. 'v1.0'). Bump this "
-        "field (not hf_repo_id directly) to move an experiment to a new HF release track.",
+        pattern=r"^[a-z0-9][a-z0-9.]*$",
+        description="Release-track suffix composed into the expected hf_repo_id (e.g. "
+        "'v1.0'). Changing this field alone does not update hf_repo_id — both must be "
+        "edited together to move an experiment to a new HF release track.",
     )
     dataset_id: str = Field(..., description="Stable dataset identifier (see #26).")
     expected_metrics: dict[str, float] | None = Field(
