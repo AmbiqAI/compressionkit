@@ -8,15 +8,15 @@ Usage::
         --repo-id Ambiq/compressionkit-ppg-4x-v1.0
 
     # With a quality scorecard
-    python scripts/publish_to_huggingface.py \
-        --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \
-        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \
+    python scripts/publish_to_huggingface.py \\
+        --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \\
         --scorecard results/ppg_rvq_64hz_04x_golden/quality_scorecard.json
 
     # Dry run (generate model card only, don't upload)
-    python scripts/publish_to_huggingface.py \
-        --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \
-        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \
+    python scripts/publish_to_huggingface.py \\
+        --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \\
         --dry-run
 
 Requires ``HF_TOKEN`` environment variable or ``huggingface-cli login``.
