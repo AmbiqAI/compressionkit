@@ -47,9 +47,7 @@ def _print_table(modality: GoldenModality | None, method: GoldenMethod | None) -
     if not rows:
         print("(no golden experiments registered)")
         return
-    header = (
-        f"{'EXPERIMENT_ID':16s}  {'MODALITY':8s}  {'METHOD':8s}  {'STRUCTURE':9s}  {'CR':>3s}  {'CONFIG':45s}  HF_REPO_ID"
-    )
+    header = f"{'EXPERIMENT_ID':16s}  {'MODALITY':8s}  {'METHOD':8s}  {'STRUCTURE':9s}  {'CR':>3s}  {'CONFIG':45s}  HF_REPO_ID"
     print(header)
     print("-" * len(header))
     for exp in rows:

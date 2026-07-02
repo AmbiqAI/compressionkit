@@ -49,7 +49,9 @@ def _detect_family(deploy_dir: Path) -> str:
     return str(manifest.get("family", "rvq"))
 
 
-def _stage_deploy_files(spec: CodecFamilySpec, deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None) -> list[str]:
+def _stage_deploy_files(
+    spec: CodecFamilySpec, deploy_dir: Path, staging_dir: Path, scorecard_path: Path | None
+) -> list[str]:
     """Copy deploy artifacts to a staging directory per the family's HF contract.
 
     Driven entirely by ``spec`` (see :mod:`compressionkit.export.family_registry`)

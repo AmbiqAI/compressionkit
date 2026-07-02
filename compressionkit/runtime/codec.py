@@ -32,9 +32,7 @@ logger = logging.getLogger(__name__)
 # ``compression_ratio`` fields. Model/run names follow a stable
 # ``{modality}_..._{rate}hz_{cr}x_...`` convention (e.g.
 # ``ppg_rvq_64hz_04x_golden``), so we parse those as a last-resort fallback.
-_NAME_OPERATING_POINT_RE = re.compile(
-    r"^(?P<modality>ppg|ecg)_.*?_(?P<rate>\d+(?:\.\d+)?)hz_(?P<cr>\d+(?:\.\d+)?)x"
-)
+_NAME_OPERATING_POINT_RE = re.compile(r"^(?P<modality>ppg|ecg)_.*?_(?P<rate>\d+(?:\.\d+)?)hz_(?P<cr>\d+(?:\.\d+)?)x")
 
 
 def _parse_operating_point_from_name(name: str) -> dict[str, str | float | None]:
@@ -47,6 +45,7 @@ def _parse_operating_point_from_name(name: str) -> dict[str, str | float | None]
         "sample_rate": float(match.group("rate")),
         "compression_ratio": float(match.group("cr")),
     }
+
 
 # Try ai-edge-litert first, then tflite-runtime, then tf.lite
 _Interpreter = None
@@ -429,9 +428,7 @@ class RVQCodec:
     @property
     def sample_rate(self) -> int:
         """Sample rate in Hz (from codec spec / manifest, falling back to the model name; ``0`` if unknown)."""
-        value = (
-            self._spec.get("sample_rate") or self._manifest.get("sample_rate") or self._name_hints["sample_rate"]
-        )
+        value = self._spec.get("sample_rate") or self._manifest.get("sample_rate") or self._name_hints["sample_rate"]
         return int(value) if value else 0
 
     @property
