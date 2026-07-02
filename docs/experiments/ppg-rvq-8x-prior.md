@@ -40,7 +40,7 @@ Results land under `results/ppg_rvq_64hz_08x_golden/`; deploy artifacts under `r
 
 This entry is the entropy-prior stage paired with [`ppg-rvq-8x`](ppg-rvq-8x.md).
 Codec and prior artifacts publish to the same HuggingFace repo
-([`Ambiq/compressionkit-ppg-8x`](https://huggingface.co/Ambiq/compressionkit-ppg-8x)).
+([`Ambiq/compressionkit-ppg-8x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ppg-8x-v1.0)).
 
 ## Evaluation Metrics
 

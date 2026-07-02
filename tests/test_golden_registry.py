@@ -14,8 +14,8 @@ from compressionkit.experiments import (
 )
 from compressionkit.recipes import get_recipe
 
-_HF_REPO_RVQ_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-(\d+)x$")
-_HF_REPO_OTHER_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-([a-z0-9]+)-(\d+)x$")
+_HF_REPO_RVQ_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-(\d+)x-([a-z0-9.]+)$")
+_HF_REPO_OTHER_RE = re.compile(r"^Ambiq/compressionkit-(ppg|ecg)-([a-z0-9]+)-(\d+)x-([a-z0-9.]+)$")
 _RUN_NAME_RE = re.compile(r"^(ppg|ecg)_([a-z0-9]+)_\d+hz_\d{2}x_golden$")
 
 
@@ -58,16 +58,18 @@ def test_entry_invariants(exp: GoldenExperiment) -> None:
         if exp.method == "rvq":
             repo_match = _HF_REPO_RVQ_RE.match(exp.hf_repo_id)
             assert repo_match, f"RVQ repo id does not match: {exp.hf_repo_id!r}"
-            modality_in_repo, cr_in_repo = repo_match.groups()
+            modality_in_repo, cr_in_repo, version_in_repo = repo_match.groups()
             assert modality_in_repo == exp.modality
             assert int(cr_in_repo) == exp.compression_ratio
+            assert version_in_repo == exp.hf_version
         else:
             repo_match = _HF_REPO_OTHER_RE.match(exp.hf_repo_id)
             assert repo_match, f"non-RVQ repo id does not match: {exp.hf_repo_id!r}"
-            modality_in_repo, method_in_repo, cr_in_repo = repo_match.groups()
+            modality_in_repo, method_in_repo, cr_in_repo, version_in_repo = repo_match.groups()
             assert modality_in_repo == exp.modality
             assert method_in_repo == exp.method
             assert int(cr_in_repo) == exp.compression_ratio
+            assert version_in_repo == exp.hf_version
 
     # Recipe (when declared) is registered.
     if exp.recipe is not None:
@@ -99,7 +101,7 @@ def test_two_stage_requires_parent() -> None:
             run_name=GOLDEN_REGISTRY[0].run_name,
             sample_rate=64,
             compression_ratio=4,
-            hf_repo_id="Ambiq/compressionkit-ppg-4x",
+            hf_repo_id="Ambiq/compressionkit-ppg-4x-v1.0",
             dataset_id="ppg-unified-strict-sanitize-v1",
         )
 
@@ -116,6 +118,6 @@ def test_codec_rejects_parent() -> None:
             run_name="ppg_rvq_64hz_04x_golden",
             sample_rate=64,
             compression_ratio=4,
-            hf_repo_id="Ambiq/compressionkit-ppg-4x",
+            hf_repo_id="Ambiq/compressionkit-ppg-4x-v1.0",
             dataset_id="ppg-unified-strict-sanitize-v1",
         )

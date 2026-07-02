@@ -66,7 +66,7 @@ def test_validate_all_reports_pass_fail_and_skip(monkeypatch, tmp_path, capsys) 
             run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
             sample_rate=64,
             compression_ratio=cr,
-            hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x",
+            hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x-v1.0",
             dataset_id="ppg-unified-strict-sanitize-v1",
         )
 
@@ -107,7 +107,7 @@ def test_validate_all_fails_when_any_package_fails(monkeypatch, tmp_path) -> Non
         run_name="ppg_rvq_64hz_04x_golden",
         sample_rate=64,
         compression_ratio=4,
-        hf_repo_id="Ambiq/compressionkit-ppg-4x",
+        hf_repo_id="Ambiq/compressionkit-ppg-4x-v1.0",
         dataset_id="ppg-unified-strict-sanitize-v1",
     )
 

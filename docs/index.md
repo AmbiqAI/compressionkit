@@ -230,7 +230,7 @@ The first release-grade packages exercise the common artifact contract across PP
 |------|-------------------|-------------|
 | PPG neural codecs | Published HuggingFace bundles from 2x to 32x | [PPG model zoo](models/ppg.md) |
 | ECG neural codecs | Published HuggingFace bundles from 2x to 64x | [ECG model zoo](models/ecg.md) |
-| DSP and hybrid lanes | Registered and locally reproducible; publication pending | [Experiments](experiments/index.md) |
+| DSP and hybrid lanes | Published HuggingFace bundles (SPIHT + hybrid, all CRs) | [Experiments](experiments/index.md) |
 | Release contract | Manifests, specs, checksums, reference vectors, scorecards | [V1 release contract](release-contract.md) |
 | Runtime/deployment | Local and HuggingFace loading plus deploy validation | [Deployment guide](deployment.md) |
 

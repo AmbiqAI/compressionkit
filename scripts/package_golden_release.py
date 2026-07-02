@@ -67,7 +67,7 @@ def main() -> None:
         run_name=golden_dir.name,
         sample_rate=args.sample_rate,
         compression_ratio=args.compression_ratio,
-        hf_repo_id=f"Ambiq/compressionkit-{args.modality}-{args.compression_ratio}x",
+        hf_repo_id=f"Ambiq/compressionkit-{args.modality}-{args.compression_ratio}x-v1.0",
         dataset_id="manual",
     )
     summary = repackage_rvq_golden(
