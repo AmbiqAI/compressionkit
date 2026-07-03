@@ -172,3 +172,67 @@ def test_export_denoiser_tflite_int16x8_tracks_keras_on_direct_mode_model(tmp_pa
         prds.append(100.0 * np.sqrt(sse / (sig_pow + 1e-8)))
 
     assert max(prds) < 5.0
+
+
+def _write_hybrid_deploy_fixture(tmp_path: Path, *, denoise_stage: dict) -> Path:
+    """A minimal hybrid deploy dir sufficient for generate_spiht_model_card()."""
+    manifest = {
+        "family": "hybrid",
+        "method": "hybrid",
+        "model_name": "ecg_hybrid_test",
+        "codec": {"modality": "ecg", "sample_rate": 256, "frame_size": 512, "target_cr": 8.0},
+    }
+    (tmp_path / "deploy_manifest.json").write_text(json.dumps(manifest))
+    (tmp_path / "codec_spec.json").write_text(json.dumps({"codec": manifest["codec"]}))
+    (tmp_path / "hybrid_manifest.json").write_text(
+        json.dumps({"pipeline": "hybrid", "stages": [denoise_stage, {"stage": "codec", "type": "spiht"}]})
+    )
+    return tmp_path
+
+
+def test_model_card_reports_int16x8_for_direct_mode_denoiser(tmp_path: Path) -> None:
+    from compressionkit.export.model_card import generate_spiht_model_card
+
+    _write_hybrid_deploy_fixture(
+        tmp_path,
+        denoise_stage={
+            "stage": "denoise",
+            "artifact": "denoiser_gain_model.keras",
+            "artifact_tflite": "denoiser_gain_model.tflite",
+            "mode": {"start": 8, "length": 256, "expects_level": True, "feature_kind": "level", "gain_mode": False},
+        },
+    )
+
+    card = generate_spiht_model_card(tmp_path)
+    assert "INT16X8 `denoiser_gain_model.tflite`" in card
+
+
+def test_model_card_reports_int8_for_gain_mode_denoiser(tmp_path: Path) -> None:
+    from compressionkit.export.model_card import generate_spiht_model_card
+
+    _write_hybrid_deploy_fixture(
+        tmp_path,
+        denoise_stage={
+            "stage": "denoise",
+            "artifact": "denoiser_gain_model.keras",
+            "artifact_tflite": "denoiser_gain_model.tflite",
+            "mode": {"start": 5, "length": 160, "expects_level": True, "feature_kind": "level", "gain_mode": True},
+        },
+    )
+
+    card = generate_spiht_model_card(tmp_path)
+    assert "INT8 `denoiser_gain_model.tflite`" in card
+
+
+def test_model_card_falls_back_to_keras_only_text_when_tflite_artifact_missing(tmp_path: Path) -> None:
+    """Older packages / failed exports must not claim a .tflite denoiser that doesn't exist (#58 review)."""
+    from compressionkit.export.model_card import generate_spiht_model_card
+
+    _write_hybrid_deploy_fixture(
+        tmp_path,
+        denoise_stage={"stage": "denoise", "artifact": "denoiser_gain_model.keras"},
+    )
+
+    card = generate_spiht_model_card(tmp_path)
+    assert "denoiser_gain_model.tflite" not in card
+    assert "Python/TFLite runtime path" in card

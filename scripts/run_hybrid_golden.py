@@ -517,7 +517,7 @@ def _export_deploy(
         )
     except Exception:
         denoiser_mode_dict = None
-        logger.exception("Failed to export INT8 denoiser TFLite; hybrid package will keep the Keras-only path.")
+        logger.exception("Failed to export quantized denoiser TFLite; hybrid package will keep the Keras-only path.")
 
     manifest = {
         "pipeline": "hybrid",
