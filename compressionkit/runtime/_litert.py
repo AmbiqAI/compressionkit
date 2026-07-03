@@ -34,10 +34,12 @@ def quantize(data: np.ndarray, details: dict) -> np.ndarray:
     qparams = details.get("quantization_parameters", {})
     scales = qparams.get("scales", np.array([1.0]))
     zero_points = qparams.get("zero_points", np.array([0]))
-    if details["dtype"] == np.int8:
+    dtype = details["dtype"]
+    if dtype in (np.int8, np.int16):
+        info = np.iinfo(dtype)
         quantized = np.round(data / scales[0] + zero_points[0])
-        return np.clip(quantized, -128, 127).astype(np.int8)
-    return data.astype(details["dtype"])
+        return np.clip(quantized, info.min, info.max).astype(dtype)
+    return data.astype(dtype)
 
 
 def dequantize(data: np.ndarray, details: dict) -> np.ndarray:
@@ -45,7 +47,7 @@ def dequantize(data: np.ndarray, details: dict) -> np.ndarray:
     qparams = details.get("quantization_parameters", {})
     scales = qparams.get("scales", np.array([1.0]))
     zero_points = qparams.get("zero_points", np.array([0]))
-    if details["dtype"] == np.int8:
+    if details["dtype"] in (np.int8, np.int16):
         return ((data.astype(np.float32) - zero_points[0]) * scales[0]).astype(np.float32)
     return data.astype(np.float32)
 

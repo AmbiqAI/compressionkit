@@ -110,3 +110,65 @@ def test_load_wavelet_gain_preprocessor_tflite_missing_file(tmp_path: Path) -> N
         load_wavelet_gain_preprocessor_tflite(
             tmp_path / "does_not_exist.tflite", frame_size=_FRAME_SIZE, feature_kind="level", gain_mode=True
         )
+
+
+def test_litert_quantize_dequantize_round_trips_int16() -> None:
+    """INT16X8 support in the shared quantize/dequantize helpers (see #55).
+
+    Direct-mode (non-gain) denoisers need finer-than-INT8 resolution to stay
+    within the hybrid reference-vector PRD tolerance; this only works if the
+    shared quantize()/dequantize() helpers actually apply the scale/zero-point
+    formula for int16 tensors instead of silently truncating to the wrong
+    dtype (the original bug this test guards against).
+    """
+    from compressionkit.runtime._litert import dequantize, quantize
+
+    details = {
+        "dtype": np.int16,
+        "quantization_parameters": {"scales": np.array([0.001], dtype=np.float32), "zero_points": np.array([0])},
+    }
+    data = np.array([-1.0, -0.5, 0.0, 0.5, 1.0], dtype=np.float32)
+    quantized = quantize(data, details)
+    assert quantized.dtype == np.int16
+    # A 0.001 scale should use much more of the int16 range than int8 would.
+    assert np.max(np.abs(quantized)) > 127
+    restored = dequantize(quantized, details)
+    np.testing.assert_allclose(restored, data, atol=1e-3)
+
+
+def test_export_denoiser_tflite_int16x8_tracks_keras_on_direct_mode_model(tmp_path: Path) -> None:
+    """Direct-mode (non-gain) denoisers should quantize far more accurately under
+    INT16X8 than INT8 (see #55): this is the fix for the ECG hybrid denoiser's
+    tail-risk quantization error."""
+    from compressionkit.export.tflite import export_denoiser_tflite
+    from compressionkit.pipeline.learned_stages import load_wavelet_gain_preprocessor_tflite
+
+    model = build_wavelet_denoiser_v2(frame_size=_FRAME_SIZE, in_ch=2)
+    mode = detect_denoiser_mode(model, frame_size=_FRAME_SIZE, wavelet=_WAVELET, levels=_LEVELS)
+    assert mode.gain_mode is False
+
+    packed = _packed_frames(16)
+    rep_dataset = np.stack([mode.compute_feature(p)[0, 0] for p in packed])[:, None, :, :]
+    tflite_path, _ = export_denoiser_tflite(
+        model, rep_dataset=rep_dataset, output_dir=tmp_path, quantization="INT16X8", io_type="int16"
+    )
+
+    keras_denoise = as_coeff_denoiser(model, frame_size=_FRAME_SIZE, wavelet=_WAVELET, levels=_LEVELS)
+    tflite_pre = load_wavelet_gain_preprocessor_tflite(
+        tflite_path,
+        frame_size=_FRAME_SIZE,
+        feature_kind=mode.feature_kind,
+        gain_mode=mode.gain_mode,
+        wavelet=_WAVELET,
+        levels=_LEVELS,
+    )
+
+    prds = []
+    for p in _packed_frames(8, seed=1):
+        keras_out = keras_denoise(p)
+        tflite_out = tflite_pre.coeff_denoiser(p)
+        sse = float(np.sum((keras_out - tflite_out) ** 2))
+        sig_pow = float(np.sum(keras_out**2))
+        prds.append(100.0 * np.sqrt(sse / (sig_pow + 1e-8)))
+
+    assert max(prds) < 5.0

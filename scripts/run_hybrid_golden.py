@@ -348,7 +348,22 @@ def main() -> None:
         logger.exception("Quality scorecard build failed; continuing without it.")
 
     if not args.skip_deploy:
-        _export_deploy(exp, codec, denoiser_path, run_dir, scorecard_summary, use_ac=not args.disable_ac)
+        # Sample real, already-normalized evaluation frames as INT8/INT16X8
+        # calibration data for the denoiser TFLite export -- a handful of
+        # synthetic stimulus frames alone under-covers real dynamic range
+        # (see issue #55).
+        rng = np.random.default_rng(args.seed)
+        calibration_idx = rng.choice(len(pairs), size=min(100, len(pairs)), replace=False)
+        calibration_frames = [pairs[i][0] for i in calibration_idx]
+        _export_deploy(
+            exp,
+            codec,
+            denoiser_path,
+            run_dir,
+            scorecard_summary,
+            use_ac=not args.disable_ac,
+            calibration_frames=calibration_frames,
+        )
 
     print()
     print(f"=== Hybrid golden complete: {exp.experiment_id} ===")
@@ -368,6 +383,7 @@ def _export_deploy(
     scorecard_summary: dict[str, float | int],
     *,
     use_ac: bool,
+    calibration_frames: list[np.ndarray] | None = None,
 ) -> None:
     """Write a Hybrid deploy package: SPIHT backend + denoiser artifact + manifest."""
     deploy_dir = run_dir / "deploy"
@@ -464,12 +480,27 @@ def _export_deploy(
         # "direct" (non-gain) denoisers, whose output scale tracks the input
         # scale directly — so normalize calibration frames the same way.
         normalized_stimulus = np.stack([(f - f.mean()) / (float(f.std()) + 1e-6) for f in stimulus]).astype(np.float32)
+        # A handful of synthetic stimulus frames alone under-covers the real
+        # dynamic range of held-out data (see issue #55): fold in a sample of
+        # real, already-normalized evaluation frames when the caller has them.
+        calibration_source = list(normalized_stimulus)
+        if calibration_frames:
+            calibration_source += [np.asarray(f, dtype=np.float32) for f in calibration_frames]
         rep_dataset = np.stack(
-            [denoiser_mode.compute_feature(_pack_coeffs(frame))[0, 0] for frame in normalized_stimulus]
+            [denoiser_mode.compute_feature(_pack_coeffs(frame))[0, 0] for frame in calibration_source]
         )
         rep_dataset = rep_dataset[:, None, :, :]
+        # Gain-mode outputs are bounded to [0, 1] and multiply the full-precision
+        # input coefficient, so INT8 quantization error in the gain has a small
+        # proportional effect (measured: max ~0.002% PRD delta vs float32).
+        # Direct-mode outputs replace the coefficient outright, so INT8 error
+        # becomes reconstruction error directly and needs the finer resolution
+        # of INT16X8 to stay within the hybrid reference-vector PRD tolerance
+        # (measured: INT8 max ~21% vs INT16X8 max ~0.7% PRD delta, see #55).
+        quantization = "INT8" if denoiser_mode.gain_mode else "INT16X8"
+        io_type = "int8" if denoiser_mode.gain_mode else "int16"
         tflite_path, header_path = export_denoiser_tflite(
-            denoiser_model, rep_dataset=rep_dataset, output_dir=deploy_dir
+            denoiser_model, rep_dataset=rep_dataset, output_dir=deploy_dir, quantization=quantization, io_type=io_type
         )
         if not (tflite_path.exists() and header_path.exists()):
             raise RuntimeError(f"export_denoiser_tflite() did not produce both {tflite_path} and {header_path}")
@@ -478,7 +509,12 @@ def _export_deploy(
         # None, so the manifest never advertises an artifact_tflite/mode that
         # doesn't actually exist (see #57 review).
         denoiser_mode_dict = denoiser_mode.to_dict()
-        logger.info("Exported denoiser_gain_model.tflite (%s)", denoiser_mode_dict)
+        logger.info(
+            "Exported denoiser_gain_model.tflite (%s, quantization=%s, n_calibration_frames=%d)",
+            denoiser_mode_dict,
+            quantization,
+            len(calibration_source),
+        )
     except Exception:
         denoiser_mode_dict = None
         logger.exception("Failed to export INT8 denoiser TFLite; hybrid package will keep the Keras-only path.")

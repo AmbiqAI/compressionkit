@@ -550,9 +550,24 @@ def generate_spiht_model_card(
     lines.append("## C quickstart")
     lines.append("")
     if is_hybrid:
+        denoiser_quantization = "INT8"
+        hybrid_manifest_path = deploy_dir / "hybrid_manifest.json"
+        if hybrid_manifest_path.exists():
+            with hybrid_manifest_path.open() as f:
+                hybrid_manifest = json.load(f)
+            for stage in hybrid_manifest.get("stages", []):
+                if isinstance(stage, dict) and stage.get("stage") == "denoise":
+                    mode = stage.get("mode") or {}
+                    # Direct-mode (non-gain) denoisers replace the coefficient
+                    # outright rather than multiplying a bounded [0, 1] gain
+                    # into it, so INT8 quantization error propagates directly
+                    # into reconstruction error — these ship as INT16X8
+                    # instead (see issue #55).
+                    denoiser_quantization = "INT8" if mode.get("gain_mode", True) else "INT16X8"
+                    break
         lines.append(
-            "The SPIHT stage ships a portable C99 reference. The denoiser ships "
-            "as an INT8 `denoiser_gain_model.tflite` (run via a LiteRT/TFLite "
+            f"The SPIHT stage ships a portable C99 reference. The denoiser ships "
+            f"as an {denoiser_quantization} `denoiser_gain_model.tflite` (run via a LiteRT/TFLite "
             "Micro interpreter — no Python/Keras required) alongside the "
             "float32 `denoiser_gain_model.keras` reference. Run the denoiser "
             "stage first and feed its output into the C SPIHT encoder below."
