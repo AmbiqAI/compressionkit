@@ -95,7 +95,13 @@ FAMILY_REGISTRY: dict[str, CodecFamilySpec] = {
     "rvq": CodecFamilySpec(
         family="rvq",
         loader=_load_rvq,
-        required_artifacts=("encoder.tflite", "codebook.npz", "codebook.h"),
+        required_artifacts=(
+            "encoder.tflite",
+            "encoder.keras",
+            "decoder.keras",
+            "codebook.npz",
+            "codebook.h",
+        ),
         release_extras=("model_card.json", "README.md", "scorecard.json", "reference_vectors.npz", "sample_data.npz"),
         hf_file_renames=tuple(RVQ_HF_FILE_RENAMES),
         has_c_sources=False,
