@@ -51,7 +51,8 @@ Every successful run produces the canonical edge deploy package:
 - `c_sources/spiht.[ch]` — portable C99 SPIHT reference.
 - `sample_stimulus.npz` / `reference_vectors.npz` — license-safe test frames and known-good encode/decode vectors.
 - `model_card.json`, `deploy_manifest.json` — metadata.
-- `denoiser_gain_model.keras`, `hybrid_manifest.json` — learned wavelet-gain denoiser (trained weights) and pipeline stage order.
+- `denoiser_gain_model.tflite` / `.h` — INT8 wavelet-gain denoiser (embeddable, LiteRT).
+- `denoiser_gain_model.keras`, `hybrid_manifest.json` — float32 Python reference denoiser and pipeline stage order.
 
 ## Customization Notes
 

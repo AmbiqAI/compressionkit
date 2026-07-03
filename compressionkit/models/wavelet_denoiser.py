@@ -32,36 +32,33 @@ The network operates on the codebase's ``(B, 1, T, C)`` temporal convention.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Literal
+
 import keras
 import numpy as np
 
-from compressionkit.dsp.wavelet import dwt_forward
+from compressionkit.dsp.wavelet_features import (
+    band_ratio_feature_np,
+    finest_band_indices,
+    level_feature_np,
+)
 
 __all__ = [
     "BandRatioFeature",
+    "DenoiserMode",
     "FinestLevelFeature",
     "LevelGate",
     "as_coeff_denoiser",
+    "band_ratio_feature_np",
     "build_wavelet_denoiser_v2",
     "build_wavelet_gain_denoiser",
     "build_wavelet_noise_predictor",
     "build_wavelet_unrolled_shrinkage",
+    "detect_denoiser_mode",
     "finest_band_indices",
     "level_feature_np",
 ]
-
-
-def finest_band_indices(frame_size: int, wavelet: str, levels: int) -> tuple[int, int]:
-    """Return ``(start, length)`` of the finest detail band in packed order.
-
-    Packing order is ``[approx, cD_1 (finest), cD_2, ..., cD_L]`` to match
-    :class:`LearnedShrinkSpihtCodec`, so the finest band immediately follows the
-    approximation coefficients.
-    """
-    coeffs = dwt_forward(np.zeros(frame_size, dtype=np.float32), levels=levels, wavelet=wavelet)
-    approx_len = len(coeffs.approx)
-    finest_len = len(coeffs.details[0])
-    return approx_len, finest_len
 
 
 @keras.saving.register_keras_serializable(package="compressionkit")
@@ -125,25 +122,6 @@ class BandRatioFeature(keras.layers.Layer):
         config = super().get_config()
         config.update({"start": self.start, "length": self.length})
         return config
-
-
-def level_feature_np(packed: np.ndarray, start: int, length: int) -> np.ndarray:
-    """NumPy twin of :class:`FinestLevelFeature` for the eval codec path."""
-    arr = np.asarray(packed, dtype=np.float32)
-    finest = arr[start : start + length]
-    level = np.float32(np.log1p(np.std(finest)))
-    return np.stack([arr, np.full_like(arr, level)], axis=-1)  # (T, 2)
-
-
-def band_ratio_feature_np(packed: np.ndarray, start: int, length: int) -> np.ndarray:
-    """NumPy twin of :class:`BandRatioFeature` for eval / codec inference."""
-    arr = np.asarray(packed, dtype=np.float32)
-    finest = arr[start : start + length]
-    coarse = np.concatenate([arr[:start], arr[start + length :]], axis=0)
-    fine_rms = np.sqrt(np.mean(finest**2) + 1e-6)
-    coarse_rms = np.sqrt(np.mean(coarse**2) + 1e-6)
-    ratio = np.float32(np.log1p(fine_rms / (coarse_rms + 1e-6)))
-    return np.stack([arr, np.full_like(arr, ratio)], axis=-1)
 
 
 @keras.saving.register_keras_serializable(package="compressionkit")
@@ -521,6 +499,81 @@ def build_wavelet_unrolled_shrinkage(
     return keras.Model(inp, denoised, name=name)
 
 
+@dataclass(frozen=True)
+class DenoiserMode:
+    """Auto-detected calling convention for a trained wavelet-gain denoiser.
+
+    Captured once (from a live Keras model) so it can be persisted into a
+    deploy manifest and reused by keras-free consumers (e.g. a LiteRT
+    runtime) that can no longer introspect a converted ``.tflite`` model's
+    Python layer types or output names.
+    """
+
+    start: int
+    length: int
+    expects_level: bool
+    feature_kind: Literal["level", "band_ratio", "none"]
+    gain_mode: bool
+
+    def to_dict(self) -> dict[str, int | bool | str]:
+        """Serialize for storage in a JSON manifest."""
+        return {
+            "start": self.start,
+            "length": self.length,
+            "expects_level": self.expects_level,
+            "feature_kind": self.feature_kind,
+            "gain_mode": self.gain_mode,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> DenoiserMode:
+        """Deserialize from a JSON manifest entry produced by :meth:`to_dict`."""
+        return cls(
+            start=int(data["start"]),
+            length=int(data["length"]),
+            expects_level=bool(data["expects_level"]),
+            feature_kind=data["feature_kind"],
+            gain_mode=bool(data["gain_mode"]),
+        )
+
+    def compute_feature(self, packed: np.ndarray) -> np.ndarray:
+        """Build the ``(1, 1, T, C)`` model input from packed coefficients."""
+        arr = np.asarray(packed, dtype=np.float32)
+        if self.feature_kind == "band_ratio":
+            return band_ratio_feature_np(arr, self.start, self.length)[None, None, :, :]
+        if self.feature_kind == "level":
+            return level_feature_np(arr, self.start, self.length)[None, None, :, :]
+        return arr.reshape(1, 1, -1, 1)
+
+
+def detect_denoiser_mode(model: keras.Model, *, frame_size: int, wavelet: str, levels: int) -> DenoiserMode:
+    """Auto-detect a trained denoiser's input/output calling convention.
+
+    Inspects the model's input width (plain coefficients vs. coefficients +
+    a noise-level feature channel), which feature layer it uses (finest-level
+    vs. band-ratio), and its output convention (gain-multiply vs. direct
+    replacement) so callers don't need to hardcode any of this per model.
+    """
+    start, length = finest_band_indices(frame_size, wavelet, levels)
+    expects_level = int(model.input_shape[-1]) == 2
+    try:
+        out_name = model.output_names[0]
+    except (AttributeError, IndexError):
+        out_name = model.layers[-1].name
+    gain_mode = "gain" in out_name.lower()
+    feature_kind: Literal["level", "band_ratio", "none"] = "none"
+    if expects_level:
+        layer_types = {type(layer).__name__ for layer in model.layers}
+        feature_kind = "band_ratio" if "BandRatioFeature" in layer_types else "level"
+    return DenoiserMode(
+        start=start,
+        length=length,
+        expects_level=expects_level,
+        feature_kind=feature_kind,
+        gain_mode=gain_mode,
+    )
+
+
 def as_coeff_denoiser(model: keras.Model, *, frame_size: int, wavelet: str, levels: int):
     """Adapt a denoiser model into a ``packed_coeffs -> denoised_coeffs`` callable.
 
@@ -539,29 +592,16 @@ def as_coeff_denoiser(model: keras.Model, *, frame_size: int, wavelet: str, leve
     otherwise introduce a systematic amplitude/baseline shift in the
     reconstructed signal that has nothing to do with actual denoising.
     """
-    start, length = finest_band_indices(frame_size, wavelet, levels)
-    expects_level = int(model.input_shape[-1]) == 2
-    try:
-        out_name = model.output_names[0]
-    except (AttributeError, IndexError):
-        out_name = model.layers[-1].name
-    gain_mode = "gain" in out_name.lower()
+    mode = detect_denoiser_mode(model, frame_size=frame_size, wavelet=wavelet, levels=levels)
 
     def _denoise(packed: np.ndarray) -> np.ndarray:
         arr = np.asarray(packed, dtype=np.float32)
-        if expects_level:
-            layer_types = {type(layer).__name__ for layer in model.layers}
-            if "BandRatioFeature" in layer_types:
-                feat = band_ratio_feature_np(arr, start, length)[None, None, :, :]
-            else:
-                feat = level_feature_np(arr, start, length)[None, None, :, :]
-        else:
-            feat = arr.reshape(1, 1, -1, 1)
+        feat = mode.compute_feature(arr)
         out = model(feat, training=False)
         out = np.asarray(out).reshape(-1)[: arr.shape[0]]
-        denoised = arr * out if gain_mode else out
+        denoised = arr * out if mode.gain_mode else out
         denoised = denoised.copy()
-        denoised[:start] = arr[:start]  # approx/DC band: always pass through unchanged
+        denoised[: mode.start] = arr[: mode.start]  # approx/DC band: always pass through unchanged
         return denoised
 
     return _denoise

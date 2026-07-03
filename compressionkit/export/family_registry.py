@@ -128,6 +128,7 @@ FAMILY_REGISTRY: dict[str, CodecFamilySpec] = {
             "reference_vectors.npz",
             "spiht_app_config.h",
             "denoiser_gain_model.keras",
+            "denoiser_gain_model.tflite",
             "hybrid_manifest.json",
         ),
         release_extras=(
@@ -137,6 +138,7 @@ FAMILY_REGISTRY: dict[str, CodecFamilySpec] = {
             "reference_vectors.npz",
             "sample_stimulus.npz",
             "denoiser_train_config.json",
+            "denoiser_gain_model.h",
         ),
         hf_file_renames=tuple(HYBRID_HF_FILE_RENAMES),
         has_c_sources=True,

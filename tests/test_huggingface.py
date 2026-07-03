@@ -388,6 +388,103 @@ class TestFamilyAgnosticLoader:
         assert codec.name == "ppg_hybrid_test"
         assert codec.frame_size == 320
 
+    def test_load_codec_prefers_tflite_denoiser_when_present(self, tmp_path, monkeypatch):
+        """HybridSpihtCodec.from_deploy_dir() must prefer the quantized TFLite
+        denoiser over the float32 Keras path when hybrid_manifest.json carries
+        both an ``artifact_tflite`` path and detected ``mode`` (see #47)."""
+        (tmp_path / "deploy_manifest.json").write_text(
+            json.dumps(
+                {
+                    "family": "hybrid",
+                    "method": "hybrid",
+                    "model_name": "ppg_hybrid_test",
+                    "spec": "codec_spec.json",
+                    "codec": {
+                        "modality": "ppg",
+                        "sample_rate": 64,
+                        "frame_size": 320,
+                        "target_cr": 8.0,
+                        "wavelet": "bior4.4",
+                        "levels": 6,
+                        "use_ac": True,
+                        "bits_per_sample": 16,
+                    },
+                }
+            )
+        )
+        (tmp_path / "codec_spec.json").write_text(
+            json.dumps(
+                {
+                    "family": "hybrid",
+                    "method": "hybrid",
+                    "codec": {
+                        "modality": "ppg",
+                        "sample_rate": 64,
+                        "frame_size": 320,
+                        "target_cr": 8.0,
+                        "wavelet": "bior4.4",
+                        "levels": 6,
+                        "use_ac": True,
+                        "bits_per_sample": 16,
+                    },
+                }
+            )
+        )
+        (tmp_path / "hybrid_manifest.json").write_text(
+            json.dumps(
+                {
+                    "pipeline": "hybrid",
+                    "stages": [
+                        {
+                            "stage": "denoise",
+                            "type": "wavelet_gain_spiht",
+                            "artifact": "denoiser_gain_model.keras",
+                            "artifact_tflite": "denoiser_gain_model.tflite",
+                            "mode": {
+                                "start": 5,
+                                "length": 160,
+                                "expects_level": True,
+                                "feature_kind": "level",
+                                "gain_mode": True,
+                            },
+                            "wavelet": "bior4.4",
+                            "levels": 6,
+                            "frame_size": 320,
+                        },
+                        {"stage": "codec", "type": "spiht"},
+                    ],
+                }
+            )
+        )
+        (tmp_path / "denoiser_gain_model.keras").write_bytes(b"fake")
+        (tmp_path / "denoiser_gain_model.tflite").write_bytes(b"fake")
+
+        class FakeKerasDenoiser:
+            def forward(self, frame):
+                raise AssertionError("Keras denoiser path should not be used when a TFLite artifact is present")
+
+        class FakeTfliteDenoiser:
+            def forward(self, frame):
+                return frame, {}
+
+        import compressionkit.runtime.hybrid as hybrid_runtime
+
+        monkeypatch.setattr(
+            hybrid_runtime, "load_wavelet_gain_preprocessor", lambda *args, **kwargs: FakeKerasDenoiser()
+        )
+        monkeypatch.setattr(
+            hybrid_runtime,
+            "load_wavelet_gain_preprocessor_tflite",
+            lambda *args, **kwargs: FakeTfliteDenoiser(),
+        )
+
+        from compressionkit.runtime import HybridSpihtCodec, load_codec
+
+        codec = load_codec(tmp_path)
+
+        assert isinstance(codec, HybridSpihtCodec)
+        assert isinstance(codec._denoiser, FakeTfliteDenoiser)
+
 
 # ── Golden deploy model card (integration) ────────────────────────
 

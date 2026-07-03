@@ -237,7 +237,8 @@ def _render_experiment(exp: GoldenExperiment) -> str:
         ]
         if exp.method == "hybrid":
             lines += [
-                "- `denoiser_gain_model.keras`, `hybrid_manifest.json` — learned wavelet-gain denoiser (trained weights) and pipeline stage order.",
+                "- `denoiser_gain_model.tflite` / `.h` — INT8 wavelet-gain denoiser (embeddable, LiteRT).",
+                "- `denoiser_gain_model.keras`, `hybrid_manifest.json` — float32 Python reference denoiser and pipeline stage order.",
             ]
     if exp.structure == "two_stage" or children:
         lines += [
