@@ -40,6 +40,7 @@ class DeploymentArtifacts:
     output_dir: Path
     encoder_tflite: Path = field(default_factory=Path)
     encoder_header: Path = field(default_factory=Path)
+    encoder_keras: Path = field(default_factory=Path)
     decoder_keras: Path = field(default_factory=Path)
     decoder_float32_tflite: Path = field(default_factory=Path)
     decoder_int8_tflite: Path = field(default_factory=Path)
@@ -95,6 +96,7 @@ AI codec deploy package for {modality_label} at {cr_label}.
 * `deploy_manifest.json` — top-level package manifest.
 * `codec_spec.json` — canonical runtime hydration contract.
 * `encoder.tflite`, `encoder.h` — edge encoder artifacts.
+* `encoder.keras` — float32 Python reference encoder (training/inspection use).
 * `codebook.npz`, `codebook.h` — RVQ codebook tables.
 * `decoder.keras` and optional decoder TFLite files — reconstruction artifacts.
 * `reference_vectors.npz` — known-good encode/decode vectors when sample inputs were exported.
@@ -210,6 +212,13 @@ def export_for_deployment(
     artifacts.encoder_tflite = enc_tflite
     artifacts.encoder_header = enc_header
 
+    # 1b. Encoder (.keras -- float32 reference alongside the quantized
+    # encoder.tflite used on-device; mirrors the decoder.keras reference below).
+    logger.info("Exporting encoder as .keras...")
+    encoder_keras_path = output_dir / "encoder.keras"
+    encoder.save(encoder_keras_path)
+    artifacts.encoder_keras = encoder_keras_path
+
     # 2. Decoder (.keras — runs server-side, no quantization needed)
     logger.info("Exporting decoder as .keras...")
     decoder_keras_path = output_dir / "decoder.keras"
@@ -317,6 +326,7 @@ def export_for_deployment(
         "encoder": {
             "tflite": enc_tflite.name,
             "header": enc_header.name,
+            "keras": encoder_keras_path.name,
             "input_shape": list(encoder.input_shape),
             "output_shape": list(encoder.output_shape),
         },
@@ -390,6 +400,7 @@ def export_for_deployment(
         "encoder": {
             "tflite": enc_tflite.name,
             "header": enc_header.name,
+            "keras": encoder_keras_path.name,
             "input_shape": list(encoder.input_shape),
             "output_shape": list(encoder.output_shape),
         },

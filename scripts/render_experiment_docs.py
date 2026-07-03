@@ -223,7 +223,9 @@ def _render_experiment(exp: GoldenExperiment) -> str:
     if exp.method == "rvq":
         lines += [
             "- `encoder.tflite` / `encoder.h` — INT8 encoder.",
+            "- `encoder.keras` — float32 Python reference encoder.",
             "- `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).",
+            "- `decoder.keras` — float32 Python reference decoder.",
             "- `codebook.npz` / `codebook.h` — RVQ codebook tables.",
             "- `sample_stimulus.npz` — license-safe input/output reference frames.",
             "- `model_card.json`, `deploy_manifest.json` — metadata.",

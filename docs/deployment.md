@@ -27,6 +27,7 @@ For most users, the only runtime object you need is `compressionkit.runtime.RVQC
 | `deploy_manifest.json` | Yes | Declares file names, tensor shapes, quantization mode, and codebook metadata. | Runtime metadata |
 | `encoder.tflite` | Yes | INT8 LiteRT encoder used to produce continuous latents from input frames. | MCU / edge device |
 | `encoder.h` | Yes | C header for the quantized encoder blob. | MCU firmware |
+| `encoder.keras` | Yes | Reference encoder kept in Keras format. | Server / offline tools |
 | `decoder.keras` | Yes | Reference decoder kept in Keras format. | Server / offline tools |
 | `decoder_float32.tflite` | Optional, exported by default | Float32 LiteRT decoder for host-side reconstruction without Keras. | x86 / ARM Linux |
 | `decoder.tflite` | Optional | INT8 LiteRT decoder for full on-device reconstruction. | MCU / edge device |

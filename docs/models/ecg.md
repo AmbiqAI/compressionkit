@@ -156,6 +156,7 @@ results/ecg_rvq_256hz_08x_golden/
 └── deploy/                     # Deployment artifacts
     ├── encoder.tflite          # INT8 quantized encoder
     ├── encoder.h               # C header for encoder
+    ├── encoder.keras           # Keras encoder model
     ├── decoder.keras           # Keras decoder model
     ├── decoder_float32.tflite  # Float32 LiteRT decoder for host-side decode
     ├── decoder.tflite          # Optional INT8 decoder for on-device decode

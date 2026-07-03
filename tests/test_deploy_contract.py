@@ -52,6 +52,8 @@ def test_strict_rvq_contract_accepts_complete_file_set(tmp_path) -> None:
     _write_minimal_manifest(tmp_path, family="rvq")
     for rel in [
         "encoder.tflite",
+        "encoder.keras",
+        "decoder.keras",
         "codebook.npz",
         "codebook.h",
         "model_card.json",
@@ -74,6 +76,8 @@ def test_strict_rvq_contract_accepts_complete_file_set(tmp_path) -> None:
     assert result.warnings == []
     assert "scorecard.json" in result.checked_files
     assert "sample_data.npz" in result.checked_files
+    assert "encoder.keras" in result.checked_files
+    assert "decoder.keras" in result.checked_files
 
 
 def test_strict_spiht_contract_accepts_complete_file_set(tmp_path) -> None:

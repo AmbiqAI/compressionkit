@@ -22,6 +22,7 @@ class ArtifactFile(StrEnum):
     DECODER_FLOAT32_TFLITE = "decoder_float32.tflite"
     DECODER_HEADER = "decoder.h"
     DECODER_INT8_HF_TFLITE = "decoder_int8.tflite"
+    DECODER_KERAS = "decoder.keras"
     DECODER_TFLITE = "decoder.tflite"
     DENOISER_GAIN_MODEL = "denoiser_gain_model.keras"
     DENOISER_HEADER = "denoiser_gain_model.h"
@@ -30,6 +31,7 @@ class ArtifactFile(StrEnum):
     DEPLOY_MANIFEST = "deploy_manifest.json"
     ENCODER_HEADER = "encoder.h"
     ENCODER_INT8_HF_TFLITE = "encoder_int8.tflite"
+    ENCODER_KERAS = "encoder.keras"
     ENCODER_TFLITE = "encoder.tflite"
     HF_CONFIG = "config.json"
     HYBRID_MANIFEST = "hybrid_manifest.json"
@@ -60,10 +62,12 @@ class SampleArray(StrEnum):
 RVQ_HF_FILE_RENAMES: tuple[tuple[ArtifactFile, ArtifactFile], ...] = (
     (ArtifactFile.ENCODER_TFLITE, ArtifactFile.ENCODER_INT8_HF_TFLITE),
     (ArtifactFile.ENCODER_HEADER, ArtifactFile.ENCODER_HEADER),
+    (ArtifactFile.ENCODER_KERAS, ArtifactFile.ENCODER_KERAS),
     (ArtifactFile.DECODER_FLOAT32_TFLITE, ArtifactFile.DECODER_FLOAT32_TFLITE),
     (ArtifactFile.DECODER_TFLITE, ArtifactFile.DECODER_INT8_HF_TFLITE),
     (ArtifactFile.DECODER_INT8_HF_TFLITE, ArtifactFile.DECODER_INT8_HF_TFLITE),
     (ArtifactFile.DECODER_HEADER, ArtifactFile.DECODER_HEADER),
+    (ArtifactFile.DECODER_KERAS, ArtifactFile.DECODER_KERAS),
     (ArtifactFile.CODEBOOK_NPZ, ArtifactFile.CODEBOOK_NPZ),
     (ArtifactFile.CODEBOOK_HEADER, ArtifactFile.CODEBOOK_HEADER),
     (ArtifactFile.CODEC_SPEC, ArtifactFile.CODEC_SPEC),
