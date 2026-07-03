@@ -128,6 +128,7 @@ FAMILY_REGISTRY: dict[str, CodecFamilySpec] = {
             "reference_vectors.npz",
             "spiht_app_config.h",
             "denoiser_gain_model.keras",
+            "denoiser_gain_model.tflite",
             "hybrid_manifest.json",
         ),
         release_extras=(

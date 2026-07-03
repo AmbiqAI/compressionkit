@@ -551,11 +551,11 @@ def generate_spiht_model_card(
     lines.append("")
     if is_hybrid:
         lines.append(
-            "The SPIHT stage ships a portable C99 reference; the denoiser "
-            "(`denoiser_gain_model.keras`) currently only has a Python/TFLite "
-            "runtime path. Run the denoiser stage first (Python, or a "
-            "converted TFLite Micro model) and feed its output into the C "
-            "SPIHT encoder below."
+            "The SPIHT stage ships a portable C99 reference. The denoiser ships "
+            "as an INT8 `denoiser_gain_model.tflite` (run via a LiteRT/TFLite "
+            "Micro interpreter — no Python/Keras required) alongside the "
+            "float32 `denoiser_gain_model.keras` reference. Run the denoiser "
+            "stage first and feed its output into the C SPIHT encoder below."
         )
         lines.append("")
     lines.append("```c")

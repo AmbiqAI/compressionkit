@@ -3,6 +3,10 @@
 The v1 hybrid lane is a learned wavelet-gain preprocessor followed by the
 standard SPIHT runtime. The deploy package carries both the SPIHT operating
 point and a ``hybrid_manifest.json`` that identifies the denoiser artifact.
+
+The denoiser preferentially runs via a quantized INT8 TFLite/LiteRT path
+(Keras/TF-free, embeddable — see issue #47); deploy packages exported before
+that artifact existed fall back to the float32 Keras path automatically.
 """
 
 from __future__ import annotations
@@ -13,7 +17,10 @@ from typing import Any
 
 import numpy as np
 
-from compressionkit.pipeline.learned_stages import load_wavelet_gain_preprocessor
+from compressionkit.pipeline.learned_stages import (
+    load_wavelet_gain_preprocessor,
+    load_wavelet_gain_preprocessor_tflite,
+)
 from compressionkit.runtime.base import EncodedFrame
 from compressionkit.runtime.spiht import SpihtCodec, SpihtCodecConfig
 
@@ -74,12 +81,31 @@ class HybridSpihtCodec:
         denoiser_artifact = denoise_stage.get("artifact")
         if not isinstance(denoiser_artifact, str):
             raise ValueError("hybrid denoise stage is missing its artifact path")
-        denoiser = load_wavelet_gain_preprocessor(
-            deploy_dir / denoiser_artifact,
-            frame_size=int(denoise_stage.get("frame_size") or config.frame_size),
-            wavelet=str(denoise_stage.get("wavelet") or config.wavelet),
-            levels=int(denoise_stage.get("levels") or config.levels),
-        )
+        frame_size = int(denoise_stage.get("frame_size") or config.frame_size)
+        wavelet = str(denoise_stage.get("wavelet") or config.wavelet)
+        levels = int(denoise_stage.get("levels") or config.levels)
+
+        # Prefer the quantized INT8 TFLite denoiser (Keras/TF-free, embeddable)
+        # when the deploy package has one; fall back to the float32 Keras path
+        # for packages exported before this artifact existed (see issue #47).
+        tflite_artifact = denoise_stage.get("artifact_tflite")
+        mode = denoise_stage.get("mode")
+        if isinstance(tflite_artifact, str) and isinstance(mode, dict) and (deploy_dir / tflite_artifact).exists():
+            denoiser = load_wavelet_gain_preprocessor_tflite(
+                deploy_dir / tflite_artifact,
+                frame_size=frame_size,
+                feature_kind=str(mode["feature_kind"]),
+                gain_mode=bool(mode["gain_mode"]),
+                wavelet=wavelet,
+                levels=levels,
+            )
+        else:
+            denoiser = load_wavelet_gain_preprocessor(
+                deploy_dir / denoiser_artifact,
+                frame_size=frame_size,
+                wavelet=wavelet,
+                levels=levels,
+            )
         spiht = SpihtCodec(
             config=config,
             name=str(manifest.get("model_name") or "hybrid_spiht"),

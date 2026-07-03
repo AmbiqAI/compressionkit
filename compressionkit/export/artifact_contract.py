@@ -24,6 +24,8 @@ class ArtifactFile(StrEnum):
     DECODER_INT8_HF_TFLITE = "decoder_int8.tflite"
     DECODER_TFLITE = "decoder.tflite"
     DENOISER_GAIN_MODEL = "denoiser_gain_model.keras"
+    DENOISER_HEADER = "denoiser_gain_model.h"
+    DENOISER_TFLITE = "denoiser_gain_model.tflite"
     DENOISER_TRAIN_CONFIG = "denoiser_train_config.json"
     DEPLOY_MANIFEST = "deploy_manifest.json"
     ENCODER_HEADER = "encoder.h"
@@ -89,6 +91,8 @@ SPIHT_HF_FILE_RENAMES: tuple[tuple[ArtifactFile, ArtifactFile], ...] = (
 HYBRID_HF_FILE_RENAMES: tuple[tuple[ArtifactFile, ArtifactFile], ...] = (
     *SPIHT_HF_FILE_RENAMES,
     (ArtifactFile.DENOISER_GAIN_MODEL, ArtifactFile.DENOISER_GAIN_MODEL),
+    (ArtifactFile.DENOISER_TFLITE, ArtifactFile.DENOISER_TFLITE),
+    (ArtifactFile.DENOISER_HEADER, ArtifactFile.DENOISER_HEADER),
     (ArtifactFile.DENOISER_TRAIN_CONFIG, ArtifactFile.DENOISER_TRAIN_CONFIG),
     (ArtifactFile.HYBRID_MANIFEST, ArtifactFile.HYBRID_MANIFEST),
     (ArtifactFile.SPIHT_APP_CONFIG_HEADER, ArtifactFile.SPIHT_APP_CONFIG_HEADER),

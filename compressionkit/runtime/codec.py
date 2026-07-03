@@ -15,7 +15,6 @@ Example::
 
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 import re
@@ -24,6 +23,9 @@ from pathlib import Path
 import numpy as np
 
 from compressionkit.export.artifact_contract import ArtifactFile
+from compressionkit.runtime._litert import Interpreter as _Interpreter
+from compressionkit.runtime._litert import dequantize as _dequantize_tensor
+from compressionkit.runtime._litert import quantize as _quantize_tensor
 
 logger = logging.getLogger(__name__)
 
@@ -45,22 +47,6 @@ def _parse_operating_point_from_name(name: str) -> dict[str, str | float | None]
         "sample_rate": float(match.group("rate")),
         "compression_ratio": float(match.group("cr")),
     }
-
-
-# Try ai-edge-litert first, then tflite-runtime, then tf.lite
-_Interpreter = None
-
-with contextlib.suppress(ImportError):
-    from ai_edge_litert.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
-if _Interpreter is None:
-    with contextlib.suppress(ImportError):
-        from tflite_runtime.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
-if _Interpreter is None:
-    with contextlib.suppress(ImportError):
-        from tensorflow.lite.python.interpreter import Interpreter as _Interpreter  # type: ignore[assignment]
-
-if _Interpreter is None:
-    raise ImportError("No TFLite runtime found. Install one of: ai-edge-litert, tflite-runtime, or tensorflow.")
 
 
 def _ensure_symlink(directory: Path, hf_name: str, local_name: str) -> None:
@@ -259,23 +245,12 @@ class RVQCodec:
         return self._decoder is not None
 
     def _quantize(self, data: np.ndarray, details: dict) -> np.ndarray:
-        """Quantize float32 data to INT8 using TFLite quantization params."""
-        qparams = details.get("quantization_parameters", {})
-        scales = qparams.get("scales", np.array([1.0]))
-        zero_points = qparams.get("zero_points", np.array([0]))
-        if details["dtype"] == np.int8:
-            quantized = np.round(data / scales[0] + zero_points[0])
-            return np.clip(quantized, -128, 127).astype(np.int8)
-        return data.astype(details["dtype"])
+        """Quantize float32 data using the tensor's TFLite quantization params."""
+        return _quantize_tensor(data, details)
 
     def _dequantize(self, data: np.ndarray, details: dict) -> np.ndarray:
-        """Dequantize INT8 data back to float32."""
-        qparams = details.get("quantization_parameters", {})
-        scales = qparams.get("scales", np.array([1.0]))
-        zero_points = qparams.get("zero_points", np.array([0]))
-        if details["dtype"] == np.int8:
-            return ((data.astype(np.float32) - zero_points[0]) * scales[0]).astype(np.float32)
-        return data.astype(np.float32)
+        """Dequantize a tensor's output back to float32."""
+        return _dequantize_tensor(data, details)
 
     def encode_latent(self, signal: np.ndarray) -> np.ndarray:
         """Run the encoder to get continuous latent vectors.

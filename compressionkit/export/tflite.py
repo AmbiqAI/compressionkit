@@ -160,4 +160,58 @@ def export_decoder_tflite(
     return paths
 
 
-__all__ = ["export_decoder_tflite", "export_encoder_tflite"]
+def export_denoiser_tflite(
+    model: keras.Model,
+    *,
+    rep_dataset: np.ndarray,
+    output_dir: Path,
+    tflite_name: str = "denoiser_gain_model.tflite",
+    header_name: str = "denoiser_gain_model.h",
+    c_array_name: str = "denoiser_gain_model",
+    quantization: str = "INT8",
+    io_type: str = "int8",
+) -> tuple[Path, Path]:
+    """Export a wavelet-gain denoiser to INT8 TFLite and C header.
+
+    See :mod:`compressionkit.models.wavelet_denoiser` for the model itself
+    (``detect_denoiser_mode()`` describes the model's input/output calling
+    convention, which must be captured separately since it isn't recoverable
+    from the converted ``.tflite`` model alone).
+
+    Args:
+        model: Trained denoiser Keras model. Expects a ``(1, T, C)`` input
+            (``C`` is 1 or 2 depending on whether the model was trained with
+            a noise-level feature channel — see ``DenoiserMode.expects_level``).
+        rep_dataset: Representative dataset array for INT8 calibration,
+            shape ``(N, 1, T, C)`` matching the model's input. Unlike
+            :func:`export_decoder_tflite`, the full dataset is used for
+            calibration even when the batch dimension gets fixed to 1 for
+            export, since ``helia_edge`` already feeds calibration examples
+            one at a time regardless.
+        output_dir: Directory to write ``.tflite`` and ``.h`` files.
+        tflite_name: Filename for the TFLite model.
+        header_name: Filename for the C header.
+        c_array_name: Name for the C array in the header.
+        quantization: Quantization mode (e.g. ``"INT8"``).
+        io_type: I/O type string (e.g. ``"int8"``).
+
+    Returns:
+        Tuple of ``(tflite_path, header_path)``.
+    """
+    export_model = _with_fixed_batch_one(model)
+
+    paths = _convert_and_export(
+        export_model,
+        rep_dataset=rep_dataset,
+        output_dir=output_dir,
+        tflite_name=tflite_name,
+        header_name=header_name,
+        c_array_name=c_array_name,
+        quantization=quantization,
+        io_type=io_type,
+    )
+    logger.info("Exported denoiser TFLite to %s and header to %s", paths[0], paths[1])
+    return paths
+
+
+__all__ = ["export_decoder_tflite", "export_denoiser_tflite", "export_encoder_tflite"]

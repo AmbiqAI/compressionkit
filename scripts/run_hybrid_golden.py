@@ -417,6 +417,63 @@ def _export_deploy(
     except Exception:
         logger.exception("Failed to stage denoiser artifact into deploy package.")
 
+    # Export the denoiser to INT8 TFLite + C header alongside the float32
+    # Keras reference, so the hybrid package has an embeddable denoiser path
+    # (see issue #47). The calling convention (feature channel / gain-vs-direct
+    # output) is auto-detected once here and persisted into hybrid_manifest.json,
+    # since it can't be recovered from the converted .tflite model alone.
+    denoiser_mode_dict: dict | None = None
+    try:
+        import keras
+
+        from compressionkit.export.tflite import export_denoiser_tflite
+        from compressionkit.models.wavelet_denoiser import (
+            BandRatioFeature,
+            FinestLevelFeature,
+            LevelGate,
+            NoiseGatedGain,
+            SelectChannel,
+            SoftThreshold,
+            detect_denoiser_mode,
+        )
+
+        custom_objects = {
+            "BandRatioFeature": BandRatioFeature,
+            "FinestLevelFeature": FinestLevelFeature,
+            "LevelGate": LevelGate,
+            "NoiseGatedGain": NoiseGatedGain,
+            "SelectChannel": SelectChannel,
+            "SoftThreshold": SoftThreshold,
+        }
+        denoiser_model = keras.models.load_model(denoiser_dst, compile=False, custom_objects=custom_objects)
+        denoiser_mode = detect_denoiser_mode(
+            denoiser_model, frame_size=codec.frame_size, wavelet=codec.wavelet, levels=codec.levels
+        )
+        denoiser_mode_dict = denoiser_mode.to_dict()
+
+        stimulus = np.load(deploy_dir / "sample_stimulus.npz")["stimulus"].astype(np.float32, copy=False)
+        from compressionkit.dsp.wavelet import dwt_forward
+
+        def _pack_coeffs(frame: np.ndarray) -> np.ndarray:
+            coeffs = dwt_forward(frame, levels=codec.levels, wavelet=codec.wavelet)
+            return np.concatenate([coeffs.approx, *coeffs.details]).astype(np.float32)
+
+        # sample_stimulus.npz holds raw-amplitude synthetic physiokit signals,
+        # but the codec always feeds the denoiser zero-mean/unit-std frames
+        # (see the eval loop above). Calibrating on the raw stimulus's much
+        # smaller dynamic range would badly under-range INT8 quantization for
+        # "direct" (non-gain) denoisers, whose output scale tracks the input
+        # scale directly — so normalize calibration frames the same way.
+        normalized_stimulus = np.stack([(f - f.mean()) / (float(f.std()) + 1e-6) for f in stimulus]).astype(np.float32)
+        rep_dataset = np.stack(
+            [denoiser_mode.compute_feature(_pack_coeffs(frame))[0, 0] for frame in normalized_stimulus]
+        )
+        rep_dataset = rep_dataset[:, None, :, :]
+        export_denoiser_tflite(denoiser_model, rep_dataset=rep_dataset, output_dir=deploy_dir)
+        logger.info("Exported denoiser_gain_model.tflite (%s)", denoiser_mode_dict)
+    except Exception:
+        logger.exception("Failed to export INT8 denoiser TFLite; hybrid package will keep the Keras-only path.")
+
     manifest = {
         "pipeline": "hybrid",
         "experiment_id": exp.experiment_id,
@@ -426,6 +483,8 @@ def _export_deploy(
                 "stage": "denoise",
                 "type": exp.hybrid.strategy if exp.hybrid else None,
                 "artifact": denoiser_dst.name,
+                "artifact_tflite": "denoiser_gain_model.tflite" if denoiser_mode_dict else None,
+                "mode": denoiser_mode_dict,
                 "wavelet": codec.wavelet,
                 "levels": codec.levels,
                 "frame_size": codec.frame_size,
@@ -451,6 +510,9 @@ def _export_deploy(
     deploy_manifest["pipeline"] = "hybrid"
     deploy_manifest.setdefault("artifacts", {})["denoiser_gain_model"] = "denoiser_gain_model.keras"
     deploy_manifest["artifacts"]["hybrid_manifest"] = "hybrid_manifest.json"
+    if denoiser_mode_dict:
+        deploy_manifest["artifacts"]["denoiser_gain_model_tflite"] = "denoiser_gain_model.tflite"
+        deploy_manifest["artifacts"]["denoiser_gain_model_header"] = "denoiser_gain_model.h"
     if (deploy_dir / "denoiser_train_config.json").exists():
         deploy_manifest["artifacts"]["denoiser_train_config"] = "denoiser_train_config.json"
     deploy_manifest_path.write_text(json.dumps(deploy_manifest, indent=2))
