@@ -108,6 +108,7 @@ def test_strict_hybrid_contract_accepts_complete_file_set(tmp_path) -> None:
         "spiht_app_config.h",
         "denoiser_gain_model.keras",
         "denoiser_gain_model.tflite",
+        "denoiser_gain_model.h",
         "denoiser_train_config.json",
         "hybrid_manifest.json",
         "model_card.json",
@@ -128,6 +129,7 @@ def test_strict_hybrid_contract_accepts_complete_file_set(tmp_path) -> None:
     assert "hybrid_manifest.json" in result.checked_files
     assert "denoiser_gain_model.keras" in result.checked_files
     assert "denoiser_gain_model.tflite" in result.checked_files
+    assert "denoiser_gain_model.h" in result.checked_files
 
 
 def test_checksum_mismatch_is_error(tmp_path) -> None:
