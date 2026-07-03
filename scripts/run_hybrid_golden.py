@@ -449,7 +449,6 @@ def _export_deploy(
         denoiser_mode = detect_denoiser_mode(
             denoiser_model, frame_size=codec.frame_size, wavelet=codec.wavelet, levels=codec.levels
         )
-        denoiser_mode_dict = denoiser_mode.to_dict()
 
         stimulus = np.load(deploy_dir / "sample_stimulus.npz")["stimulus"].astype(np.float32, copy=False)
         from compressionkit.dsp.wavelet import dwt_forward
@@ -469,9 +468,19 @@ def _export_deploy(
             [denoiser_mode.compute_feature(_pack_coeffs(frame))[0, 0] for frame in normalized_stimulus]
         )
         rep_dataset = rep_dataset[:, None, :, :]
-        export_denoiser_tflite(denoiser_model, rep_dataset=rep_dataset, output_dir=deploy_dir)
+        tflite_path, header_path = export_denoiser_tflite(
+            denoiser_model, rep_dataset=rep_dataset, output_dir=deploy_dir
+        )
+        if not (tflite_path.exists() and header_path.exists()):
+            raise RuntimeError(f"export_denoiser_tflite() did not produce both {tflite_path} and {header_path}")
+        # Only claim the TFLite artifact in the manifest once both files are
+        # confirmed on disk -- if export raises above, denoiser_mode_dict stays
+        # None, so the manifest never advertises an artifact_tflite/mode that
+        # doesn't actually exist (see #57 review).
+        denoiser_mode_dict = denoiser_mode.to_dict()
         logger.info("Exported denoiser_gain_model.tflite (%s)", denoiser_mode_dict)
     except Exception:
+        denoiser_mode_dict = None
         logger.exception("Failed to export INT8 denoiser TFLite; hybrid package will keep the Keras-only path.")
 
     manifest = {
