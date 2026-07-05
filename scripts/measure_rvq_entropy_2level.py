@@ -45,14 +45,16 @@ import numpy as np
 import tensorflow as tf
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import measure_rvq_entropy as base  # noqa: E402
+import measure_rvq_entropy as base
 
 # ---------------------------------------------------------------------------
 # Token extraction (thin wrapper around base script's extractors + cache)
 # ---------------------------------------------------------------------------
 
 
-def _cache_path(cache_root: Path, modality: str, split: str, n_files: int, frame_cap, frame_size, num_leads, lead_index) -> Path:
+def _cache_path(
+    cache_root: Path, modality: str, split: str, n_files: int, frame_cap, frame_size, num_leads, lead_index
+) -> Path:
     key = f"{modality}_{split}_n{n_files}_max{frame_cap}_fs{frame_size}_l{num_leads}_li{lead_index}.npy"
     return cache_root / key
 
@@ -81,14 +83,18 @@ def _get_or_extract_tokens(
     if use_unified_cache or modality == "ppg-h5":
         pass
     elif modality == "ppg":
-        train_files, val_files, _ = load_ppg_file_splits(Path(cfg.data.datasets_dir), cfg.data.dataset_glob, seed=cfg.data.shuffle_seed)
+        train_files, val_files, _ = load_ppg_file_splits(
+            Path(cfg.data.datasets_dir), cfg.data.dataset_glob, seed=cfg.data.shuffle_seed
+        )
         files = train_files if split == "train" else val_files
         n = args.num_train_files if split == "train" else args.num_val_files
         if n is not None and n >= 0:
             files = files[:n]
         n_files_for_key = len(files)
     else:
-        train_files, val_files, _ = load_ecg_file_splits(Path(cfg.data.datasets_dir), cfg.data.dataset_glob, seed=cfg.data.shuffle_seed)
+        train_files, val_files, _ = load_ecg_file_splits(
+            Path(cfg.data.datasets_dir), cfg.data.dataset_glob, seed=cfg.data.shuffle_seed
+        )
         files = train_files if split == "train" else val_files
         n = args.num_train_files if split == "train" else args.num_val_files
         if n is not None and n >= 0:
@@ -109,7 +115,12 @@ def _get_or_extract_tokens(
         tokens = base._extract_ppg_split_tokens(files, compressor, cfg, max_frames=max_frames, batch_size=64)
     else:
         tokens = base._extract_split_tokens(
-            files, compressor, frame_size=frame_size, num_leads=num_leads, epsilon=cfg.data.epsilon, lead_index=lead_index
+            files,
+            compressor,
+            frame_size=frame_size,
+            num_leads=num_leads,
+            epsilon=cfg.data.epsilon,
+            lead_index=lead_index,
         )
     np.save(path, tokens)
     print(f"      [cache] saved {split} tokens \u2192 {path.name}", file=sys.stderr)
@@ -127,7 +138,9 @@ def _causal_wavenet_stack(x, *, embed_dim: int, num_layers: int, kernel_size: in
     skip_sum = None
     for i in range(num_layers):
         d = 2**i
-        h = keras.layers.Conv1D(2 * embed_dim, kernel_size, padding="causal", dilation_rate=d, name=f"{name_prefix}_gc_d{d}")(x)
+        h = keras.layers.Conv1D(
+            2 * embed_dim, kernel_size, padding="causal", dilation_rate=d, name=f"{name_prefix}_gc_d{d}"
+        )(x)
         a, b = keras.ops.split(h, 2, axis=-1)
         gated = keras.ops.tanh(a) * keras.ops.sigmoid(b)
         out = keras.layers.Conv1D(embed_dim, 1, name=f"{name_prefix}_out_d{d}")(gated)
@@ -165,7 +178,9 @@ def build_wavenet2d_prior(
     e1 = embed1(level1_in)
     x = keras.layers.Add(name="level_sum")([e0, e1])
 
-    h = _causal_wavenet_stack(x, embed_dim=embed_dim, num_layers=num_layers, kernel_size=kernel_size, name_prefix="wn2d")
+    h = _causal_wavenet_stack(
+        x, embed_dim=embed_dim, num_layers=num_layers, kernel_size=kernel_size, name_prefix="wn2d"
+    )
 
     level0_logits = keras.layers.Dense(vocab_size, name="level0_logits")(h)
 
@@ -294,16 +309,33 @@ def main(argv: list[str] | None = None) -> int:
     tokens_per_frame_per_level = frame_size // (2**mcfg.num_stages)
     tokens_per_frame = tokens_per_frame_per_level * 2
 
-    print(f"      frame_size={frame_size} positions/frame={tokens_per_frame_per_level} vocab={vocab_size} modality={modality}", file=sys.stderr)
+    print(
+        f"      frame_size={frame_size} positions/frame={tokens_per_frame_per_level} vocab={vocab_size} modality={modality}",
+        file=sys.stderr,
+    )
 
     print("[2/5] Extracting tokens (per-level, real time order) ...", file=sys.stderr)
     train_tok = _get_or_extract_tokens(
-        split="train", compressor=compressor, cfg=cfg, modality=modality, frame_size=frame_size,
-        num_leads=num_leads, lead_index=lead_index, args=args, cache_root=cache_root,
+        split="train",
+        compressor=compressor,
+        cfg=cfg,
+        modality=modality,
+        frame_size=frame_size,
+        num_leads=num_leads,
+        lead_index=lead_index,
+        args=args,
+        cache_root=cache_root,
     )
     val_tok = _get_or_extract_tokens(
-        split="val", compressor=compressor, cfg=cfg, modality=modality, frame_size=frame_size,
-        num_leads=num_leads, lead_index=lead_index, args=args, cache_root=cache_root,
+        split="val",
+        compressor=compressor,
+        cfg=cfg,
+        modality=modality,
+        frame_size=frame_size,
+        num_leads=num_leads,
+        lead_index=lead_index,
+        args=args,
+        cache_root=cache_root,
     )
     if train_tok.size == 0 or val_tok.size == 0:
         raise RuntimeError("Token extraction produced an empty train or validation split.")
@@ -319,8 +351,11 @@ def main(argv: list[str] | None = None) -> int:
 
     with tf.device("/GPU:0" if tf.config.list_physical_devices("GPU") else "/CPU:0"):
         model = build_wavenet2d_prior(
-            vocab_size=vocab_size, context_length=context_length,
-            embed_dim=args.embed_dim, num_layers=args.num_layers, kernel_size=args.kernel,
+            vocab_size=vocab_size,
+            context_length=context_length,
+            embed_dim=args.embed_dim,
+            num_layers=args.num_layers,
+            kernel_size=args.kernel,
         )
     model.summary(print_fn=lambda s: print("      " + s, file=sys.stderr))
     model.compile(
@@ -335,12 +370,17 @@ def main(argv: list[str] | None = None) -> int:
     x0_val, x1_val, y0_val, y1_val = _build_windows_2level(val_level0, val_level1, context_length, args.stride_tokens)
     print(f"      train windows={x0_tr.shape[0]}  val windows={x0_val.shape[0]}", file=sys.stderr)
 
-    early_stop = keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=args.patience, restore_best_weights=True)
-    print(f"[4/5] Training 2D prior ...", file=sys.stderr)
+    early_stop = keras.callbacks.EarlyStopping(
+        monitor="val_loss", mode="min", patience=args.patience, restore_best_weights=True
+    )
+    print("[4/5] Training 2D prior ...", file=sys.stderr)
     history = model.fit(
         {"level0_in": x0_tr, "level1_in": x1_tr},
         {"level0_logits": y0_tr, "level1_logits": y1_tr},
-        validation_data=({"level0_in": x0_val, "level1_in": x1_val}, {"level0_logits": y0_val, "level1_logits": y1_val}),
+        validation_data=(
+            {"level0_in": x0_val, "level1_in": x1_val},
+            {"level0_logits": y0_val, "level1_logits": y1_val},
+        ),
         batch_size=args.batch_size,
         epochs=args.epochs,
         callbacks=[early_stop],
@@ -349,7 +389,9 @@ def main(argv: list[str] | None = None) -> int:
     history_dict = {k: [float(v) for v in vals] for k, vals in history.history.items()}
 
     print("[5/5] Aggregating per-token / per-frame bitrate stats ...", file=sys.stderr)
-    bits_full = _per_position_nll_bits_2level(model, val_level0, val_level1, context_length=context_length, batch_size=args.per_frame_batch)
+    bits_full = _per_position_nll_bits_2level(
+        model, val_level0, val_level1, context_length=context_length, batch_size=args.per_frame_batch
+    )
     val_bits_per_token = float(bits_full.mean())
     val_bits_per_token_std = float(bits_full.std())
 
@@ -445,7 +487,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  vocab K                    : {vocab_size}", file=sys.stderr)
     print(f"  uniform   bits/token       : {math.log2(vocab_size):>8.4f}", file=sys.stderr)
     print(f"  unigram   bits/token (val) : {val_unigram:>8.4f}", file=sys.stderr)
-    print(f"  prior     bits/token (val) : {val_bits_per_token:>8.4f}  (std {val_bits_per_token_std:.3f})", file=sys.stderr)
+    print(
+        f"  prior     bits/token (val) : {val_bits_per_token:>8.4f}  (std {val_bits_per_token_std:.3f})",
+        file=sys.stderr,
+    )
     print(f"  CR uplift vs uniform / uni : x{cr_uplift_vs_uniform:.3f} / x{cr_uplift_vs_unigram:.3f}", file=sys.stderr)
     print(f"  Codec CR uniform / learned : x{cr_codec_uniform:.2f} / x{cr_codec_learned:.2f}", file=sys.stderr)
     print(f"  receptive field (positions): {receptive_field}", file=sys.stderr)

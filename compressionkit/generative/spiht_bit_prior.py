@@ -34,9 +34,9 @@ import numpy as np
 from compressionkit.dsp.spiht import BitReader, BitWriter
 
 __all__ = [
+    "PREVBIT_START",
     "NeuralAcSink",
     "NeuralAcSource",
-    "PREVBIT_START",
     "SpihtBitPredictor",
     "WavenetBitPriorWeights",
     "extract_wavenet_bit_prior_weights",
@@ -150,11 +150,7 @@ def wavenet_forward_numpy(
     Returns:
         ``(L,)`` float64 array of P(bit=1) for each position in the window.
     """
-    x = (
-        weights.ctx_embed[ctx_ids]
-        + weights.bp_embed[bp_ids]
-        + weights.prevbit_embed[prevbit_ids]
-    ).astype(np.float64)
+    x = (weights.ctx_embed[ctx_ids] + weights.bp_embed[bp_ids] + weights.prevbit_embed[prevbit_ids]).astype(np.float64)
     length, channels = x.shape
     k = weights.kernel_size
 
@@ -198,9 +194,9 @@ class SpihtBitPredictor:
         """Return P(bit=1) for the NEXT position, given (ctx, bitplane) at that position."""
         cl = self.weights.context_length
         bp_clip = int(np.clip(bitplane, 0, self.weights.bp_vocab - 1))
-        ctx_win = (self._ctx_hist + [ctx])[-cl:]
-        bp_win = (self._bp_hist + [bp_clip])[-cl:]
-        prev_win = ([PREVBIT_START] + self._bit_hist)[-cl:]
+        ctx_win = [*self._ctx_hist, ctx][-cl:]
+        bp_win = [*self._bp_hist, bp_clip][-cl:]
+        prev_win = [PREVBIT_START, *self._bit_hist][-cl:]
         p1_all = wavenet_forward_numpy(
             np.asarray(ctx_win, dtype=np.int32),
             np.asarray(bp_win, dtype=np.int32),
@@ -261,7 +257,7 @@ class NeuralAcSink:
 
     def write(self, bit: int, ctx: int) -> None:
         p1 = self.predictor.predict(ctx, self._cur_bitplane)
-        c1 = min(max(int(round(p1 * _NEURAL_AC_TOTAL)), 1), _NEURAL_AC_TOTAL - 1)
+        c1 = min(max(round(p1 * _NEURAL_AC_TOTAL), 1), _NEURAL_AC_TOTAL - 1)
         c0 = _NEURAL_AC_TOTAL - c1
         rng = self.high - self.low + 1
         split = self.low + (rng * c0) // _NEURAL_AC_TOTAL - 1
@@ -325,7 +321,7 @@ class NeuralAcSource:
 
     def read(self, ctx: int) -> int:
         p1 = self.predictor.predict(ctx, self._cur_bitplane)
-        c1 = min(max(int(round(p1 * _NEURAL_AC_TOTAL)), 1), _NEURAL_AC_TOTAL - 1)
+        c1 = min(max(round(p1 * _NEURAL_AC_TOTAL), 1), _NEURAL_AC_TOTAL - 1)
         c0 = _NEURAL_AC_TOTAL - c1
         rng = self.high - self.low + 1
         split = self.low + (rng * c0) // _NEURAL_AC_TOTAL - 1
@@ -353,4 +349,3 @@ class NeuralAcSource:
             self.code = ((self.code << 1) | self._read_input()) & _AC_TOP
         self.predictor.observe(ctx, self._cur_bitplane, bit)
         return bit
-

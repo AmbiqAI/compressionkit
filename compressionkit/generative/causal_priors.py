@@ -168,7 +168,11 @@ def build_hybrid_prior(
     for _ in range(stem_layers):
         d = 2**layer_idx
         x = keras.layers.Conv1D(
-            filters=embed_dim, kernel_size=kernel_size, padding="causal", dilation_rate=d, use_bias=False,
+            filters=embed_dim,
+            kernel_size=kernel_size,
+            padding="causal",
+            dilation_rate=d,
+            use_bias=False,
             name=f"stem_conv_d{d}",
         )(x)
         x = keras.layers.BatchNormalization(name=f"stem_bn_d{d}")(x)

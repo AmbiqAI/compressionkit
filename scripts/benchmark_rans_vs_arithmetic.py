@@ -106,7 +106,11 @@ def main() -> None:
     if prior_type not in _BUILDERS:
         raise ValueError(f"No builder wired up for prior type {prior_type!r} in this script")
 
-    builder_kwargs = {k: v for k, v in p.items() if k not in ("type", "params", "receptive_field", "structure", "receptive_field_note")}
+    builder_kwargs = {
+        k: v
+        for k, v in p.items()
+        if k not in ("type", "params", "receptive_field", "structure", "receptive_field_note")
+    }
     if "kernel" in builder_kwargs:
         builder_kwargs["kernel_size"] = builder_kwargs.pop("kernel")
     if "hidden" in builder_kwargs:

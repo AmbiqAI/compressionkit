@@ -32,10 +32,10 @@ import numpy as np
 import tensorflow as tf
 
 sys.path.insert(0, str(Path(__file__).parent))
-from measure_rvq_entropy import _load_compressor  # noqa: E402
+from measure_rvq_entropy import _load_compressor
 
-from compressionkit.preprocessing.ecg import build_augmenter, build_preprocessor  # noqa: E402
-from compressionkit.trainers.ecg_rvq import build_datasets  # noqa: E402
+from compressionkit.preprocessing.ecg import build_augmenter, build_preprocessor
+from compressionkit.trainers.ecg_rvq import build_datasets
 
 
 def _encode_batch(compressor, x_aug: np.ndarray, *, num_leads: int) -> np.ndarray:
@@ -109,9 +109,11 @@ def main() -> None:
     base_name = f"ecg_train_n{args.num_train_files}_maxNone_fs{frame_size}_l{num_leads}_li{lead_index}"
     if args.overwrite_default_cache:
         out_path = cache_dir / f"{base_name}.npy"
-        print("      WARNING: writing to the default clean-cache filename -- this will shadow clean "
-              "extraction for every future measure_rvq_entropy.py run at this file count until cleared.",
-              file=sys.stderr)
+        print(
+            "      WARNING: writing to the default clean-cache filename -- this will shadow clean "
+            "extraction for every future measure_rvq_entropy.py run at this file count until cleared.",
+            file=sys.stderr,
+        )
     else:
         out_path = cache_dir / f"{base_name}.augmented.npy"
     np.save(out_path, tokens)

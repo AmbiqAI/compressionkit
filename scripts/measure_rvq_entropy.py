@@ -1317,7 +1317,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"[4/5] Training prior ({args.prior_type}) ...", file=sys.stderr)
         if args.steps_per_epoch is not None:
-            print(f"      steps_per_epoch={args.steps_per_epoch} (decoupled from the {x_tr.shape[0]}-window pool)", file=sys.stderr)
+            print(
+                f"      steps_per_epoch={args.steps_per_epoch} (decoupled from the {x_tr.shape[0]}-window pool)",
+                file=sys.stderr,
+            )
             train_ds = (
                 tf.data.Dataset.from_tensor_slices((x_tr, y_tr))
                 .shuffle(min(x_tr.shape[0], 200_000), seed=args.stride_tokens, reshuffle_each_iteration=True)
