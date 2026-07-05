@@ -24,10 +24,25 @@
 #   scripts/devcontainer.sh shell                # open an interactive shell
 #   scripts/devcontainer.sh down                 # stop the container
 #   scripts/devcontainer.sh status               # show container state
+#   scripts/devcontainer.sh gpu-check            # verify the GPU is actually usable (not just nvidia-smi)
+#   scripts/devcontainer.sh gpu-recover          # auto-heal a broken GPU: restart, else full recreate
 #
 # Examples:
 #   scripts/devcontainer.sh exec -- uv run pytest tests/test_two_stage.py -q
 #   scripts/devcontainer.sh exec -- uv run python scripts/train_rvq_prior.py --help
+#
+# Why gpu-check/gpu-recover instead of just running `nvidia-smi`:
+#   `nvidia-smi` inside the container only proves the NVML library can talk to
+#   the driver — it does NOT prove a CUDA context can actually be created on
+#   the container's own device file descriptors. After a host-side kernel/
+#   driver churn event (e.g. an unattended-upgrades kernel update rebuilding
+#   the NVIDIA DKMS module without a reboot), `nvidia-smi` can keep working
+#   while real framework calls (TensorFlow/PyTorch CUDA init) fail inside an
+#   already-running container. gpu-check does a real minimal CUDA init via
+#   TensorFlow so it catches that failure mode; gpu-recover tries the cheap
+#   fix first (`docker restart`, which re-runs the NVIDIA container-runtime
+#   hook and re-binds fresh device state) before falling back to a full
+#   down+up (which recreates the container from scratch).
 
 set -euo pipefail
 
@@ -97,6 +112,53 @@ cmd_status() {
     docker ps --filter "id=${id}" --format 'table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Names}}'
 }
 
+cmd_gpu_check() {
+    local id
+    id="$(cmd_id)"
+    echo "-- nvidia-smi (NVML-level check) --"
+    if ! devcontainer exec --container-id "${id}" --workspace-folder "${MAIN_WORKSPACE}" -- nvidia-smi --query-gpu=name,memory.used --format=csv,noheader; then
+        echo "gpu-check: FAILED at nvidia-smi (driver/NVML not visible in container)" >&2
+        return 1
+    fi
+    echo "-- CUDA context init via TensorFlow (real usability check) --"
+    if ! devcontainer exec --container-id "${id}" --workspace-folder "${MAIN_WORKSPACE}" -- \
+        uv run python -c "
+import tensorflow as tf
+gpus = tf.config.list_physical_devices('GPU')
+assert gpus, 'no GPU visible to TensorFlow'
+with tf.device('/GPU:0'):
+    x = tf.constant([1.0, 2.0]) + tf.constant([3.0, 4.0])
+    x.numpy()
+print('CUDA context OK:', gpus)
+" 2>&1 | tail -20; then
+        echo "gpu-check: FAILED — nvidia-smi worked but a real CUDA context could not be created." >&2
+        echo "This is the 'stale device binding' failure mode; run '$(basename "$0") gpu-recover'." >&2
+        return 1
+    fi
+    echo "gpu-check: OK"
+}
+
+cmd_gpu_recover() {
+    local id
+    id="$(container_id)"
+    if [[ -z "${id}" ]]; then
+        echo "no running container; bringing one up..."
+        cmd_up
+        return
+    fi
+    echo "Attempting cheap recovery: docker restart (re-runs the NVIDIA container-runtime hook)..."
+    docker restart "${id}" >/dev/null
+    sleep 3
+    if cmd_gpu_check; then
+        echo "gpu-recover: fixed via docker restart."
+        return 0
+    fi
+    echo "docker restart did not fix it; falling back to full stop + devcontainer up (recreates the container)..."
+    docker stop "${id}" >/dev/null 2>&1 || true
+    cmd_up
+    cmd_gpu_check
+}
+
 subcommand="${1:-}"
 [[ $# -gt 0 ]] && shift || true
 
@@ -110,8 +172,10 @@ case "${subcommand}" in
     shell) cmd_shell ;;
     down) cmd_down ;;
     status) cmd_status ;;
+    gpu-check) cmd_gpu_check ;;
+    gpu-recover) cmd_gpu_recover ;;
     *)
-        echo "usage: $(basename "$0") {up|id|exec -- <cmd>|shell|down|status}" >&2
+        echo "usage: $(basename "$0") {up|id|exec -- <cmd>|shell|down|status|gpu-check|gpu-recover}" >&2
         exit 1
         ;;
 esac

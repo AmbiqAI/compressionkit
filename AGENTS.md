@@ -53,6 +53,7 @@ Three layers, kept deliberately separate (see `docs/experiment-architecture.md` 
   - `scripts/devcontainer.sh exec -- <cmd>` — run a command inside the container with correct user, cwd, and `remoteEnv` (GPU/CUDA vars). Prefer this over raw `docker exec`, which silently drops `remoteEnv`.
   - `scripts/devcontainer.sh shell` — open an interactive shell in the container.
   - `scripts/devcontainer.sh status` / `down` — check or stop the container.
+  - `scripts/devcontainer.sh gpu-check` — verify the GPU is *actually* usable (real CUDA context, not just `nvidia-smi`, which can report healthy while training still fails). `gpu-recover` auto-heals (cheap `docker restart` first, full recreate as fallback).
   - The script auto-resolves the main worktree checkout the container was built against, so it works correctly even when invoked from a linked `git worktree`.
 
 ## Project Management
