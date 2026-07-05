@@ -8,8 +8,15 @@ The two stages:
 
 1. **Codec stage** — ``RVQCodec.encode(signal)`` → RVQ indices.
 2. **Prior stage** — ``EntropyPrior`` predicts per-token probabilities;
-   an arithmetic coder uses those probabilities to compress the indices
-   into a compact bitstream.
+   an entropy coder uses those probabilities to compress the indices
+   into a compact bitstream. Two backends are available:
+
+   * ``"arithmetic"`` (default) — classical bit-level arithmetic coding.
+   * ``"rans"`` — range Asymmetric Numeral Systems, the table-driven,
+     byte-oriented successor used by Zstd/JPEG XL. Same compression ratio
+     (up to quantization) as arithmetic coding, but the standard choice for
+     production/embedded entropy coders since it avoids a per-bit
+     renormalization loop.
 
 This module requires only ``numpy`` and a LiteRT interpreter (plus
 ``compressionkit.runtime.codec`` and ``compressionkit.runtime.prior``).
@@ -35,6 +42,24 @@ _HALF = _WHOLE >> 1
 _QUARTER = _WHOLE >> 2
 _MASK = _WHOLE - 1
 
+# CDF quantization total for arithmetic coding. Must be safely smaller than
+# _QUARTER (the coder's minimum renormalized range) so that even a
+# minimum-count-1 symbol maps to a non-zero-width interval:
+# rng * count // _CDF_TOTAL >= _QUARTER // _CDF_TOTAL >= 1. Using _WHOLE here
+# (as a prior version of this code did) is a bug: it allows zero-width
+# intervals -- and an infinite low==high renormalization loop -- whenever a
+# confident prior assigns a rare symbol a count of exactly 1 while rng has
+# shrunk to _QUARTER. This was found via real (non-synthetic) trained-prior
+# probabilities, which are peaked enough to trigger it; toy/uniform test
+# probabilities never did.
+_CDF_TOTAL_BITS = 16
+_CDF_TOTAL = 1 << _CDF_TOTAL_BITS
+
+# rANS precision constants
+_RANS_SCALE_BITS = 16
+_RANS_TOTAL = 1 << _RANS_SCALE_BITS
+_RANS_L = 1 << 23  # lower bound of the normalized state interval
+
 
 @dataclass
 class CompressionResult:
@@ -57,6 +82,9 @@ class CompressionResult:
 
     bits_per_token_uniform: float
     """Bits-per-token under uniform coding (log2(K))."""
+
+    backend: str = "arithmetic"
+    """Entropy coder backend used to produce ``bitstream`` ("arithmetic" or "rans")."""
 
     @property
     def cr_uniform(self) -> float:
@@ -130,11 +158,12 @@ class TwoStageCodec:
         # Stage 2: Get prior probabilities and arithmetic-code
         return self.compress_indices(indices)
 
-    def compress_indices(self, indices: np.ndarray) -> CompressionResult:
+    def compress_indices(self, indices: np.ndarray, backend: str = "arithmetic") -> CompressionResult:
         """Compress pre-computed RVQ indices using entropy coding.
 
         Args:
             indices: RVQ indices from ``codec.encode()``.
+            backend: ``"arithmetic"`` (default) or ``"rans"``.
 
         Returns:
             A :class:`CompressionResult`.
@@ -149,11 +178,15 @@ class TwoStageCodec:
             indices_4d = indices[np.newaxis]
         bpt_prior = self._prior.bits_per_token(indices_4d)
 
-        # Get probability table for arithmetic coding
+        # Get probability table for entropy coding
         probs_per_position = self._get_probs(indices_4d)
 
-        # Arithmetic encode
-        bitstream = _arithmetic_encode(tokens, probs_per_position, self._prior.vocab_size)
+        if backend == "arithmetic":
+            bitstream = _arithmetic_encode(tokens, probs_per_position, self._prior.vocab_size)
+        elif backend == "rans":
+            bitstream = _rans_encode(tokens, probs_per_position, self._prior.vocab_size)
+        else:
+            raise ValueError(f"Unknown backend {backend!r}; expected 'arithmetic' or 'rans'")
 
         bits_uniform = float(np.log2(self._codec.num_embeddings))
         bpt_actual = len(bitstream) * 8 / max(num_tokens, 1)
@@ -165,6 +198,7 @@ class TwoStageCodec:
             bits_per_token_prior=bpt_prior,
             bits_per_token_actual=bpt_actual,
             bits_per_token_uniform=bits_uniform,
+            backend=backend,
         )
 
     def decompress(self, result: CompressionResult) -> np.ndarray:
@@ -193,7 +227,13 @@ class TwoStageCodec:
         """
         # We need to decode autoregressively: each token's probability
         # depends on all previous tokens via the prior.
-        indices = _arithmetic_decode_with_prior(
+        if result.backend == "arithmetic":
+            decode_fn = _arithmetic_decode_with_prior
+        elif result.backend == "rans":
+            decode_fn = _rans_decode_with_prior
+        else:
+            raise ValueError(f"Unknown backend {result.backend!r}; expected 'arithmetic' or 'rans'")
+        indices = decode_fn(
             bitstream=result.bitstream,
             num_tokens=result.num_tokens,
             indices_shape=result.indices_shape,
@@ -243,24 +283,12 @@ class TwoStageCodec:
             Array of shape ``(num_tokens, vocab_size)`` with probabilities.
         """
         tokens = self._prior._flatten_indices(indices)  # (1, seq_len)
-        logits = self._prior.predict_logits(tokens)  # (1, seq_len, vocab_size)
-        logits = logits[0]  # (seq_len, vocab_size)
+        num_tokens = tokens.shape[1]
+        probs = np.full((num_tokens, self._prior.vocab_size), 1.0 / self._prior.vocab_size, dtype=np.float32)
 
-        # Convert to probabilities via softmax
-        # For position t, logits[t-1] predict token[t]
-        # Position 0 uses uniform prior
-        num_tokens = logits.shape[0]
-        probs = np.full((num_tokens, logits.shape[1]), 1.0 / logits.shape[1], dtype=np.float32)
-
-        if num_tokens > 1:
-            shifted = logits[:-1]  # (seq_len-1, vocab_size)
-            max_l = np.max(shifted, axis=-1, keepdims=True)
-            exp_l = np.exp(shifted - max_l)
-            probs[1:] = exp_l / np.sum(exp_l, axis=-1, keepdims=True)
-
-        # Clamp to avoid zero probabilities
-        probs = np.clip(probs, 1e-8, None)
-        probs = probs / probs.sum(axis=-1, keepdims=True)
+        for pos in range(1, num_tokens):
+            start = max(0, pos - self._prior.context_length)
+            probs[pos] = self._prior.predict_next_probs(tokens[:, start:pos])[0]
 
         return probs
 
@@ -271,19 +299,27 @@ class TwoStageCodec:
 def _probs_to_cdf(probs: np.ndarray) -> list[int]:
     """Convert a probability vector to an integer CDF for arithmetic coding.
 
-    Returns a list of length ``len(probs) + 1`` with values in ``[0, _WHOLE]``,
-    where ``cdf[0] = 0`` and ``cdf[-1] = _WHOLE``.  Each symbol is guaranteed
+    Returns a list of length ``len(probs) + 1`` with values in ``[0, _CDF_TOTAL]``,
+    where ``cdf[0] = 0`` and ``cdf[-1] = _CDF_TOTAL``.  Each symbol is guaranteed
     at least 1 count to avoid zero-width intervals.
     """
     n = len(probs)
+    # Cast to plain Python floats so quantization is bit-identical regardless
+    # of whether the caller passes a numpy float32 array (encode side) or a
+    # Python list from `.tolist()` (decode side). Without this, numpy
+    # float32 arithmetic vs Python float64 arithmetic can round `p * total`
+    # differently right at a .5 boundary, making the encoder and decoder
+    # quantize to different counts for the same probability -- silently
+    # corrupting the roundtrip.
+    probs = [float(p) for p in probs]
     # Quantize to integer counts, ensuring each symbol gets ≥ 1
-    counts = [max(1, round(p * (_WHOLE - n))) for p in probs]
+    counts = [max(1, round(p * (_CDF_TOTAL - n))) for p in probs]
     # Build CDF
     cdf = [0] * (n + 1)
     for i in range(n):
         cdf[i + 1] = cdf[i] + counts[i]
-    # Normalize so cdf[-1] == _WHOLE by adjusting the largest bucket
-    diff = _WHOLE - cdf[-1]
+    # Normalize so cdf[-1] == _CDF_TOTAL by adjusting the largest bucket
+    diff = _CDF_TOTAL - cdf[-1]
     if diff != 0:
         # Add the residual to the largest-count symbol
         max_idx = max(range(n), key=lambda i: counts[i])
@@ -318,8 +354,8 @@ def _arithmetic_encode(tokens: np.ndarray, probs: np.ndarray, vocab_size: int) -
         cdf = cdfs[t]
         rng = high - low
 
-        high = low + rng * cdf[tok + 1] // _WHOLE
-        low = low + rng * cdf[tok] // _WHOLE
+        high = low + rng * cdf[tok + 1] // _CDF_TOTAL
+        low = low + rng * cdf[tok] // _CDF_TOTAL
 
         while True:
             if high <= _HALF:
@@ -420,21 +456,15 @@ def _arithmetic_decode_with_prior(
         if t == 0:
             probs_t = [1.0 / vocab_size] * vocab_size
         else:
-            tokens_so_far = decoded_tokens[:t].reshape(1, -1)
-            logits = prior.predict_logits(tokens_so_far)
-            logit_last = logits[0, -1, :]
-            max_l = float(np.max(logit_last))
-            exp_l = np.exp(logit_last - max_l)
-            softmax = exp_l / np.sum(exp_l)
-            softmax = np.clip(softmax, 1e-8, None)
-            softmax = softmax / softmax.sum()
-            probs_t = softmax.tolist()
+            start = max(0, t - prior.context_length)
+            tokens_so_far = decoded_tokens[start:t].reshape(1, -1)
+            probs_t = prior.predict_next_probs(tokens_so_far)[0].tolist()
 
         cdf = _probs_to_cdf(probs_t)
 
         # Decode symbol
         rng = high - low
-        scaled = ((value - low + 1) * _WHOLE - 1) // rng
+        scaled = ((value - low + 1) * _CDF_TOTAL - 1) // rng
 
         # Binary search for symbol
         sym = 0
@@ -446,8 +476,8 @@ def _arithmetic_decode_with_prior(
         decoded_tokens[t] = sym
 
         # Update interval
-        high = low + rng * cdf[sym + 1] // _WHOLE
-        low = low + rng * cdf[sym] // _WHOLE
+        high = low + rng * cdf[sym + 1] // _CDF_TOTAL
+        low = low + rng * cdf[sym] // _CDF_TOTAL
 
         # Renormalize
         while True:
@@ -465,5 +495,154 @@ def _arithmetic_decode_with_prior(
                 value = ((value - _QUARTER) << 1) | _read_bit()
             else:
                 break
+
+    return decoded_tokens.reshape(indices_shape)
+
+
+# ── rANS (range Asymmetric Numeral Systems) coding ──────────────
+#
+# The table-driven, byte-oriented successor to classical arithmetic coding
+# (same compression ratio up to quantization; no per-bit renormalization
+# loop). Standard reference structure (Fabian Giesen's public-domain
+# "rans_byte.h"), adapted here to support a *different* probability table
+# per position (needed since our prior is autoregressive/context-dependent,
+# unlike the static single-table case rANS is usually demonstrated with).
+#
+# Key property that makes this work with an autoregressive prior: rANS is a
+# LIFO stack, so encoding must process symbols in *reverse* order (this is
+# fine — during encoding we already know every token, so we can precompute
+# every position's probability table with one forward pass first). Decoding
+# then naturally proceeds in *forward* order, which is exactly what we need
+# to feed each decoded token back into the prior for the next position.
+
+
+def _probs_to_rans_freqs(probs: np.ndarray, total: int = _RANS_TOTAL) -> tuple[list[int], list[int]]:
+    """Quantize a probability vector into integer ``(starts, freqs)`` summing to ``total``.
+
+    Same quantization convention as :func:`_probs_to_cdf` (every symbol gets
+    at least one count, residual assigned to the largest bucket), just
+    returned as separate start/freq tables since that's the natural rANS
+    representation.
+    """
+    n = len(probs)
+    # See _probs_to_cdf for why this cast matters: encode passes raw numpy
+    # float32 rows while decode passes float64-cast arrays, and quantizing
+    # each in its native precision can round `p * total` differently at a
+    # .5 boundary, corrupting the roundtrip.
+    probs = [float(p) for p in probs]
+    counts = [max(1, round(p * (total - n))) for p in probs]
+    diff = total - sum(counts)
+    if diff != 0:
+        max_idx = max(range(n), key=lambda i: counts[i])
+        counts[max_idx] += diff
+    starts = [0] * n
+    acc = 0
+    for i in range(n):
+        starts[i] = acc
+        acc += counts[i]
+    return starts, counts
+
+
+def _rans_encode(tokens: np.ndarray, probs: np.ndarray, vocab_size: int) -> bytes:
+    """rANS-encode a token sequence given per-position probabilities.
+
+    Same interface/framing convention as :func:`_arithmetic_encode` (4-byte
+    big-endian token-count header + coded payload).
+
+    Args:
+        tokens: 1-D int32 array of token values.
+        probs: ``(num_tokens, vocab_size)`` probability table.
+        vocab_size: Size of the token alphabet.
+
+    Returns:
+        Compressed bytes (4-byte big-endian token count header + rANS payload).
+    """
+    num_tokens = len(tokens)
+    freq_tables = [_probs_to_rans_freqs(probs[t]) for t in range(num_tokens)]
+
+    x = _RANS_L
+    out_bytes: list[int] = []
+    for t in reversed(range(num_tokens)):
+        tok = int(tokens[t])
+        starts, freqs = freq_tables[t]
+        start, freq = starts[tok], freqs[tok]
+        x_max = ((_RANS_L >> _RANS_SCALE_BITS) << 8) * freq
+        while x >= x_max:
+            out_bytes.append(x & 0xFF)
+            x >>= 8
+        x = ((x // freq) << _RANS_SCALE_BITS) + (x % freq) + start
+
+    # Flush the final state as 4 bytes (same renormalization byte order).
+    for _ in range(4):
+        out_bytes.append(x & 0xFF)
+        x >>= 8
+    out_bytes.reverse()
+
+    header = struct.pack(">I", num_tokens)
+    return header + bytes(out_bytes)
+
+
+def _rans_decode_with_prior(
+    bitstream: bytes,
+    num_tokens: int,
+    indices_shape: tuple[int, ...],
+    prior: EntropyPrior,
+    vocab_size: int,
+) -> np.ndarray:
+    """rANS-decode a bitstream autoregressively using the prior.
+
+    Each decoded token is fed back into the prior to get the probability
+    distribution for the next token — same autoregressive contract as
+    :func:`_arithmetic_decode_with_prior`.
+
+    Args:
+        bitstream: Compressed bytes from :func:`_rans_encode`.
+        num_tokens: Number of tokens to decode.
+        indices_shape: Original shape of the RVQ indices.
+        prior: The entropy prior model.
+        vocab_size: Token vocabulary size.
+
+    Returns:
+        Decoded RVQ indices with shape ``indices_shape``.
+    """
+    header_size = 4
+    stored_num = struct.unpack(">I", bitstream[:header_size])[0]
+    if stored_num != num_tokens:
+        raise ValueError(f"Token count mismatch: header={stored_num}, expected={num_tokens}")
+
+    buf = bitstream[header_size:]
+    pos = 0
+
+    def _read_byte() -> int:
+        nonlocal pos
+        b = buf[pos] if pos < len(buf) else 0
+        pos += 1
+        return b
+
+    x = 0
+    for _ in range(4):
+        x = (x << 8) | _read_byte()
+
+    decoded_tokens = np.zeros(num_tokens, dtype=np.int32)
+    for t in range(num_tokens):
+        if t == 0:
+            probs_t = np.full(vocab_size, 1.0 / vocab_size, dtype=np.float64)
+        else:
+            start = max(0, t - prior.context_length)
+            tokens_so_far = decoded_tokens[start:t].reshape(1, -1)
+            probs_t = prior.predict_next_probs(tokens_so_far)[0].astype(np.float64)
+        starts, freqs = _probs_to_rans_freqs(probs_t)
+
+        slot = x & (_RANS_TOTAL - 1)
+        sym = 0
+        for s in range(vocab_size):
+            if starts[s] <= slot < starts[s] + freqs[s]:
+                sym = s
+                break
+        decoded_tokens[t] = sym
+
+        x = freqs[sym] * (x >> _RANS_SCALE_BITS) + slot - starts[sym]
+        while x < _RANS_L:
+            x = (x << 8) | _read_byte()
 
     return decoded_tokens.reshape(indices_shape)

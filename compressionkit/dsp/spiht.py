@@ -468,6 +468,7 @@ def spiht_encode(
     max_bits: int,
     use_ac: bool = False,
     log_emissions: bool = False,
+    sink: Any = None,
 ) -> tuple[bytes, dict]:
     """SPIHT encode wavelet coefficients to a fixed bit budget.
 
@@ -485,6 +486,15 @@ def spiht_encode(
             probability, and bit-plane index — into the returned metadata
             under the key ``emissions``. Used for offline training of neural
             entropy priors. Adds modest memory cost; bitstream is unchanged.
+        sink: Optional pre-built bit sink implementing ``write(bit, ctx)``,
+            ``bits_out`` and ``to_bytes()`` (and optionally ``set_bitplane(n)``
+            — called once per bit-plane if present). When given, it is used
+            AS-IS instead of constructing one of the built-in sinks — this
+            module has no knowledge of what backs it (e.g. a learned entropy
+            model living entirely outside this file). Pass ``use_ac=True``
+            alongside it so metadata/budget accounting uses symbol-count
+            semantics (matches any AC-style, variable-bits-per-symbol coder).
+            Mutually exclusive with ``log_emissions``.
 
     Returns:
         (bitstream_bytes, metadata) where metadata contains info
@@ -514,8 +524,10 @@ def spiht_encode(
     n_start = math.floor(math.log2(max_coeff))
     threshold = 2.0**n_start
 
-    sink: _RawSink | _AcSink | _LoggingAcSink
-    if log_emissions:
+    if sink is not None:
+        if log_emissions:
+            raise ValueError("sink and log_emissions are mutually exclusive.")
+    elif log_emissions:
         if not use_ac:
             raise ValueError("log_emissions=True requires use_ac=True")
         sink = _LoggingAcSink(max_bits)
@@ -544,9 +556,11 @@ def spiht_encode(
     try:
         while True:
             lsp_before_sort = len(LSP)
-            if log_emissions:
-                # Bit-plane index = log2(threshold); record for the upcoming pass.
-                sink.set_bitplane(round(math.log2(threshold)))  # type: ignore[union-attr]
+            if hasattr(sink, "set_bitplane"):
+                # Bit-plane index = log2(threshold); generic hook — any sink that
+                # cares about bit-plane (e.g. a per-context or learned coder) can
+                # define this; sinks that don't just skip it.
+                sink.set_bitplane(round(math.log2(threshold)))
 
             # --- Sorting pass: LIP ---
             new_lip = []
@@ -643,8 +657,19 @@ class _BudgetExhausted(Exception):
 # ---------------------------------------------------------------------------
 
 
-def spiht_decode(bitstream: bytes, metadata: dict) -> tuple[np.ndarray, list[np.ndarray]]:
-    """SPIHT decode a bitstream back to wavelet coefficients."""
+def spiht_decode(bitstream: bytes, metadata: dict, source: Any = None) -> tuple[np.ndarray, list[np.ndarray]]:
+    """SPIHT decode a bitstream back to wavelet coefficients.
+
+    Args:
+        bitstream: Encoded bytes from ``spiht_encode``.
+        metadata: The metadata dict returned by ``spiht_encode`` for this frame.
+        source: Optional pre-built bit source implementing ``read(ctx)`` (and
+            optionally ``set_bitplane(n)``). When given, used AS-IS instead of
+            constructing one of the built-in sources — this module has no
+            knowledge of what backs it. Must be the decode-side counterpart of
+            whatever ``sink`` was used at encode time (e.g. a fresh instance
+            of the same learned-coder class, with its own independent state).
+    """
     approx_len = metadata["approx_len"]
     num_levels = metadata["num_levels"]
     max_coeff = metadata["max_coeff"]
@@ -664,8 +689,9 @@ def spiht_decode(bitstream: bytes, metadata: dict) -> tuple[np.ndarray, list[np.
         details.reverse()
         return approx, details
 
-    source: _RawSource | _AcSource
-    if use_ac:
+    if source is not None:
+        pass
+    elif use_ac:
         # AC bytes may extend slightly past n_bits due to renormalization spill;
         # cap reads at the byte-aligned total.
         source = _AcSource(data=bitstream, total_bits=len(bitstream) * 8)
@@ -683,7 +709,9 @@ def spiht_decode(bitstream: bytes, metadata: dict) -> tuple[np.ndarray, list[np.
     LSP: list[int] = []
 
     symbols_read = 0
-    budget = n_symbols if use_ac else n_bits
+    # Any externally-injected source is assumed AC-style (variable bits/symbol),
+    # matching the same convention `use_ac` already uses for the built-in AC sink.
+    budget = n_symbols if (use_ac or source is not None) else n_bits
 
     def _read(ctx: int) -> int:
         nonlocal symbols_read
@@ -696,6 +724,10 @@ def spiht_decode(bitstream: bytes, metadata: dict) -> tuple[np.ndarray, list[np.
     try:
         while True:
             lsp_before_sort = len(LSP)
+            if hasattr(source, "set_bitplane"):
+                # Bit-plane index = log2(threshold); mirrors the same generic
+                # hook on the encode side. Sources that don't care just skip it.
+                source.set_bitplane(round(math.log2(threshold)))
 
             # --- Sorting pass: LIP ---
             new_lip = []

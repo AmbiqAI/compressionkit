@@ -129,6 +129,33 @@ class EntropyPrior:
         # Trim to original sequence length
         return logits[:, :seq_len, :].astype(np.float32)
 
+    def predict_next_probs(self, context_tokens: np.ndarray) -> np.ndarray:
+        """Predict the probability distribution for the next token.
+
+        Args:
+            context_tokens: Previous tokens with shape ``(B, seq_len)``.
+                If ``seq_len`` exceeds ``context_length``, only the most recent
+                context window is used.
+
+        Returns:
+            Probability array ``(B, vocab_size)`` for the next token.
+        """
+        if context_tokens.ndim != 2:
+            raise ValueError(f"context_tokens must be rank-2, got shape {context_tokens.shape}")
+        if context_tokens.shape[1] == 0:
+            return np.full((context_tokens.shape[0], self._vocab_size), 1.0 / self._vocab_size, dtype=np.float32)
+
+        context_tokens = context_tokens[:, -self._context_length :]
+        logits = self.predict_logits(context_tokens)
+        next_logits = logits[:, context_tokens.shape[1] - 1, :]
+
+        max_logits = np.max(next_logits, axis=-1, keepdims=True)
+        exp_logits = np.exp(next_logits - max_logits)
+        probs = exp_logits / np.sum(exp_logits, axis=-1, keepdims=True)
+        probs = np.clip(probs, 1e-8, None)
+        probs = probs / probs.sum(axis=-1, keepdims=True)
+        return probs.astype(np.float32)
+
     def predict_log_probs(self, indices: np.ndarray) -> np.ndarray:
         """Compute per-token log-probabilities for RVQ indices.
 
@@ -144,27 +171,11 @@ class EntropyPrior:
             Log-probabilities ``(B, seq_len)`` where ``seq_len = T' * num_levels``.
         """
         tokens = self._flatten_indices(indices)
-        logits = self.predict_logits(tokens)
-
-        # Shift: logits at position t predict token at t+1
-        # For position 0, use uniform prior
         log_probs = np.full(tokens.shape, -np.log(self._vocab_size), dtype=np.float32)
 
-        if tokens.shape[1] > 1:
-            # logits[:, :-1, :] predict tokens[:, 1:]
-            shifted_logits = logits[:, :-1, :]
-            shifted_tokens = tokens[:, 1:]
-
-            # Log-softmax
-            max_logits = np.max(shifted_logits, axis=-1, keepdims=True)
-            exp_logits = np.exp(shifted_logits - max_logits)
-            log_sum_exp = np.log(np.sum(exp_logits, axis=-1, keepdims=True)) + max_logits
-            all_log_probs = shifted_logits - log_sum_exp
-
-            # Gather log-prob for the actual token
-            batch_idx = np.arange(tokens.shape[0])[:, None]
-            seq_idx = np.arange(shifted_tokens.shape[1])[None, :]
-            log_probs[:, 1:] = all_log_probs[batch_idx, seq_idx, shifted_tokens]
+        for pos in range(1, tokens.shape[1]):
+            probs = self.predict_next_probs(tokens[:, :pos])
+            log_probs[:, pos] = np.log(probs[np.arange(tokens.shape[0]), tokens[:, pos]])
 
         return log_probs
 
