@@ -51,8 +51,11 @@ set -euo pipefail
 # list` always prints the main worktree first.
 resolve_main_worktree() {
     if git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        # Strip only the `worktree ` prefix and print the rest of the line
+        # verbatim (not `{print $2}`, which splits on whitespace and would
+        # silently truncate a workspace path containing spaces).
         git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain \
-            | awk '/^worktree /{print $2; exit}'
+            | awk '/^worktree /{sub(/^worktree /, ""); print; exit}'
     fi
 }
 
@@ -63,7 +66,15 @@ if [[ -z "${MAIN_WORKSPACE}" ]]; then
 fi
 
 container_id() {
-    docker ps -q --filter "label=devcontainer.local_folder=${MAIN_WORKSPACE}"
+    local ids
+    ids="$(docker ps -q --filter "label=devcontainer.local_folder=${MAIN_WORKSPACE}")"
+    if [[ -n "${ids}" ]] && [[ "$(wc -l <<< "${ids}")" -gt 1 ]]; then
+        echo "error: multiple running containers match workspace ${MAIN_WORKSPACE}:" >&2
+        echo "${ids}" >&2
+        echo "Disambiguate manually with --container-id, or stop the extras." >&2
+        exit 1
+    fi
+    echo "${ids}"
 }
 
 cmd_up() {
@@ -144,6 +155,12 @@ cmd_gpu_recover() {
     if [[ -z "${id}" ]]; then
         echo "no running container; bringing one up..."
         cmd_up
+        # Bringing the container up only proves it was created — it says
+        # nothing about whether the GPU/CUDA issue gpu-recover exists to fix
+        # is actually resolved. Verify with gpu-check, same as the other two
+        # recovery paths below, so a caller checking this function's exit
+        # code gets a real answer instead of a false "success".
+        cmd_gpu_check
         return
     fi
     echo "Attempting cheap recovery: docker restart (re-runs the NVIDIA container-runtime hook)..."
