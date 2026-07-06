@@ -528,6 +528,17 @@ def spiht_encode(
     if sink is not None:
         if log_emissions:
             raise ValueError("sink and log_emissions are mutually exclusive.")
+        if not use_ac:
+            # Metadata/budget accounting for a custom sink always uses
+            # symbol-count (AC-style) semantics — see the `sink` docstring
+            # above. Silently accepting use_ac=False here would produce a
+            # bitstream whose metadata says `use_ac=False` (byte-budget
+            # semantics) while the actual encoding is symbol-budget, which
+            # is undecodable without the caller remembering to pass a
+            # matching `source` by hand. Fail loudly instead.
+            raise ValueError(
+                "A custom sink requires use_ac=True (sinks always use AC-style symbol-count budget semantics)."
+            )
     elif log_emissions:
         if not use_ac:
             raise ValueError("log_emissions=True requires use_ac=True")

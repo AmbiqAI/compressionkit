@@ -24,6 +24,7 @@ This module requires only ``numpy`` and a LiteRT interpreter (plus
 
 from __future__ import annotations
 
+import bisect
 import logging
 import struct
 from dataclasses import dataclass
@@ -172,14 +173,20 @@ class TwoStageCodec:
         tokens = self._flatten(indices)
         num_tokens = tokens.shape[0]
 
-        # Get prior log-probs
         indices_4d = indices
         if indices.ndim == 3:
             indices_4d = indices[np.newaxis]
-        bpt_prior = self._prior.bits_per_token(indices_4d)
 
-        # Get probability table for entropy coding
+        # Single prior pass: `_get_probs` already computes the exact
+        # per-position probability table `predict_log_probs`/`bits_per_token`
+        # would recompute from scratch (same windowed-context convention, same
+        # token order — see `_get_probs`'s docstring). Deriving `bpt_prior`
+        # from it directly avoids a second full pass over the prior (each
+        # position is a separate TFLite interpreter invocation, so a second
+        # pass roughly doubles this method's runtime for no new information).
         probs_per_position = self._get_probs(indices_4d)
+        token_probs = np.clip(probs_per_position[np.arange(num_tokens), tokens], 1e-12, None)
+        bpt_prior = float(-np.mean(np.log(token_probs)) / np.log(2))
 
         if backend == "arithmetic":
             bitstream = _arithmetic_encode(tokens, probs_per_position, self._prior.vocab_size)
@@ -634,11 +641,12 @@ def _rans_decode_with_prior(
         starts, freqs = _probs_to_rans_freqs(probs_t)
 
         slot = x & (_RANS_TOTAL - 1)
-        sym = 0
-        for s in range(vocab_size):
-            if starts[s] <= slot < starts[s] + freqs[s]:
-                sym = s
-                break
+        # `starts` is a strictly increasing cumulative sum (every symbol gets
+        # at least one count in _probs_to_rans_freqs), so the symbol whose
+        # bucket contains `slot` can be found with a binary search instead of
+        # an O(vocab_size) linear scan — matters since this runs once per
+        # decoded token.
+        sym = bisect.bisect_right(starts, slot) - 1
         decoded_tokens[t] = sym
 
         x = freqs[sym] * (x >> _RANS_SCALE_BITS) + slot - starts[sym]

@@ -131,10 +131,16 @@ class LearnedEntropyCoder:
 class _StaticPriorAdapter:
     """Adapts a fixed probability vector (order-0) to :class:`PriorLike`.
 
-    Position 0 still reports uniform (to match the decode helpers'
-    hardcoded convention for "no context yet") even though a static model
-    has no real reason to treat position 0 specially; the cost is one
-    token's worth of negligible overhead.
+    Always returns the fitted histogram, regardless of ``context_tokens``
+    (including an empty/position-0 context) — a static order-0 model has no
+    real reason to treat position 0 specially, unlike a real causal prior.
+    The "position 0 is uniform" convention used elsewhere (e.g.
+    :func:`_probs_from_prior`, :class:`TwoStageCodec._get_probs`) is enforced
+    by those *callers* explicitly skipping position 0 before ever invoking
+    ``predict_next_probs`` — this class is never actually called with an
+    empty context in current call sites, so its own behavior at seq_len==0
+    is untested but intentionally "just return the histogram" rather than
+    uniform, since that's the better estimate for a static model.
     """
 
     def __init__(self, probs: np.ndarray) -> None:

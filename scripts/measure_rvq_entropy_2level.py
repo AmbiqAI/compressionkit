@@ -188,11 +188,15 @@ def build_wavenet2d_prior(
     # embedding (teacher forcing) — same trick a coarse-to-fine / residual
     # token model uses. Pad the shift with a learned "unknown" embedding so
     # shapes stay static (last position has no "next" ground truth).
+    #
+    # Implemented with built-in Cropping1D + ZeroPadding1D rather than a
+    # closure-based `keras.layers.Lambda` — the same class of Lambda this
+    # repo's own `SplitHalf` layer (see `causal_priors.py`) was introduced to
+    # replace, since a Python-closure Lambda reliably fails to deserialize
+    # via `keras.models.load_model()` (even with `safe_mode=False`).
     next_level0_embed = embed0(level0_in)  # reuse table; shift below
-    shifted = keras.layers.Lambda(
-        lambda t: keras.ops.pad(t[:, 1:, :], [[0, 0], [0, 1], [0, 0]]),
-        name="shift_level0_embed",
-    )(next_level0_embed)
+    cropped = keras.layers.Cropping1D(cropping=(1, 0), name="drop_first_step")(next_level0_embed)
+    shifted = keras.layers.ZeroPadding1D(padding=(0, 1), name="shift_level0_embed")(cropped)
     level1_input = keras.layers.Concatenate(name="level1_head_input")([h, shifted])
     level1_logits = keras.layers.Dense(vocab_size, name="level1_logits")(level1_input)
 
@@ -230,13 +234,36 @@ def _per_position_nll_bits_2level(
     Returns an array of shape ``(N - context_length,) * 2`` flattened so the
     mean directly matches the "bits per token" convention used elsewhere
     (each real time position contributes 2 tokens: level0 and level1).
+
+    Level-0 and level-1 are scored at *different* offsets within each window
+    — this is intentional, not an inconsistency. Level-0 is scored at the
+    last window position (``logits0[:, -1, :]``), predicting the token one
+    step beyond the window (``level0[s + context_length]``), matching the
+    standard sliding-window "predict next" convention used elsewhere in this
+    codebase (e.g. ``measure_rvq_entropy.py``'s ``_per_token_nll_bits``).
+
+    Level-1 CANNOT be scored the same way: `build_wavenet2d_prior`'s level-1
+    head is teacher-forced on the true level-0 code at the *same* step, taken
+    from `level0_in`'s own window — but the window never contains
+    ``level0[s + context_length]`` (that's one token beyond it), so the
+    shifted input is necessarily the zero/"unknown" padding at exactly the
+    last window position. Scoring level-1 there — as an earlier version of
+    this function did — always evaluates the model at the one position per
+    window where its designed side information is unavailable, silently
+    understating how well the model performs when it *does* have that
+    information (as it does at every other position during training). Level-1
+    is instead scored at the second-to-last window position
+    (``logits1[:, -2, :]``), predicting ``level1[s + context_length - 1]``
+    — the last token actually inside the window, where the shifted level-0
+    embedding is the real (non-padded) code, matching how this head is meant
+    to be used.
     """
     n = level0.size
     if n <= context_length:
         return np.zeros((0,), dtype=np.float64)
     starts = np.arange(n - context_length, dtype=np.int64)
     t0 = level0[context_length:].astype(np.int32)
-    t1 = level1[context_length:].astype(np.int32)
+    t1 = level1[context_length - 1 : -1].astype(np.int32)
 
     bits0 = np.zeros(starts.size, dtype=np.float64)
     bits1 = np.zeros(starts.size, dtype=np.float64)
@@ -248,7 +275,7 @@ def _per_position_nll_bits_2level(
         x1 = np.stack([level1[s : s + context_length] for s in bs]).astype(np.int32)
         logits0, logits1 = model([x0, x1], training=False)
         last0 = keras.ops.convert_to_numpy(logits0[:, -1, :]).astype(np.float64)
-        last1 = keras.ops.convert_to_numpy(logits1[:, -1, :]).astype(np.float64)
+        last1 = keras.ops.convert_to_numpy(logits1[:, -2, :]).astype(np.float64)
         for last, targets, bits in ((last0, t0, bits0), (last1, t1, bits1)):
             last_c = last - last.max(axis=-1, keepdims=True)
             log_norm = np.log(np.exp(last_c).sum(axis=-1, keepdims=True))
