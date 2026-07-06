@@ -48,6 +48,13 @@ Three layers, kept deliberately separate (see `docs/experiment-architecture.md` 
 
 ## Tooling
 - We primarily develop in a dev container and use `uv` for project and package management.
+- If your agent session runs *outside* the dev container (e.g. no Remote-Containers support), don't run training/tests on the bare host. Use `scripts/devcontainer.sh` to drive the existing container instead:
+  - `scripts/devcontainer.sh up` — bring the container up (safe to call anytime; no-op if already running).
+  - `scripts/devcontainer.sh exec -- <cmd>` — run a command inside the container with correct user, cwd, and `remoteEnv` (GPU/CUDA vars). Prefer this over raw `docker exec`, which silently drops `remoteEnv`.
+  - `scripts/devcontainer.sh shell` — open an interactive shell in the container.
+  - `scripts/devcontainer.sh status` / `down` — check or stop the container.
+  - `scripts/devcontainer.sh gpu-check` — verify the GPU is *actually* usable (real CUDA context, not just `nvidia-smi`, which can report healthy while training still fails). `gpu-recover` auto-heals (cheap `docker restart` first, full recreate as fallback).
+  - The script auto-resolves the main worktree checkout the container was built against, so it works correctly even when invoked from a linked `git worktree`.
 
 ## Project Management
 - GitHub Project board: https://github.com/orgs/AmbiqAI/projects/36
