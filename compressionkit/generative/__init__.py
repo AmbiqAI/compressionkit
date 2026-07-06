@@ -18,6 +18,16 @@ All components use only operators that lower cleanly to LiteRT so the
 prior itself is deployable. The decoder is already edge-ready.
 """
 
+from compressionkit.generative.causal_priors import (
+    SplitHalf,
+    build_cnn_prior,
+    build_cnngru_prior,
+    build_dscnn_prior,
+    build_gru_prior,
+    build_hybrid_prior,
+    build_wavenet_bit_prior,
+    build_wavenet_prior,
+)
 from compressionkit.generative.sampling import decode_tokens_to_signal, sample_signals
 from compressionkit.generative.token_extraction import extract_rvq_tokens
 from compressionkit.generative.transformer_prior import build_prior
@@ -29,7 +39,15 @@ from compressionkit.generative.xlead_prior import (
 )
 
 __all__ = [
+    "SplitHalf",
+    "build_cnn_prior",
+    "build_cnngru_prior",
+    "build_dscnn_prior",
+    "build_gru_prior",
+    "build_hybrid_prior",
     "build_prior",
+    "build_wavenet_bit_prior",
+    "build_wavenet_prior",
     "build_xlead_concat_prior",
     "build_xlead_interleave_prior",
     "decode_tokens_to_signal",

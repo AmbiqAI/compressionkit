@@ -947,6 +947,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument(
+        "--lr-schedule",
+        choices=["none", "cosine"],
+        default="none",
+        help="'cosine' uses CosineDecayRestarts (mirrors the RVQ codec's own LR schedule), "
+        "anchored to this run's own total step budget unless --lr-first-decay-steps is given.",
+    )
+    parser.add_argument(
+        "--lr-first-decay-steps",
+        type=int,
+        default=None,
+        help="Steps in the first cosine-decay cycle. Defaults to steps_per_epoch * epochs (one full decay to alpha).",
+    )
+    parser.add_argument("--lr-t-mul", type=float, default=2.0)
+    parser.add_argument("--lr-m-mul", type=float, default=1.0)
+    parser.add_argument("--lr-alpha", type=float, default=0.001, help="Minimum LR as a fraction of the initial LR.")
+    parser.add_argument(
+        "--steps-per-epoch",
+        type=int,
+        default=None,
+        help="Decouple 'epoch' from a full dataset pass (mirrors the RVQ codec's own steps_per_epoch convention). "
+        "Default: one epoch = one full pass over all training windows.",
+    )
     parser.add_argument("--patience", type=int, default=4)
     parser.add_argument("--per-frame-batch", type=int, default=512)
     parser.add_argument("--output-dir", type=Path, default=None)
@@ -1257,17 +1280,35 @@ def main(argv: list[str] | None = None) -> int:
                 "ffn_dim": args.ffn_dim,
             }
         prior.summary(print_fn=lambda s: print("      " + s, file=sys.stderr))
+        x_tr, y_tr = _build_windows(train_stream, context_length, args.stride_tokens)
+        x_val, y_val = _build_windows(val_stream, context_length, args.stride_tokens)
+        print(f"      train windows={x_tr.shape[0]}  val windows={x_val.shape[0]}", file=sys.stderr)
+
+        lr_schedule: float | keras.optimizers.schedules.LearningRateSchedule = args.learning_rate
+        if args.lr_schedule == "cosine":
+            steps_per_epoch_for_lr = args.steps_per_epoch or max(1, x_tr.shape[0] // args.batch_size)
+            first_decay_steps = args.lr_first_decay_steps or steps_per_epoch_for_lr * args.epochs
+            lr_schedule = keras.optimizers.schedules.CosineDecayRestarts(
+                initial_learning_rate=args.learning_rate,
+                first_decay_steps=first_decay_steps,
+                t_mul=args.lr_t_mul,
+                m_mul=args.lr_m_mul,
+                alpha=args.lr_alpha,
+            )
+            print(
+                f"      LR schedule: CosineDecayRestarts(first_decay_steps={first_decay_steps}, "
+                f"t_mul={args.lr_t_mul}, alpha={args.lr_alpha})",
+                file=sys.stderr,
+            )
+
         prior.compile(
             optimizer=keras.optimizers.AdamW(
-                learning_rate=args.learning_rate,
+                learning_rate=lr_schedule,
                 weight_decay=args.weight_decay,
             ),
             loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=[keras.metrics.SparseCategoricalAccuracy(name="token_acc")],
         )
-        x_tr, y_tr = _build_windows(train_stream, context_length, args.stride_tokens)
-        x_val, y_val = _build_windows(val_stream, context_length, args.stride_tokens)
-        print(f"      train windows={x_tr.shape[0]}  val windows={x_val.shape[0]}", file=sys.stderr)
         early_stop = keras.callbacks.EarlyStopping(
             monitor="val_loss",
             mode="min",
@@ -1275,15 +1316,36 @@ def main(argv: list[str] | None = None) -> int:
             restore_best_weights=True,
         )
         print(f"[4/5] Training prior ({args.prior_type}) ...", file=sys.stderr)
-        history = prior.fit(
-            x_tr,
-            y_tr,
-            validation_data=(x_val, y_val),
-            batch_size=args.batch_size,
-            epochs=args.epochs,
-            callbacks=[early_stop],
-            verbose=2,
-        )
+        if args.steps_per_epoch is not None:
+            print(
+                f"      steps_per_epoch={args.steps_per_epoch} (decoupled from the {x_tr.shape[0]}-window pool)",
+                file=sys.stderr,
+            )
+            train_ds = (
+                tf.data.Dataset.from_tensor_slices((x_tr, y_tr))
+                .shuffle(min(x_tr.shape[0], 200_000), seed=args.stride_tokens, reshuffle_each_iteration=True)
+                .repeat()
+                .batch(args.batch_size)
+                .prefetch(tf.data.AUTOTUNE)
+            )
+            history = prior.fit(
+                train_ds,
+                validation_data=(x_val, y_val),
+                steps_per_epoch=args.steps_per_epoch,
+                epochs=args.epochs,
+                callbacks=[early_stop],
+                verbose=2,
+            )
+        else:
+            history = prior.fit(
+                x_tr,
+                y_tr,
+                validation_data=(x_val, y_val),
+                batch_size=args.batch_size,
+                epochs=args.epochs,
+                callbacks=[early_stop],
+                verbose=2,
+            )
         history_dict = {k: [float(v) for v in vals] for k, vals in history.history.items()}
         prior_meta["params"] = int(prior.count_params())
         prior_meta["context_length"] = context_length
