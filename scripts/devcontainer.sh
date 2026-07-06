@@ -41,8 +41,8 @@
 #   already-running container. gpu-check does a real minimal CUDA init via
 #   TensorFlow so it catches that failure mode; gpu-recover tries the cheap
 #   fix first (`docker restart`, which re-runs the NVIDIA container-runtime
-#   hook and re-binds fresh device state) before falling back to a full
-#   down+up (which recreates the container from scratch).
+#   hook and re-binds fresh device state) before falling back to removing
+#   and recreating the container entirely via `devcontainer up`.
 
 set -euo pipefail
 
@@ -170,8 +170,14 @@ cmd_gpu_recover() {
         echo "gpu-recover: fixed via docker restart."
         return 0
     fi
-    echo "docker restart did not fix it; falling back to full stop + devcontainer up (recreates the container)..."
+    echo "docker restart did not fix it; falling back to a full recreate (stop + remove + devcontainer up)..."
+    # `docker stop` alone is not enough: `devcontainer up` finds and restarts
+    # an existing (even stopped) container for this workspace rather than
+    # creating a fresh one, so the stale device bindings this fallback exists
+    # to clear would otherwise survive. Remove the container so `up` has no
+    # choice but to create a new one from the image.
     docker stop "${id}" >/dev/null 2>&1 || true
+    docker rm "${id}" >/dev/null 2>&1 || true
     cmd_up
     cmd_gpu_check
 }
