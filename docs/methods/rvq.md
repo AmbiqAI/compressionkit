@@ -105,5 +105,6 @@ The trained encoder is exported as:
 
 - **`encoder.tflite`** — INT8 quantized TFLite model for on-device inference
 - **`encoder.h`** — C header with the model weights as a byte array
+- **`encoder_float32.tflite`** — FP32 LiteRT encoder for browser and host integrations
 
 The decoder and RVQ codebooks are stored separately for server-side reconstruction. On-device, only the encoder runs — it produces codebook indices that are transmitted efficiently.

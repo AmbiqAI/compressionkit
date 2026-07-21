@@ -65,6 +65,9 @@ class TestDeploymentArtifactsDataclass:
         from compressionkit.export.deploy import DeploymentArtifacts
 
         arts = DeploymentArtifacts(output_dir=Path("/tmp/test"))
+        assert hasattr(arts, "encoder_float32_tflite")
+        assert hasattr(arts, "encoder_fp16_tflite")
+        assert hasattr(arts, "encoder_int16x8_tflite")
         assert hasattr(arts, "decoder_float32_tflite")
         assert hasattr(arts, "decoder_int8_tflite")
         assert hasattr(arts, "decoder_int8_header")
@@ -77,6 +80,9 @@ class TestDeploymentArtifactsDataclass:
 
         arts = DeploymentArtifacts(output_dir=Path("/tmp/test"))
         d = arts.as_dict()
+        assert "encoder_float32_tflite" in d
+        assert "encoder_fp16_tflite" in d
+        assert "encoder_int16x8_tflite" in d
         assert "decoder_float32_tflite" in d
         assert "model_card" in d
         assert "scorecard" in d

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import keras
 import numpy as np
 
@@ -80,6 +82,11 @@ def test_export_for_deployment_smoke_validates_strict_release(tmp_path) -> None:
 
     assert artifacts.manifest.exists()
     assert artifacts.codec_spec.exists()
+    assert artifacts.encoder_float32_tflite.exists()
+    assert artifacts.encoder_fp16_tflite.exists()
+    assert artifacts.encoder_fp16_header.exists()
+    assert artifacts.encoder_int16x8_tflite.exists()
+    assert artifacts.encoder_int16x8_header.exists()
     assert artifacts.scorecard.exists()
     assert artifacts.reference_vectors.exists()
     assert artifacts.readme.exists()
@@ -94,6 +101,26 @@ def test_export_for_deployment_smoke_validates_strict_release(tmp_path) -> None:
     assert result.warnings == []
     assert "scorecard.json" in result.checked_files
     assert "reference_vectors.npz" in result.checked_files
+
+    manifest = json.loads(artifacts.manifest.read_text())
+    assert manifest["encoder"]["default_variant"] == "float32"
+    assert manifest["encoder"]["default_tflite"] == "encoder_float32.tflite"
+    assert manifest["encoder"]["float32_tflite"] == "encoder_float32.tflite"
+    assert manifest["encoder"]["fp16_tflite"] == "encoder_fp16.tflite"
+    assert manifest["encoder"]["int16x8_tflite"] == "encoder_int16x8.tflite"
+
+    from compressionkit.runtime._litert import Interpreter
+
+    interpreter = Interpreter(model_path=str(artifacts.encoder_float32_tflite))
+    interpreter.allocate_tensors()
+    input_detail = interpreter.get_input_details()[0]
+    output_detail = interpreter.get_output_details()[0]
+    assert input_detail["dtype"] == np.float32
+    assert output_detail["dtype"] == np.float32
+    sample = np.load(deploy_dir / "sample_data.npz")["inputs"][:1]
+    interpreter.set_tensor(input_detail["index"], sample)
+    interpreter.invoke()
+    assert interpreter.get_tensor(output_detail["index"]).dtype == np.float32
 
 
 def test_validate_deploy_cli_smoke(tmp_path, capsys) -> None:

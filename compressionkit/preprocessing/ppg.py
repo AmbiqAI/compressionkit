@@ -15,16 +15,24 @@ import physiokit as pk
 from compressionkit.configs.ppg_rvq import AugmentationConfig
 
 
-def build_preprocessor(frame_size: int, epsilon: float = 1e-3) -> keras.layers.Layer:
+def build_preprocessor(
+    frame_size: int,
+    epsilon: float = 1e-3,
+    *,
+    seed: int | None = None,
+) -> keras.layers.Layer:
     """Create preprocessing pipeline: random crop + layer normalization.
 
     Args:
         frame_size: Number of samples per frame after cropping.
         epsilon: LayerNorm epsilon for numerical stability.
+        seed: Optional random-crop seed. Use for reproducible release sampling;
+            leave unset for training.
     """
+    crop_kwargs = {"seed": seed} if seed is not None else {}
     return helia.layers.preprocessing.AugmentationPipeline(
         layers=[
-            helia.layers.preprocessing.RandomCrop1D(duration=frame_size, name="RandomCrop"),
+            helia.layers.preprocessing.RandomCrop1D(duration=frame_size, name="RandomCrop", **crop_kwargs),
             helia.layers.preprocessing.LayerNormalization1D(epsilon=epsilon, name="LayerNorm"),
         ]
     )

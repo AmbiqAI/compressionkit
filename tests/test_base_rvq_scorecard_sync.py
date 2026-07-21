@@ -71,7 +71,11 @@ def test_base_rvq_trainer_syncs_built_scorecard_into_deploy(monkeypatch, tmp_pat
         model_dump=lambda: {"run_name": "ppg_rvq_64hz_04x_golden"},
         data=SimpleNamespace(sampling_rate=64, steps_per_epoch=1, epochs=1),
         model=SimpleNamespace(kmeans_init=False),
-        evaluation=SimpleNamespace(tflite_rep_batches=1),
+        evaluation=SimpleNamespace(
+            int8_calibration_frames=1,
+            int8_validation_frames=1,
+            int8_sampling_pool_frames=2,
+        ),
         training=SimpleNamespace(selection_metric="val_loss"),
         output=SimpleNamespace(
             results_root=tmp_path, log_file="train.log", wandb=SimpleNamespace(artifact_summary_only=False)
@@ -90,7 +94,11 @@ def test_base_rvq_trainer_syncs_built_scorecard_into_deploy(monkeypatch, tmp_pat
     monkeypatch.setattr(base_rvq, "build_callbacks", lambda *args, **kwargs: [])
     monkeypatch.setattr(base_rvq, "reload_best_weights", lambda *args, **kwargs: None)
     monkeypatch.setattr(base_rvq, "save_model_artifacts", lambda *args, **kwargs: {})
-    monkeypatch.setattr(base_rvq, "collect_rep_dataset", lambda *args, **kwargs: np.zeros((1, 4, 1), dtype=np.float32))
+    monkeypatch.setattr(
+        base_rvq,
+        "collect_disjoint_quantization_datasets",
+        lambda *args, **kwargs: (np.zeros((1, 4, 1), dtype=np.float32), np.ones((1, 4, 1), dtype=np.float32)),
+    )
     monkeypatch.setattr(
         base_rvq,
         "export_for_deployment",
