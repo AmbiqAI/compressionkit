@@ -52,6 +52,7 @@ def test_strict_rvq_contract_accepts_complete_file_set(tmp_path) -> None:
     _write_minimal_manifest(tmp_path, family="rvq")
     for rel in [
         "encoder.tflite",
+        "encoder_float32.tflite",
         "encoder.keras",
         "decoder.keras",
         "codebook.npz",
