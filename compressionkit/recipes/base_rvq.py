@@ -28,7 +28,7 @@ from compressionkit.export.validate import validate_deploy_package
 from compressionkit.logging.wandb_utils import finalize_wandb_run, init_wandb_run
 from compressionkit.trainers.common import (
     BEST_CKPT_NAME,
-    collect_rep_dataset,
+    collect_disjoint_quantization_datasets,
     extract_history_metrics,
     reload_best_weights,
     save_config_snapshot,
@@ -270,16 +270,19 @@ class BaseRVQTrainer[ConfigT](ABC):
             dataset_sources=dataset_sources,
         )
 
-        rep_dataset = collect_rep_dataset(
+        rep_dataset, quantization_validation_dataset = collect_disjoint_quantization_datasets(
             val_ds,
-            num_batches=self.cfg.evaluation.tflite_rep_batches,
-            fallback=eval_results["sample_inputs"],
+            calibration_frames=getattr(self.cfg.evaluation, "int8_calibration_frames", 4096),
+            validation_frames=getattr(self.cfg.evaluation, "int8_validation_frames", 2048),
+            sampling_pool_frames=getattr(self.cfg.evaluation, "int8_sampling_pool_frames", 65_536),
+            seed=getattr(self.cfg.data, "shuffle_seed", 42),
         )
         deploy = export_for_deployment(
             model.encoder,
             model.decoder,
             model.vq.get_weights(),
             rep_dataset=rep_dataset,
+            quantization_validation_dataset=quantization_validation_dataset,
             output_dir=run_dir / "deploy",
             sample_inputs=eval_results["sample_inputs"],
             sample_targets=eval_results["sample_targets"],

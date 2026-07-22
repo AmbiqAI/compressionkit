@@ -56,6 +56,9 @@ evaluation:
   num_samples: 2
   input_bit_depth: 16
   tflite_rep_batches: 1
+  int8_calibration_frames: 4
+  int8_validation_frames: 2
+  int8_sampling_pool_frames: 6
 
 output:
   results_root: results/smoketest

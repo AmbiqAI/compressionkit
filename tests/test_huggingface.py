@@ -21,6 +21,7 @@ def mock_deploy(tmp_path: Path) -> Path:
 
     manifest = {
         "model_name": "ppg_rvq_64hz_04x_test",
+        "family": "rvq",
         "model_version": "1.0",
         "quantization": "INT8",
         "io_type": "int8",
@@ -39,8 +40,25 @@ def mock_deploy(tmp_path: Path) -> Path:
             "embedding_dim": 16,
         },
         "sample_data": {"npz": "sample_data.npz", "num_samples": 10, "arrays": ["inputs"]},
+        "quantization_validation": {"report": "quantization_report.json", "passed": True},
     }
     (deploy / "deploy_manifest.json").write_text(json.dumps(manifest))
+    (deploy / "quantization_report.json").write_text(
+        json.dumps(
+            {
+                "passed": True,
+                "metrics": {
+                    "code_index_match_fraction_median": 0.5,
+                    "encoder_input_saturation_fraction_max": 0.0,
+                    "encoder_input_saturation_fraction_p90": 0.0,
+                    "frames_checked": 128,
+                    "latent_prd_percent_p90": 1.0,
+                    "reconstruction_prd_percent_max": 1.0,
+                    "reconstruction_prd_percent_p90": 1.0,
+                },
+            }
+        )
+    )
     return deploy
 
 
@@ -164,6 +182,7 @@ class TestPublishStaging:
     def test_dry_run_stages_files(self, mock_deploy, mock_scorecard):
         # Create some dummy files in the deploy dir
         (mock_deploy / "encoder.tflite").write_bytes(b"\x00" * 100)
+        (mock_deploy / "encoder_float32.tflite").write_bytes(b"\x00" * 100)
         (mock_deploy / "codebook.npz").write_bytes(b"\x00" * 50)
         (mock_deploy / "encoder.h").write_text("// header")
 
@@ -180,10 +199,12 @@ class TestPublishStaging:
 
         # Check renamed files
         assert (staging_dir / "encoder_int8.tflite").exists()
+        assert (staging_dir / "encoder_float32.tflite").exists()
         assert (staging_dir / "codebook.npz").exists()
         assert (staging_dir / "encoder.h").exists()
         assert (staging_dir / "config.json").exists()  # renamed from deploy_manifest.json
         assert (staging_dir / "quality_scorecard.json").exists()
+        assert (staging_dir / "quantization_report.json").exists()
         assert (staging_dir / "README.md").exists()
 
         # README should be a proper model card
@@ -199,6 +220,17 @@ class TestPublishStaging:
 
         with pytest.raises(FileNotFoundError):
             publish(deploy_dir=tmp_path, repo_id="test/test", dry_run=True)
+
+    def test_dry_run_rejects_int8_rvq_without_quantization_report(self, mock_deploy):
+        from scripts.publish_to_huggingface import publish
+
+        manifest_path = mock_deploy / "deploy_manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest.pop("quantization_validation")
+        manifest_path.write_text(json.dumps(manifest))
+
+        with pytest.raises(ValueError, match="quantization_validation"):
+            publish(deploy_dir=mock_deploy, repo_id="test/test", dry_run=True)
 
     def test_dry_run_hybrid_stages_denoiser(self, tmp_path):
         """A hybrid deploy (DSP backend + learned denoiser) must publish the denoiser.

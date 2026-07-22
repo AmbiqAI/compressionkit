@@ -36,18 +36,18 @@
     // ],
 
     "mounts": [
-        "source=/data/datasets,target=/home/vscode/datasets,type=bind,consistency=cached"
+        "source=/data/datasets,target=/home/vscode/datasets,type=bind,consistency=cached",
+        "source=compressionkit-huggingface,target=/home/vscode/.cache/huggingface,type=volume"
     ],
 
     "forwardPorts": [6006],
 
-    "postCreateCommand": "./.devcontainer/install.sh",
+    "postCreateCommand": "sudo install -d -o vscode -g vscode -m 700 /home/vscode/.cache /home/vscode/.cache/huggingface && ./.devcontainer/install.sh",
 
     "remoteEnv": {
         "LD_LIBRARY_PATH": "${containerEnv:LD_LIBRARY_PATH}:/usr/local/cuda/lib64",
         "PATH": "${containerEnv:PATH}:/usr/local/cuda/bin",
-        "TF_FORCE_GPU_ALLOW_GROWTH": "true",
-        "HF_TOKEN": "${localEnv:HF_TOKEN}"
+        "TF_FORCE_GPU_ALLOW_GROWTH": "true"
     },
 
     "customizations": {

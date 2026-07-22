@@ -97,6 +97,7 @@ AI packages may expose their demo frames as `sample_data.npz` when the file carr
 |------|---------|
 | `encoder.tflite` | Edge encoder |
 | `encoder.h` | Embedded encoder header |
+| `encoder_float32.tflite` | Browser and host LiteRT encoder |
 | `encoder.keras` | Host reference encode |
 | `decoder.keras` or `decoder_float32.tflite` | Host reference decode |
 | `decoder.tflite` and `decoder.h` | Optional on-device decode |

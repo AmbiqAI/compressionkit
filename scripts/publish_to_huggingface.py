@@ -34,6 +34,7 @@ from pathlib import Path
 
 from compressionkit.export.artifact_contract import ArtifactFile
 from compressionkit.export.family_registry import CodecFamilySpec, get_family_spec
+from compressionkit.export.quantization import require_rvq_encoder_quantization_report
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -132,6 +133,7 @@ def publish(
 
     family = _detect_family(deploy_dir)
     spec = get_family_spec(family)
+    require_rvq_encoder_quantization_report(deploy_dir)
     logger.info("Detected deploy family: %s", family)
 
     # Validate HuggingFace availability before allocating any resources (skip for dry runs)

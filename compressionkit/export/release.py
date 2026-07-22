@@ -83,6 +83,7 @@ def build_model_card(
         "license": model_card_info.get("license", "other"),
         "dataset_sources": model_card_info.get("dataset_sources"),
         "scorecard_summary": model_card_info.get("scorecard_summary", {}),
+        "encoder_precision_report": model_card_info.get("encoder_precision_report", {}),
     }
 
 

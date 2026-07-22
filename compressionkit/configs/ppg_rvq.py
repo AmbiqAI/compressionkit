@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from compressionkit.configs.artifact_suite import ArtifactSuiteConfig
 from compressionkit.configs.paths import default_datasets_dir
@@ -311,10 +311,24 @@ class EvaluationConfig(BaseModel):
     num_plot_samples: int = 50
     """Subset of ``num_samples`` that also receive a PNG plot artifact."""
     tflite_rep_batches: int = 8
+    """Legacy representative-batch setting; retained for config compatibility."""
+    int8_calibration_frames: int = Field(default=4096, gt=0)
+    """Real normalized validation frames used to calibrate INT8 LiteRT ranges."""
+    int8_validation_frames: int = Field(default=2048, gt=0)
+    """Disjoint real validation frames used to measure INT8 encoder parity."""
+    int8_sampling_pool_frames: int = Field(default=65_536, gt=0)
+    """Maximum validation frames reservoir-sampled for quantization partitions."""
     input_bit_depth: int = 16
     band_metrics: BandMetricsConfig = Field(default_factory=BandMetricsConfig)
     physiokit_metrics: PhysiokitMetricsConfig = Field(default_factory=PhysiokitMetricsConfig)
     long_recording: LongRecordingEvalConfig = Field(default_factory=LongRecordingEvalConfig)
+
+    @model_validator(mode="after")
+    def validate_quantization_partition(self) -> EvaluationConfig:
+        """Require the sampling pool to cover both disjoint partitions."""
+        if self.int8_sampling_pool_frames < self.int8_calibration_frames + self.int8_validation_frames:
+            raise ValueError("int8_sampling_pool_frames must cover calibration plus validation frames")
+        return self
 
 
 class WandbConfig(BaseModel):
