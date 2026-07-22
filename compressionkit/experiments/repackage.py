@@ -192,9 +192,7 @@ def repackage_rvq_golden(
         variants = precision_payload.get("experiments", {}).get(experiment.experiment_id, {}).get("variants", {})
         if isinstance(variants, dict):
             model_card_info["encoder_precision_report"] = {
-                name: payload.get("report", {})
-                for name, payload in variants.items()
-                if isinstance(payload, dict)
+                name: payload.get("report", {}) for name, payload in variants.items() if isinstance(payload, dict)
             }
             break
     if scorecard_payload is not None:

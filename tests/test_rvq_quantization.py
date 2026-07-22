@@ -66,9 +66,7 @@ def test_publisher_guard_requires_passed_report_for_int8_rvq(tmp_path: Path) -> 
             }
         )
     )
-    (tmp_path / "quantization_report.json").write_text(
-        json.dumps({"passed": True, "metrics": _report().__dict__})
-    )
+    (tmp_path / "quantization_report.json").write_text(json.dumps({"passed": True, "metrics": _report().__dict__}))
 
     require_rvq_encoder_quantization_report(tmp_path)
 

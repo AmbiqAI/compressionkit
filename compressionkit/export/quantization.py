@@ -37,9 +37,7 @@ class RvqEncoderQuantizationReport:
         worst-frame PRD are retained as explicit quality recommendations so
         customers can select an encoder precision with full visibility.
         """
-        return (
-            self.encoder_input_saturation_fraction_max <= MAX_INPUT_SATURATION_FRACTION
-        )
+        return self.encoder_input_saturation_fraction_max <= MAX_INPUT_SATURATION_FRACTION
 
 
 def _prd_percent(actual: np.ndarray, expected: np.ndarray) -> float:
@@ -83,7 +81,10 @@ def evaluate_rvq_encoder_quantization(
     float_encoder = Interpreter(model_path=str(root / ArtifactFile.ENCODER_FLOAT32_TFLITE))
     candidate_encoder.allocate_tensors()
     float_encoder.allocate_tensors()
-    candidate_input, candidate_output = candidate_encoder.get_input_details()[0], candidate_encoder.get_output_details()[0]
+    candidate_input, candidate_output = (
+        candidate_encoder.get_input_details()[0],
+        candidate_encoder.get_output_details()[0],
+    )
     float_input, float_output = float_encoder.get_input_details()[0], float_encoder.get_output_details()[0]
     codec = RVQCodec(root)
 
