@@ -68,3 +68,7 @@ The production audit exposed stale ExpressiveCode CSS references after a theme c
 The three canonical notebooks executed successfully on 2026-10-02 in a local Linux ARM64 CPU container with Python 3.12 and locked project dependencies: 22 code cells, no errors. Source hashes and coverage are recorded in notebook-execution-audit.json. CLI --help passed. Source notebooks and displayed saved outputs remain unchanged. This verifies default examples, not training, GPU, hardware or all model tiers.
 
 A clean source checkout passed npm ci, types/build, ten content tests, 1,558 links and migration checks. Second independent delivery review found no actionable findings. External retry resolved 76 of 81 links; the GitHub source link was verified via authenticated API and sleepdata.org returned 200 via curl. Three PhysioNet URLs remain DNS-unverified. No PR, remote CI or deployment yet.
+
+## PR review corrections
+
+Corrected the quickstart to use the public target_cr property and executed the exact snippet in the local CPU container. Added meaningful alternative text to all seven saved notebook plots; the generator escapes it and rejects missing descriptions. All three notebooks were rerun successfully after their metadata changes. Preview CI now covers root project metadata and lockfile changes. Twelve content tests, build/types, 1,558 links, migration checks and 396 rendered checks pass.

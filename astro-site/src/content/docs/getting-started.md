@@ -47,7 +47,7 @@ frame = 0.6 * np.sin(2.0 * np.pi * 1.2 * t)
 encoded = codec.compress(frame.astype(np.float32))
 reconstructed = codec.decompress(encoded)
 
-print(codec.modality, codec.compression_ratio, reconstructed.shape)
+print(codec.modality, codec.target_cr, reconstructed.shape)
 ```
 
 Save the example as `try_codec.py` in the checkout and run `uv run python try_codec.py`. It prints the signal type, ratio, and reconstruction shape; this is a loading check, not a quality evaluation.

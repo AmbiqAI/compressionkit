@@ -1,6 +1,7 @@
 """Render saved notebook outputs without executing training code."""
 
 import base64
+import html
 import json
 import re
 import shutil
@@ -65,10 +66,14 @@ for source in sorted(Path("../examples").glob("*.ipynb")):
             for oi, output in enumerate(cell.get("outputs", [])):
                 data = output.get("data", {})
                 if "image/png" in data:
+                    alt = output.get("metadata", {}).get("alt") or cell.get("metadata", {}).get("alt")
+                    if not isinstance(alt, str) or not alt.strip():
+                        raise ValueError(f"Missing plot alternative text: {source.name}, cell {ci + 1}")
+                    alt = html.escape(alt, quote=True)
                     name = f"{source.stem}-{ci}-{oi}.png"
                     (assets / name).write_bytes(base64.b64decode("".join(data["image/png"])))
                     parts.append(
-                        f'<figure class="notebook-output-figure"><img src="/compressionkit/notebooks/{name}" alt="Saved figure from cell {ci + 1}" loading="lazy" /><figcaption>Saved output · cell {ci + 1}</figcaption></figure>'
+                        f'<figure class="notebook-output-figure"><img src="/compressionkit/notebooks/{name}" alt="{alt}" loading="lazy" /><figcaption>Saved output · cell {ci + 1}</figcaption></figure>'
                     )
                 else:
                     raw = "".join(output.get("text", data.get("text/plain", [])))

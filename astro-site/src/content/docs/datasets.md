@@ -18,28 +18,33 @@ If you only want to try a codec on your own signals, skip straight to
 
 ## The `datasets/` convention
 
-Every config and script resolves data through a single root directory. By
-default that root is a relative `datasets/` folder next to the repository, and
-it can be overridden with one environment variable:
+Run the examples from the repository root, where the golden workflows expect
+a `datasets/` directory. Configuration fields and scripts that use the shared
+dataset-root default read `COMPRESSIONKIT_DATASETS_DIR`:
 
 ```bash
-# Point the whole toolkit at any location (no config edits required).
 export COMPRESSIONKIT_DATASETS_DIR=/path/to/your/datasets
 ```
 
-| Resolution order | Value |
+| Shared default resolution | Value |
 |------------------|-------|
 | 1. Environment variable | `COMPRESSIONKIT_DATASETS_DIR` |
 | 2. Fallback default | `datasets` (relative to the working directory) |
 
-In YAML configs the same root appears as `data.datasets_dir: datasets`, and
-caches live under it (e.g. `datasets/ppg_cache/`). Override the env var and
-every golden config follows.
+This variable does not override explicit YAML paths or the golden runner's
+dataset preflight. For example, the PPG RVQ goldens explicitly set
+`data.unified_cache.cache_root: datasets/ppg_cache_strict_sanitize`.
+The runner's `--datasets-root` flag changes the preflight root and supplies
+data paths to SPIHT/hybrid builds, but does not rewrite RVQ training configs.
+When using separate locations, keep the preflight root, training configuration,
+and cache-build output paths consistent.
 
 
-:::note[Dev container shortcut]
-If your raw data lives elsewhere, either set
-`COMPRESSIONKIT_DATASETS_DIR`, or create a local (git-ignored) symlink:
+:::note[Use external data with unchanged golden paths]
+To keep the documented golden commands and repository-relative cache paths,
+create a local (git-ignored) symlink from the repository root, provided no
+`datasets` file or directory already exists. The target should contain both
+the raw sources and generated caches shown below:
 ```bash
 ln -s /mnt/data/datasets datasets
 ```
@@ -150,7 +155,7 @@ uv run python scripts/build_ppg_cache.py \
   --sources bidmc butppg ppg_dalia wesad \
   --cache-root datasets/ppg_cache_strict_sanitize
 
-# Custom locations (otherwise resolved from COMPRESSIONKIT_DATASETS_DIR).
+# Custom locations: set both the source root and cache output explicitly.
 uv run python scripts/build_ppg_cache.py --sources bidmc \
     --datasets-root /data/datasets \
   --cache-root /data/ppg_cache_strict_sanitize

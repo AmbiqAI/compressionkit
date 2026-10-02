@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'astro-site/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
       - 'compressionkit/**'
       - 'examples/**'
       - 'docs/**'
