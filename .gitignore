@@ -197,3 +197,14 @@ internal/**
 # Local-only model weight workspace (large binaries; published artifacts go to
 # results/ or HuggingFace).
 /models/
+
+# Astro generated output
+astro-site/node_modules/
+astro-site/dist/
+astro-site/.astro/
+astro-site/.cache/
+astro-site/src/data/
+astro-site/src/content/docs/reference/
+astro-site/public/reference/
+astro-site/src/content/docs/guides/
+astro-site/public/notebooks/

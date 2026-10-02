@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-02",
+  "environment": "Local Linux ARM64 CPU container, Python 3.12, locked dependencies",
+  "command": "uv run --frozen jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 --output-dir=/tmp/ck-notebook-results examples/01_quickstart_golden_codec.ipynb examples/02_evaluate_on_your_data.ipynb examples/03_quickstart_golden_codec_ecg.ipynb",
+  "notebooks": [
+    {
+      "source": "examples/01_quickstart_golden_codec.ipynb",
+      "sha256": "868006e897d32be31c5d283c97d1ec75aa1e9048f6daa8d19218e4be6e1d85b7",
+      "codeCells": 8,
+      "errors": 0
+    },
+    {
+      "source": "examples/02_evaluate_on_your_data.ipynb",
+      "sha256": "20ee164492e631e351037cc21ea9b44b78d46aa2c25bfb271cbea91f55e3aa08",
+      "codeCells": 7,
+      "errors": 0
+    },
+    {
+      "source": "examples/03_quickstart_golden_codec_ecg.ipynb",
+      "sha256": "88b6590895c1abebf2cd928e08a02c1f9ed5bf20bfe583931966217213243e9c",
+      "codeCells": 7,
+      "errors": 0
+    }
+  ],
+  "limitations": [
+    "Default notebook codec selections only",
+    "No GPU, training, hardware or population-scale evaluation",
+    "Executed outputs kept separate from canonical notebook sources"
+  ]
+}

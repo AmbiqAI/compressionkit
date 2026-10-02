@@ -1,0 +1,60 @@
+---
+title: "ECG RVQ · 32×"
+description: "Configuration, dataset requirements and reproduction steps for the ecg-rvq-32x experiment."
+---
+
+import ExperimentFacts from "../../../components/ExperimentFacts.astro";
+
+
+Reproduce the `ecg-rvq-32x` configuration. Prepare its dataset before running the workflow; use the linked configuration to inspect the exact settings.
+
+## Overview
+
+<ExperimentFacts id="ecg-rvq-32x" />
+
+<span id="dataset-license"></span>
+
+## Dataset & License
+
+- **Dataset**: [PTB-XL](https://physionet.org/content/ptb-xl/) (`dataset_id: ptb-xl`)
+- **License**: CC BY 4.0 (open)
+- **Notes**: Auto-downloaded on first use.
+
+The lifecycle runner pre-flights dataset availability before training (see the
+[dataset contract](/compressionkit/api/datasets/)).
+
+## Reproduction
+
+```bash
+# Single command, end-to-end.
+uv run compressionkit golden run ecg-rvq-32x
+
+```
+
+Results land under `results/ecg_rvq_256hz_32x_golden/`; deploy artifacts under `results/ecg_rvq_256hz_32x_golden/deploy/`.
+
+## Evaluation Metrics
+
+See the modality model zoo for the full metrics table:
+
+- [ECG models](/compressionkit/models/ecg/)
+
+Evaluation writes `quality_scorecard.json` and `summary.json` under its `results/<run>/`.
+
+## Deploy Artifacts
+
+The deploy package contains the following artifacts, depending on the export configuration:
+
+- `encoder.tflite` / `encoder.h` — INT8 encoder.
+- `encoder.keras` — float32 Python reference encoder.
+- `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).
+- `decoder.keras` — float32 Python reference decoder.
+- `codebook.npz` / `codebook.h` — RVQ codebook tables.
+- `sample_data.npz` — license-safe input/target/reconstruction reference frames (published to HuggingFace as `sample_stimulus.npz`).
+- `model_card.json`, `deploy_manifest.json` — metadata.
+
+## Customization Notes
+
+- Tweak the YAML to explore neighbouring operating points; copy the file before editing.
+- For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.
+- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ecg-rvq-32x --publish`.

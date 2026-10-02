@@ -1,0 +1,74 @@
+---
+title: "Use cases"
+description: "Plan waveform storage and transfer, then evaluate the compression tradeoff."
+---
+
+import Card from '@ambiqai/helia-ui/astro/Card';
+import CardHeader from '@ambiqai/helia-ui/astro/CardHeader';
+import CardContent from '@ambiqai/helia-ui/astro/CardContent';
+import CardGrid from '@ambiqai/helia-ui/astro/CardGrid';
+import Icon from '@ambiqai/helia-ui/astro/Icon';
+
+Use compressionKIT when you need to retain or transfer ECG or PPG waveforms and want to compare a smaller payload against reconstruction quality.
+
+<span id="who-benefits"></span>
+
+<span id="headline-benefits"></span>
+
+## Where compression can help
+
+<CardGrid columns={2}>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="clock" text="Longer recording windows" /></CardHeader><CardContent><p>Store compressed frames on a wearable or gateway and reconstruct them for later analysis. Include timestamps and framing overhead in the storage budget.</p><p><a href="/compressionkit/models/ppg/">Explore PPG configurations →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="cloud-arrow-down" text="Waveform transfer" /></CardHeader><CardContent><p>Reduce the signal payload sent to a phone or server. Measure total transmitted bytes and encoder compute cost in your own transport workflow.</p><p><a href="/compressionkit/models/ecg/">Explore ECG configurations →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="chart-line" text="Dataset evaluation" /></CardHeader><CardContent><p>Compare reconstructed waveforms with the original recordings. Examine the measurements and signal conditions that matter to your application.</p><p><a href="/compressionkit/examples/">Evaluate your recordings →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="puzzle-piece" text="Codec development" /></CardHeader><CardContent><p>Compare neural, DSP, and hybrid methods using shared evaluation and packaging tools.</p><p><a href="/compressionkit/methods/">Compare methods →</a></p></CardContent></Card>
+</CardGrid>
+
+<span id="benefit-1-ondevice-memory"></span>
+
+<span id="ppg-continuous-recording-capacity"></span>
+
+<span id="ecg-continuous-recording-capacity"></span>
+
+<span id="benefit-2-radio-bandwidth-energy"></span>
+
+<span id="benefit-3-cloud-storage-ingestion"></span>
+
+## Estimate the payload
+
+For a single channel, the uncompressed payload rate is:
+
+```text
+raw bytes/second = samples/second × bits/sample ÷ 8
+compressed payload ≈ raw payload ÷ compression ratio
+```
+
+The examples below assume **16-bit samples**, continuous recording, and an **8× payload compression ratio**. They are arithmetic sizing examples, not measured device results.
+
+| Signal | Sample rate | Raw payload | At 8× | Raw per hour | At 8× per hour |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| PPG | 64 Hz | 128 B/s | 16 B/s | 460.8 kB | 57.6 kB |
+| ECG | 256 Hz | 512 B/s | 64 B/s | 1,843.2 kB | 230.4 kB |
+
+Here, 1 kB is 1,000 bytes. Add packet headers, timestamps, metadata, and any padding to budget a complete recording. Model weights and codebooks consume additional storage independently of the recorded payload.
+
+A smaller payload does not directly establish battery life or total system savings. Those depend on encoder execution, buffering, radio behavior, and where decoding runs.
+
+<span id="benefit-4-fidelity-that-survives-downstream-algorithms"></span>
+
+<span id="choosing-an-operating-point"></span>
+
+## Choose quality requirements before a ratio
+
+1. Identify what the reconstructed waveform must preserve, such as peak timing or pulse shape.
+2. Compare several ratios on representative recordings, including noisy segments.
+3. Inspect waveform error and downstream measurements together. An average can hide difficult cases.
+4. Measure complete payload size, memory use, and runtime on the intended integration.
+
+The [customer evidence](/compressionkit/customer-evidence/) page provides recorded results and their limits. The [validation scorecard](/compressionkit/validation-scorecard/) explains the metrics. Neither a codec ratio nor a single score establishes suitability for a clinical application.
+
+<span id="getting-started"></span>
+
+## Try the workflow
+
+Start with the [installation and round-trip guide](/compressionkit/getting-started/), then use the [evaluation notebook](/compressionkit/guides/02_evaluate_on_your_data/) with your signal. See [deployment](/compressionkit/deployment/) when you are ready to integrate a validated package.
