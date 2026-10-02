@@ -325,7 +325,7 @@ def collect_rows(results_dir: Path, runs: dict[str, list[str]]) -> list[Evidence
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
-    parser.add_argument("--output", type=Path, default=Path("docs/customer-evidence.md"))
+    parser.add_argument("--output", type=Path, default=Path("results/reports/customer-evidence.md"))
     args = parser.parse_args()
 
     rows = collect_rows(args.results_dir, DEFAULT_RUNS)

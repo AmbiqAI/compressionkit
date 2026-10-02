@@ -10,12 +10,12 @@ polished markdown document with two sections per modality:
    can see that higher CR predominantly removes the noisy tertile's energy
    rather than corrupting clean signal.
 
-Outputs by default land under ``docs/methods/cr_vs_fidelity_{ecg,ppg}.md`` so
+Outputs by default land under ``results/reports/cr_vs_fidelity_{ecg,ppg}.md`` so
 they can be linked directly from the documentation site.
 
 Usage:
     python scripts/build_cr_vs_fidelity.py --modality ecg
-    python scripts/build_cr_vs_fidelity.py --modality ppg --output docs/methods/cr_vs_fidelity_ppg.md
+    python scripts/build_cr_vs_fidelity.py --modality ppg --output results/reports/cr_vs_fidelity_ppg.md
 """
 
 from __future__ import annotations
@@ -284,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
         "--output",
         type=Path,
         default=None,
-        help="Destination markdown path. Default: docs/methods/cr_vs_fidelity_<modality>.md.",
+        help="Destination markdown path. Default: results/reports/cr_vs_fidelity_<modality>.md.",
     )
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
@@ -305,7 +305,7 @@ def main(argv: list[str] | None = None) -> int:
 
     doc = build_document(scorecards, args.modality, tertile_crs=args.tertile_crs)
 
-    out = args.output or Path("docs/methods") / f"cr_vs_fidelity_{args.modality}.md"
+    out = args.output or Path("results/reports") / f"cr_vs_fidelity_{args.modality}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(doc)
     logger.info("Wrote %s (%d runs)", out, len(scorecards))

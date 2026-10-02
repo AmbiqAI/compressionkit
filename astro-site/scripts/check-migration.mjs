@@ -5,12 +5,15 @@ const manifest = JSON.parse(readFileSync('migration-manifest.json', 'utf8'));
 const failures = [];
 const hash = path => createHash('sha256').update(readFileSync(path)).digest('hex');
 const sources = new Set(manifest.items.map(item => item.source));
-for (const path of [...globSync('../docs/**/*.md'), ...globSync('../examples/*.ipynb')]) {
+for (const path of globSync('../examples/*.ipynb')) {
   if (!sources.has(path.slice(3))) failures.push(`Uninventoried source: ${path}`);
 }
 for (const item of manifest.items) {
   const source = '../' + item.source;
-  if (!existsSync(source) || hash(source) !== item.sha256) failures.push(`Source changed; review migration disposition: ${item.source}`);
+  if (item.retiredSource) {
+    if (existsSync(source)) failures.push(`Retired source restored: ${item.source}`);
+    if (item.retainedAt && (!existsSync('../' + item.retainedAt) || hash('../' + item.retainedAt) !== item.sha256)) failures.push(`Retained note differs: ${item.retainedAt}`);
+  } else if (!existsSync(source) || hash(source) !== item.sha256) failures.push(`Source changed; review migration disposition: ${item.source}`);
   if (item.disposition === 'excluded') continue;
   if (item.source.endsWith('.ipynb')) {
     const name = basename(item.source);

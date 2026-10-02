@@ -12,7 +12,7 @@ The Astro pages are authored content. Do not replace them with the older full-pa
 
 ## Evidence refresh boundary
 
-Run evidence exporters against an explicit results directory and write to a temporary review location, not over the Astro pages. The old exporters remain in use by the published site until cutover.
+Run evidence exporters against an explicit results directory and write to a temporary review location, not over the Astro pages. The standalone report utilities write under results/reports; Astro refresh commands write reviewed JSON without replacing prose.
 
 Experiment overview facts and customer-evidence tables have data-only exports and validated Astro renderers. Refresh customer evidence from a complete results tree with:
 
@@ -30,4 +30,4 @@ Review both JSON diffs before copying them into `content-data/`. The exporter re
 
 ## Migration checks
 
-After `npm run build`, run `npm run check:migration` and `npm run check:links`. These check inventoried source changes, original page routes, migrated files and byte-identical notebook downloads. `npm run check:external` records HTTP availability separately because authentication, rate limiting and network policy can prevent verification without implying a broken destination. Legacy fragment dispositions are explicit in legacy-anchor-dispositions.json. The migration guard verifies retained aliases and relocated API targets; retired internal/demo sections retain documented reasons.
+After `npm run build`, run `npm run check:migration` and `npm run check:links`. These check active source changes, the absence of retired source files, retained maintainer notes, original page routes, migrated files and byte-identical notebook downloads. Retired source hashes record the baseline; they are not build inputs. `npm run check:external` records HTTP availability separately because authentication, rate limiting and network policy can prevent verification without implying a broken destination. Legacy fragment dispositions are explicit in legacy-anchor-dispositions.json. The migration guard verifies retained aliases and relocated API targets; retired internal/demo sections retain documented reasons.

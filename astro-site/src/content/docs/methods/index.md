@@ -55,4 +55,4 @@ coherence, stitching seam ratio):
 - [ECG CR vs. Fidelity](/compressionkit/methods/cr_vs_fidelity_ecg/)
 - [PPG CR vs. Fidelity](/compressionkit/methods/cr_vs_fidelity_ppg/)
 
-Regenerate from existing scorecards with `python scripts/build_cr_vs_fidelity.py --modality {ecg,ppg}`.
+Refresh both fidelity tables from a complete results tree with `npm run refresh:fidelity -- --results-dir /path/to/results --output-dir /tmp/fidelity-review` from `astro-site/`. Review the resulting JSON files before replacing `content-data/fidelity-*.json`; authored explanations remain separate.

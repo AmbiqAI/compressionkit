@@ -1,6 +1,17 @@
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "astro-site/**"
+      - "compressionkit/**"
+      - "examples/**"
+      - "configs/**"
+      - "scripts/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
   workflow_call:
 
@@ -39,18 +50,42 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install and Build
-        env:
-          CI: ""
-          PUBLIC_URL: "${{ steps.pages.outputs.base_url }}/"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: astro-site/package-lock.json
+
+      - name: Install documentation dependencies
+        working-directory: astro-site
         run: |
-          uv sync --only-group docs
-          uv run zensical build
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Validate and build documentation
+        working-directory: astro-site
+        run: |
+          npm run check
+          npm run check:content
+          npm run build
+          npm run check:links
+          npm run check:migration
+
+      - name: Check rendered documentation
+        working-directory: astro-site
+        run: |
+          npm exec astro preview -- --host 127.0.0.1 --port 8878 > /tmp/astro-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8878/compressionkit/ > /dev/null && break
+            sleep 1
+          done
+          DOCS_AUDIT_URL=http://127.0.0.1:8878 npm run check:layout
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./site
+          path: ./astro-site/dist
 
   deploy:
     environment:

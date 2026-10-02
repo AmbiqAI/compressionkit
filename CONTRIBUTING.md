@@ -7,6 +7,7 @@ workflow, code style, and how to add new signals, models, or configs.
 
 - Python 3.12
 - [`uv`](https://docs.astral.sh/uv/) for project and package management
+- Node.js 24 and npm 11 for documentation
 - (Optional) NVIDIA GPU + CUDA for training — a dev container with CUDA is provided under `.devcontainer/`
 
 ## Getting set up
@@ -15,7 +16,7 @@ workflow, code style, and how to add new signals, models, or configs.
 git clone https://github.com/AmbiqAI/compressionkit.git
 cd compressionkit
 uv sync --group dev            # runtime + dev deps
-uv sync --group docs           # (optional) docs build deps
+npm --prefix astro-site ci     # docs dependencies; requires Node 24
 uv run pre-commit install      # install git hooks
 ```
 
@@ -35,8 +36,9 @@ uv run ruff format .
 uv run pre-commit run --all-files
 
 # Build the docs locally
-uv run --group docs zensical serve   # live-reload at http://localhost:8000
-uv run --group docs zensical build   # static site in site/
+npm --prefix astro-site ci          # Node 24
+npm --prefix astro-site run dev     # local preview
+npm --prefix astro-site run build   # static site in astro-site/dist/
 ```
 
 ## Code style
@@ -87,9 +89,9 @@ Ruff enforces the rest. The config lives in [`pyproject.toml`](pyproject.toml).
 
 ## Documentation
 
-- Public docs live under [`docs/`](docs/) and are served via Zensical / MkDocs Material.
-- If you add a new CLI command, config, or model family, add a page (or extend an existing one) and update the nav in [`zensical.toml`](zensical.toml).
-- API docs are generated via `mkdocstrings` — a well-formed docstring is enough, no extra wiring needed.
+- Public docs live under [`astro-site/src/content/docs/`](astro-site/src/content/docs/) and are built with Astro/Starlight.
+- If you add a new CLI command, config, or model family, add a page (or extend an existing one) and update the nav in [`astro-site/src/navigation.mjs`](astro-site/src/navigation.mjs).
+- API docs use static Griffe extraction. Add public modules to `astro-site/scripts/public-api.json` and maintain their docstrings.
 
 ## Pull requests
 

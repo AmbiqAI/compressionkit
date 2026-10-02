@@ -53,7 +53,7 @@ hoping none are missed.
 | **Hook → golden** | Register a stable `experiment_id` + config/operating point. If it's a genuinely new codec *family* (not just a new operating point of an existing one), add a `CodecFamilySpec` entry too. | `compressionkit/experiments/registry.py`, `compressionkit/export/family_registry.py` |
 | **Produce results** | Build the deploy package through the registered entry point, never by hand-assembling manifest JSON. | `compressionkit golden run <id>` (never invoke a golden script directly if you can help it — see below) |
 | **Tie into release** | Publish via the same family spec so staging/model-card/license logic can't drift from the loader. | `compressionkit golden run <id> --publish`, `scripts/publish_to_huggingface.py` |
-| **Docs** | One row in the golden matrix / registry table. | [V1 Release Contract](/compressionkit/release-contract/), `scripts/render_experiment_docs.py` output |
+| **Docs** | One row in the golden matrix / registry table. | [V1 Release Contract](/compressionkit/release-contract/), registry facts rendered by the documentation build |
 
 ### Adding a new `CodecFamilySpec` entry
 

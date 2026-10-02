@@ -72,3 +72,9 @@ A clean source checkout passed npm ci, types/build, ten content tests, 1,558 lin
 ## PR review corrections
 
 Corrected the quickstart to use the public target_cr property and executed the exact snippet in the local CPU container. Added meaningful alternative text to all seven saved notebook plots; the generator escapes it and rejects missing descriptions. All three notebooks were rerun successfully after their metadata changes. Preview CI now covers root project metadata and lockfile changes. Twelve content tests, build/types, 1,558 links, migration checks and 396 rendered checks pass.
+
+## Astro cutover and source cleanup
+
+The Pages workflow now validates and publishes Astro output on main. The Zensical configuration, duplicate docs tree and obsolete experiment-page generator are removed. Three planning/research documents are retained under maintainer-notes, outside public content. Scorecard helpers remain shared with the Astro refresh commands; standalone reports default to results/reports. Plot generation writes to Astro public assets. Python documentation packages are removed from pyproject.toml and uv.lock.
+
+Migration checks now distinguish retired sources from active notebook/config inputs, retain baseline hashes and verify original routes plus preserved maintainer notes. Post-cleanup build/types, twelve content tests, 1,558 links, 115 inventory entries, 168 legacy anchors and 396 rendered checks pass. Container lint, formatting and five fidelity-helper tests pass. Delivery review corrections to contributor commands and the plot hook exclusion are resolved. Deployment awaits merge; this record is not evidence of a production cutover.

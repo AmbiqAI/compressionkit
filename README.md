@@ -140,7 +140,7 @@ compressionkit/         # Importable Python package
 └── synthetic/          # Synthetic signal and artifact generation
 
 configs/                # Versioned YAML configs
-docs/                   # Documentation site
+astro-site/             # Astro documentation site
 examples/               # Notebook quickstarts
 scripts/                # Release, evaluation, and plotting utilities
 tests/                  # pytest suite
@@ -155,7 +155,8 @@ uv sync --group dev --extra hf
 uv run ruff check compressionkit/ tests/ scripts/
 uv run ruff format compressionkit/ tests/ scripts/
 uv run pytest tests/ -ra
-./.venv/bin/python -m zensical build
+npm --prefix astro-site ci
+npm --prefix astro-site run build
 ```
 
 ---

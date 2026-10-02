@@ -7,10 +7,10 @@ on:
       - 'uv.lock'
       - 'compressionkit/**'
       - 'examples/**'
-      - 'docs/**'
       - 'configs/**'
       - 'scripts/**'
       - '.github/workflows/docs-preview.yml'
+      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
