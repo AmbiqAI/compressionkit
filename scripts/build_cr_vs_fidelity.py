@@ -225,7 +225,7 @@ def build_document(
         "This page summarizes how compression ratio (CR) trades off against signal- and "
         "physiology-level fidelity for the v1 goldens. The **Effective CR** column folds in "
         "the entropy-prior uplift over the uniform-codebook baseline; CRs are reported alongside "
-        "the [noise-aware metrics](../experiments/index.md) so it is easy to see that higher CR "
+        "the [noise-aware metrics](https://ambiqai.github.io/compressionkit/experiments/) so it is easy to see that higher CR "
         "predominantly removes noise rather than physiologically meaningful structure."
     )
     headline_section = "## Headline summary (all samples)\n\n" + headline_md

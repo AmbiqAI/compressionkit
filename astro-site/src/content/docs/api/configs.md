@@ -3,7 +3,7 @@ title: "Configs API"
 description: "Python functions and types for compressionKIT configs."
 ---
 
-Inspect the Pydantic configuration types used by the PPG RVQ recipe. Start from a [registered experiment](/compressionkit/experiments/) for a complete configuration rather than assembling one field at a time.
+Inspect the Pydantic configuration types used by the PPG and ECG RVQ recipes. Start from a [registered experiment](/compressionkit/experiments/) for a complete configuration rather than assembling one field at a time.
 
 - <a id="compressionkit.configs.ppg_rvq.PpgRvqConfig" href="/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.PpgRvqConfig"><code>PpgRvqConfig</code></a>
 - <a id="compressionkit.configs.ppg_rvq.DataConfig" href="/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.DataConfig"><code>DataConfig</code></a>
@@ -27,3 +27,7 @@ Inspect the Pydantic configuration types used by the PPG RVQ recipe. Start from 
 <p id="compressionkit.configs.ppg_rvq.EvaluationConfig.num_plot_samples"><a href="/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.EvaluationConfig.num_plot_samples"><code>compressionkit.configs.ppg_rvq.EvaluationConfig.num_plot_samples</code></a></p>
 
 <p id="compressionkit.configs.ppg_rvq.EvaluationConfig.num_samples"><a href="/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.EvaluationConfig.num_samples"><code>compressionkit.configs.ppg_rvq.EvaluationConfig.num_samples</code></a></p>
+
+## ECG configuration
+
+- [EcgRvqConfig and nested configuration types](/compressionkit/reference/api/compressionkit/configs/ecg_rvq/#compressionkit.configs.ecg_rvq.EcgRvqConfig)

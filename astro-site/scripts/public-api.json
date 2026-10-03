@@ -1,4 +1,5 @@
 [
+  "compressionkit.configs.ecg_rvq",
   "compressionkit.configs.ppg_rvq",
   "compressionkit.datasets.ppg",
   "compressionkit.evaluation.artifacts",

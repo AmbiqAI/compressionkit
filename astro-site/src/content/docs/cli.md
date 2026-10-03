@@ -71,7 +71,7 @@ uv run train-ppg-rvq --config configs/ppg_rvq_64hz_08x_golden.yaml
 
 ### Configuration
 
-The YAML file is validated against `compressionkit.configs.ppg_rvq.PpgRvqConfig`. Any fields not specified in the YAML will use their default values. See [Configs API](/compressionkit/api/configs/) for the full schema.
+The YAML file is validated against `compressionkit.configs.ppg_rvq.PpgRvqConfig`. Any fields not specified in the YAML will use their default values. See [PpgRvqConfig](/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.PpgRvqConfig) for the full schema.
 
 ### Outputs
 
@@ -141,7 +141,7 @@ uv run train-ecg-rvq --config configs/ecg_rvq_256hz_08x_golden.yaml
 
 ### Configuration
 
-The YAML file is validated against `compressionkit.configs.ecg_rvq.EcgRvqConfig`. Any fields not specified in the YAML will use their default values. See [Configs API](/compressionkit/api/configs/) for the full schema.
+The YAML file is validated against `compressionkit.configs.ecg_rvq.EcgRvqConfig`. Any fields not specified in the YAML will use their default values. See [EcgRvqConfig](/compressionkit/reference/api/compressionkit/configs/ecg_rvq/#compressionkit.configs.ecg_rvq.EcgRvqConfig) for the full schema.
 
 <span id="outputs_1"></span>
 

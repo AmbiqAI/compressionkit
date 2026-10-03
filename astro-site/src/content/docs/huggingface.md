@@ -22,7 +22,7 @@ for the `snapshot_download` / `from_pretrained` calls below.
 ## 2. Single-stage codec
 
 Single-stage repos contain `encoder_int8.tflite`, `decoder_int8.tflite`, `codebook.npz`, and
-`sample_stimulus.npz`. [`RVQCodec.from_pretrained`](/compressionkit/api/models/) downloads the bundle and wires
+`sample_stimulus.npz`. [`RVQCodec.from_pretrained`](/compressionkit/reference/api/compressionkit/runtime/codec/#compressionkit.runtime.codec.RVQCodec.from_pretrained) downloads the bundle and wires
 up the LiteRT interpreters. Use the full source-checkout installation above: package imports also require Keras and evaluation dependencies.
 
 ```python

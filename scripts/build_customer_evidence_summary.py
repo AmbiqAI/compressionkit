@@ -300,7 +300,7 @@ def render_document(rows: list[EvidenceRow]) -> str:
             "- Use seam ratio as the first-pass long-recording stitching check; model pages provide the visual and method-specific context.",
             "- Use edge-payload columns for target budgeting; parameter and MAC summaries can be added when those are reliably exported for every bundle.",
             "",
-            "Detailed modality pages remain the source for waveform examples, robustness plots, and reproduction commands: [PPG models](models/ppg.md), [ECG models](models/ecg.md), [PPG CR vs fidelity](methods/cr_vs_fidelity_ppg.md), and [ECG CR vs fidelity](methods/cr_vs_fidelity_ecg.md).",
+            "Detailed modality pages remain the source for waveform examples, robustness plots, and reproduction commands: [PPG models](https://ambiqai.github.io/compressionkit/models/ppg/), [ECG models](https://ambiqai.github.io/compressionkit/models/ecg/), [PPG CR vs fidelity](https://ambiqai.github.io/compressionkit/methods/cr_vs_fidelity_ppg/), and [ECG CR vs fidelity](https://ambiqai.github.io/compressionkit/methods/cr_vs_fidelity_ecg/).",
             "",
         ]
     )
