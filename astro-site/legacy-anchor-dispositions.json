@@ -1,0 +1,962 @@
+[
+  {
+    "page": "adding-a-codec-family",
+    "id": "two-different-meanings-of-family-dont-conflate-them",
+    "disposition": "alias",
+    "heading": "Codec family and experiment structure"
+  },
+  {
+    "page": "api/evaluation",
+    "id": "compressionkit.evaluation.metrics.PRD",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/evaluation/metrics/#compressionkit.evaluation.metrics.PRD"
+  },
+  {
+    "page": "api/evaluation",
+    "id": "compressionkit.evaluation.metrics.TruePRD",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/evaluation/metrics/#compressionkit.evaluation.metrics.TruePRD"
+  },
+  {
+    "page": "api/evaluation",
+    "id": "compressionkit.evaluation.metrics.compute_signal_metrics",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/evaluation/metrics/#compressionkit.evaluation.metrics.compute_signal_metrics"
+  },
+  {
+    "page": "api/evaluation",
+    "id": "compressionkit.evaluation.metrics.compute_ppg_physiokit_metrics",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/evaluation/metrics/#compressionkit.evaluation.metrics.compute_ppg_physiokit_metrics"
+  },
+  {
+    "page": "api/evaluation",
+    "id": "compressionkit.evaluation.metrics.summarize_physiokit_alignment",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/evaluation/metrics/#compressionkit.evaluation.metrics.summarize_physiokit_alignment"
+  },
+  {
+    "page": "api/evaluation",
+    "id": "compressionkit.evaluation.artifacts.save_sample_artifacts",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/evaluation/artifacts/#compressionkit.evaluation.artifacts.save_sample_artifacts"
+  },
+  {
+    "page": "api/export",
+    "id": "compressionkit.export.tflite.export_encoder_tflite",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/export/tflite/#compressionkit.export.tflite.export_encoder_tflite"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.load_ppg_signal",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.load_ppg_signal"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.load_ppg_splits",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.load_ppg_splits"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.load_ppg_file_splits",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.load_ppg_file_splits"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.build_ppg_tfrecord_cache",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.build_ppg_tfrecord_cache"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.make_ppg_inmemory_dataset",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.make_ppg_inmemory_dataset"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.make_ppg_tfrecord_dataset",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.make_ppg_tfrecord_dataset"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.make_ppg_stream_dataset",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.make_ppg_stream_dataset"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.collect_random_samples",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.collect_random_samples"
+  },
+  {
+    "page": "api/datasets",
+    "id": "compressionkit.datasets.ppg.bandpass_filter_batch",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/datasets/ppg/#compressionkit.datasets.ppg.bandpass_filter_batch"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.PpgRvqConfig",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.PpgRvqConfig"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.PpgRvqConfig.from_yaml",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.PpgRvqConfig.from_yaml"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.DataConfig",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.DataConfig"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.ModelConfig",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.ModelConfig"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.TrainingConfig",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.TrainingConfig"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.EvaluationConfig",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.EvaluationConfig"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.EvaluationConfig.num_plot_samples",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.EvaluationConfig.num_plot_samples"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.EvaluationConfig.num_samples",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.EvaluationConfig.num_samples"
+  },
+  {
+    "page": "api/configs",
+    "id": "compressionkit.configs.ppg_rvq.OutputConfig",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/configs/ppg_rvq/#compressionkit.configs.ppg_rvq.OutputConfig"
+  },
+  {
+    "page": "api/preprocessing",
+    "id": "compressionkit.preprocessing.ppg.build_preprocessor",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/preprocessing/ppg/#compressionkit.preprocessing.ppg.build_preprocessor"
+  },
+  {
+    "page": "api/preprocessing",
+    "id": "compressionkit.preprocessing.ppg.build_augmenter",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/preprocessing/ppg/#compressionkit.preprocessing.ppg.build_augmenter"
+  },
+  {
+    "page": "api/preprocessing",
+    "id": "compressionkit.preprocessing.ppg.generate_synthetic_ppg_batch",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/preprocessing/ppg/#compressionkit.preprocessing.ppg.generate_synthetic_ppg_batch"
+  },
+  {
+    "page": "api/models",
+    "id": "compressionkit.models.rvq_autoencoder.build_rvq_autoencoder",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/models/rvq_autoencoder/#compressionkit.models.rvq_autoencoder.build_rvq_autoencoder"
+  },
+  {
+    "page": "api/models",
+    "id": "compressionkit.models.rvq_autoencoder.build_encoder_2d",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/models/encoder/#compressionkit.models.encoder.build_encoder_2d"
+  },
+  {
+    "page": "api/models",
+    "id": "compressionkit.models.rvq_autoencoder.build_decoder_2d",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/models/decoder/#compressionkit.models.decoder.build_decoder_2d"
+  },
+  {
+    "page": "api/models",
+    "id": "compressionkit.models.rvq_autoencoder.compute_compression_stats",
+    "disposition": "reference-link",
+    "target": "/compressionkit/reference/api/compressionkit/models/rvq_autoencoder/#compressionkit.models.rvq_autoencoder.compute_compression_stats"
+  },
+  {
+    "page": "cli",
+    "id": "usage_1",
+    "disposition": "alias"
+  },
+  {
+    "page": "cli",
+    "id": "arguments_1",
+    "disposition": "alias"
+  },
+  {
+    "page": "cli",
+    "id": "example_1",
+    "disposition": "alias"
+  },
+  {
+    "page": "cli",
+    "id": "configuration_1",
+    "disposition": "alias"
+  },
+  {
+    "page": "cli",
+    "id": "outputs_1",
+    "disposition": "alias"
+  },
+  {
+    "page": "customer-evidence",
+    "id": "release-decision-overview",
+    "disposition": "alias",
+    "heading": "What these results cover"
+  },
+  {
+    "page": "customer-evidence",
+    "id": "compression-and-deploy-ladder",
+    "disposition": "alias",
+    "heading": "Compression and quality"
+  },
+  {
+    "page": "customer-evidence",
+    "id": "ppg-release-ladder",
+    "disposition": "alias",
+    "heading": "PPG quality"
+  },
+  {
+    "page": "customer-evidence",
+    "id": "ecg-release-ladder",
+    "disposition": "alias",
+    "heading": "ECG quality"
+  },
+  {
+    "page": "customer-evidence",
+    "id": "how-to-use-this-page",
+    "disposition": "alias",
+    "heading": "Choose a candidate"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "overview",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "what-the-demo-shows",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "architecture",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "dashboard-walkthrough",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "original-and-reconstruction-views",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "control-panel",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "compression-intelligence",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "live-noise-controls",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "live-stream-experience",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "recordings-experience",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "demo-setup",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "hardware-and-software",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "supported-platform-today",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "flashing-firmware",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "running-the-demo",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "why-this-matters",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "demo/ppg-codec",
+    "id": "positioning-summary",
+    "disposition": "retired",
+    "reason": "Demo instructions moved to maintained hub reference"
+  },
+  {
+    "page": "datasets",
+    "id": "ecg-ptb-xl",
+    "disposition": "alias"
+  },
+  {
+    "page": "datasets",
+    "id": "ppg-mesa-open-sources",
+    "disposition": "alias"
+  },
+  {
+    "page": "deployment",
+    "id": "mcu-edge-device-path",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiment-architecture",
+    "id": "codebase-audit",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "experiment-architecture",
+    "id": "refactoring-direction",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "experiment-architecture",
+    "id": "heliaedge-candidates",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "experiment-architecture",
+    "id": "review-checklist",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "experiments/ecg-hybrid-2x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-hybrid-32x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-hybrid-16x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-hybrid-4x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-hybrid-64x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-hybrid-8x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-2x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-32x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-16x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-4x-prior",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-64x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-4x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-8x-prior",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-rvq-8x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-spiht-16x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-spiht-2x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-spiht-4x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-spiht-32x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-spiht-64x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments",
+    "id": "v1-registry",
+    "disposition": "alias",
+    "heading": "Choose an experiment"
+  },
+  {
+    "page": "experiments",
+    "id": "reproduce-every-experiment-in-a-modality",
+    "disposition": "alias",
+    "heading": "Reproduce a group"
+  },
+  {
+    "page": "experiments/ppg-hybrid-16x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-hybrid-2x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ecg-spiht-8x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-hybrid-32x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-hybrid-8x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-hybrid-4x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-rvq-16x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-rvq-32x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-rvq-2x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-rvq-4x-prior",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-rvq-4x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-rvq-8x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-spiht-16x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-rvq-8x-prior",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-spiht-32x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-spiht-2x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-spiht-4x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "experiments/ppg-spiht-8x",
+    "id": "dataset-license",
+    "disposition": "alias"
+  },
+  {
+    "page": "huggingface",
+    "id": "3-two-stage-codec-codec-entropy-prior",
+    "disposition": "alias"
+  },
+  {
+    "page": "",
+    "id": "what-compressionkit-is",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "",
+    "id": "where-compressionkit-fits",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "",
+    "id": "what-current-goldens-show",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "",
+    "id": "how-to-read-the-evidence",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "",
+    "id": "guiding-principles",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "",
+    "id": "high-level-getting-started",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "",
+    "id": "current-v1-artifacts",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "",
+    "id": "where-to-go-next",
+    "disposition": "alias",
+    "heading": "Explore the toolkit"
+  },
+  {
+    "page": "methods/cr_vs_fidelity_ppg",
+    "id": "noise-stratified-detail-clean-median-noisy-tertiles",
+    "disposition": "alias"
+  },
+  {
+    "page": "methods/cr_vs_fidelity_ppg",
+    "id": "how-to-read-this-table",
+    "disposition": "alias",
+    "heading": "How to read these results"
+  },
+  {
+    "page": "methods/cr_vs_fidelity_ecg",
+    "id": "noise-stratified-detail-clean-median-noisy-tertiles",
+    "disposition": "alias"
+  },
+  {
+    "page": "methods/cr_vs_fidelity_ecg",
+    "id": "how-to-read-this-table",
+    "disposition": "alias",
+    "heading": "How to read these results"
+  },
+  {
+    "page": "models",
+    "id": "current-release-surface",
+    "disposition": "alias",
+    "heading": "Choose a signal"
+  },
+  {
+    "page": "models",
+    "id": "evidence-router",
+    "disposition": "alias",
+    "heading": "Compare candidates"
+  },
+  {
+    "page": "models",
+    "id": "what-each-model-page-should-answer",
+    "disposition": "alias",
+    "heading": "Compare candidates"
+  },
+  {
+    "page": "models",
+    "id": "standard-comparison-rule",
+    "disposition": "alias",
+    "heading": "Compare candidates"
+  },
+  {
+    "page": "models",
+    "id": "deployment-artifacts",
+    "disposition": "alias",
+    "heading": "Load or validate a package"
+  },
+  {
+    "page": "release-contract",
+    "id": "composition-principle",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "goals",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "golden-matrix",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "repository-implications",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "milestones",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "milestone-1-unified-package-contract",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "milestone-2-cross-runtime-validation",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "milestone-3-imu-goldens",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "milestone-4-docs-and-release-automation",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "non-goals-for-v1",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "release-contract",
+    "id": "decision-summary",
+    "disposition": "retired",
+    "reason": "Internal planning or superseded guidance removed; page retained"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "core-claim",
+    "disposition": "alias",
+    "heading": "Compare like with like"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "evidence-layers",
+    "disposition": "alias",
+    "heading": "Compare like with like"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "measurement-philosophy",
+    "disposition": "alias",
+    "heading": "Compare like with like"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "agreement-vs-accuracy",
+    "disposition": "alias",
+    "heading": "Agreement is different from accuracy"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "algorithm-repeatability-baseline",
+    "disposition": "alias",
+    "heading": "Agreement is different from accuracy"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "noise-preservation-vs-noise-removal",
+    "disposition": "alias",
+    "heading": "Signal condition buckets"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "implementation-tiers",
+    "disposition": "alias",
+    "heading": "Compare like with like"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "hr-hrv-preservation",
+    "disposition": "alias",
+    "heading": "ECG validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "morphology-preservation",
+    "disposition": "alias",
+    "heading": "ECG validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "downstream-task-preservation",
+    "disposition": "alias",
+    "heading": "ECG validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "hr-pulse-rate-preservation",
+    "disposition": "alias",
+    "heading": "PPG validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "morphology-preservation_1",
+    "disposition": "alias",
+    "heading": "PPG validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "spo2-sensitive-preservation",
+    "disposition": "alias",
+    "heading": "PPG validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "downstream-task-preservation_1",
+    "disposition": "alias",
+    "heading": "PPG validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "cross-cutting-validation",
+    "disposition": "alias",
+    "heading": "Package and runtime validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "stitching-and-streaming-behavior",
+    "disposition": "alias",
+    "heading": "Package and runtime validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "noise-and-artifact-behavior",
+    "disposition": "alias",
+    "heading": "Signal condition buckets"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "adaptive-bitrate-and-fallback",
+    "disposition": "alias",
+    "heading": "Package and runtime validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "versioning-and-compatibility",
+    "disposition": "alias",
+    "heading": "Package and runtime validation"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "ecg-buckets",
+    "disposition": "alias",
+    "heading": "Signal condition buckets"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "ppg-buckets",
+    "disposition": "alias",
+    "heading": "Signal condition buckets"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "positioning-guidance",
+    "disposition": "alias",
+    "heading": "Compare like with like"
+  },
+  {
+    "page": "validation-scorecard",
+    "id": "passfail-summary-per-modality-and-profile",
+    "disposition": "alias",
+    "heading": "Package and runtime validation"
+  },
+  {
+    "page": "use-cases",
+    "id": "who-benefits",
+    "disposition": "alias",
+    "heading": "Where compression can help"
+  },
+  {
+    "page": "use-cases",
+    "id": "headline-benefits",
+    "disposition": "alias",
+    "heading": "Where compression can help"
+  },
+  {
+    "page": "use-cases",
+    "id": "benefit-1-ondevice-memory",
+    "disposition": "alias",
+    "heading": "Estimate the payload"
+  },
+  {
+    "page": "use-cases",
+    "id": "ppg-continuous-recording-capacity",
+    "disposition": "alias",
+    "heading": "Estimate the payload"
+  },
+  {
+    "page": "use-cases",
+    "id": "ecg-continuous-recording-capacity",
+    "disposition": "alias",
+    "heading": "Estimate the payload"
+  },
+  {
+    "page": "use-cases",
+    "id": "benefit-2-radio-bandwidth-energy",
+    "disposition": "alias",
+    "heading": "Estimate the payload"
+  },
+  {
+    "page": "use-cases",
+    "id": "benefit-3-cloud-storage-ingestion",
+    "disposition": "alias",
+    "heading": "Estimate the payload"
+  },
+  {
+    "page": "use-cases",
+    "id": "benefit-4-fidelity-that-survives-downstream-algorithms",
+    "disposition": "alias",
+    "heading": "Choose quality requirements before a ratio"
+  },
+  {
+    "page": "use-cases",
+    "id": "choosing-an-operating-point",
+    "disposition": "alias",
+    "heading": "Choose quality requirements before a ratio"
+  },
+  {
+    "page": "use-cases",
+    "id": "getting-started",
+    "disposition": "alias",
+    "heading": "Try the workflow"
+  }
+]

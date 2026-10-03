@@ -169,7 +169,7 @@ def build_summary(rows: list[dict]) -> dict:
 
 
 def render_markdown(summary: dict) -> str:
-    """Render the customer-facing table for inclusion in docs/."""
+    """Render the customer-facing comparison table."""
     rows = summary["rows"]
     lines = [
         "| Run | Preset | Encoder CR | bits/token | CR uplift | Effective total CR | PRD (%) | PRDN-noise (%) | HR MAE (bpm) | Spectral coherence |",

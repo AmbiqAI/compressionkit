@@ -1,0 +1,13 @@
+---
+import snapshot from '../../content-data/customer-evidence.json';
+import { validateEvidence } from '../../scripts/evidence-data.mjs';
+interface Props { id: string }
+const data = validateEvidence(snapshot);
+const table = data.tables.find((item: { id: string }) => item.id === Astro.props.id);
+if (!table) throw new Error(`Unknown evidence table: ${Astro.props.id}`);
+---
+{Astro.props.id === 'ppg-quality' && <p>Data source: {snapshot.provenance.kind === 'preserved-documentation' ? 'measurements preserved from the original documentation.' : 'exported golden scorecards and deploy artifacts.'}</p>}
+<table>
+  <thead><tr>{table.headers.map((header: string) => <th scope="col">{header}</th>)}</tr></thead>
+  <tbody>{table.rows.map((row: string[]) => <tr>{row.map((cell, index) => index === 0 ? <th scope="row">{cell}</th> : <td>{cell}</td>)}</tr>)}</tbody>
+</table>

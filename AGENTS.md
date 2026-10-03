@@ -30,7 +30,7 @@ These are the project guidelines for agentic AI models working in this repositor
 - For logging and metrics, prefer TensorBoard and Keras callbacks where possible.
 
 ## Experiment Architecture
-Three layers, kept deliberately separate (see `docs/experiment-architecture.md` for the full rationale):
+Three layers, kept deliberately separate (see `astro-site/src/content/docs/experiment-architecture.md` for the full rationale):
 1. **Blocks** — small, importable capabilities (datasets/cache builders, preprocessing/augmentation, model builders, losses/metrics/callbacks, scorecard builders, exporters/validators). No hidden global state, no mandatory registries.
 2. **Ready-made experiments** — readable end-to-end flows built from blocks. Opinionated but never the only path.
 3. **Golden releases** — the release boundary: stable IDs, reproducible configs, scorecards, deploy packages. An experiment becomes golden by passing the artifact contract, not by being rewritten around a mandatory base class.
@@ -41,7 +41,7 @@ Three layers, kept deliberately separate (see `docs/experiment-architecture.md` 
 - When a shared trainer or runner starts accumulating export, validation, or scorecard policy, extract that behavior into standalone helpers before adding new abstract hooks.
 - Consider moving generic Keras 3 edge-model training/deployment blocks to HeliaEdge once they are no longer compressionKIT-specific. Good candidates include RVQ/VQ layers, reusable RVQ architectures, generic losses/metrics/callbacks, LiteRT export helpers, and reference-vector utilities.
 - Keep modality-specific datasets, physiological scorecards, signal preprocessing policy, golden registry entries, HuggingFace naming, and v1 release policy in compressionKIT.
-- Entropy-coding research (new priors/entropy coders as a second stage on top of a frozen codec) follows this same pattern; see `docs/entropy-coding-research.md` for the current blocks, the promotion path, and known lessons (don't re-derive these).
+- Entropy-coding research (new priors/entropy coders as a second stage on top of a frozen codec) follows this same pattern; see `maintainer-notes/entropy-coding-research.md` for the current blocks, the promotion path, and known lessons (don't re-derive these).
 
 ## Style
 - Docstrings should use Google style.
@@ -73,7 +73,7 @@ Three layers, kept deliberately separate (see `docs/experiment-architecture.md` 
 - Customers will see this codebase — keep public-facing code, configs, and docs clean.
 - Golden run naming: `{modality}_rvq_{sample_rate}hz_{cr}x_golden/` (e.g., `ppg_rvq_64hz_04x_golden/`). Runs live under `results/` (git-ignored) — commit only configs, scripts, and code; never model weights or large artifacts.
 - Deploy artifacts are exported via `compressionkit.export.deploy.export_for_deployment()` into each run's `deploy/` subdirectory (`.tflite`, `.h`, `.npz`, `.json`) — the only publishable outputs.
-- Codec-family dispatch (loader class, required files, model card, default license) is centralized in `compressionkit.export.family_registry.FAMILY_REGISTRY` — adding a new codec family (`rvq`/`spiht`/`hybrid` today) means adding one entry there, not editing the runtime loader, validator, and publisher independently. See `docs/adding-a-codec-family.md` for the full concept-to-release lifecycle.
+- Codec-family dispatch (loader class, required files, model card, default license) is centralized in `compressionkit.export.family_registry.FAMILY_REGISTRY` — adding a new codec family (`rvq`/`spiht`/`hybrid` today) means adding one entry there, not editing the runtime loader, validator, and publisher independently. See `astro-site/src/content/docs/adding-a-codec-family.md` for the full concept-to-release lifecycle.
 - Before cutting a release, run `compressionkit golden validate-all --strict-release` to audit every registered golden's existing local deploy package for schema drift (gitignored `results/` can silently go stale relative to code changes).
 
 ### HuggingFace Releases

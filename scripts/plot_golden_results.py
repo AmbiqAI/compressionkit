@@ -1,7 +1,7 @@
 """Generate static plots for golden model results.
 
 Usage:
-    python scripts/plot_golden_results.py [--input results/golden_summary.csv] [--output docs/assets/plots]
+    python scripts/plot_golden_results.py [--input results/golden_summary.csv] [--output astro-site/public/assets/plots]
 
 Reads the CSV produced by collect_golden_results.py and generates individual
 PNG images — one metric per chart, separate PPG and ECG, light + dark variants.
@@ -336,7 +336,7 @@ PLOT_FNS = [
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate golden result plots.")
     parser.add_argument("--input", type=Path, default=Path("results/golden_summary.csv"))
-    parser.add_argument("--output", type=Path, default=Path("docs/assets/plots"))
+    parser.add_argument("--output", type=Path, default=Path("astro-site/public/assets/plots"))
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

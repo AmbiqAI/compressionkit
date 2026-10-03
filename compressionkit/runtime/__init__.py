@@ -1,8 +1,8 @@
 """Lightweight inference runtime for compressionkit models.
 
-This module provides a minimal-dependency runtime for running RVQ
-codec models using only LiteRT (``ai-edge-litert``) and numpy.
-No Keras, TensorFlow, or training dependencies are required.
+RVQ model inference uses LiteRT and NumPy. Importing this module also
+loads the compressionkit package and its Keras and evaluation dependencies;
+install the package dependencies even when using exported LiteRT models.
 
 Example::
 

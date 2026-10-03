@@ -1,0 +1,204 @@
+{
+  "checked": "2026-10-01",
+  "source": "https://huggingface.co/api/models/",
+  "results": [
+    {
+      "id": "Ambiq/compressionkit-ecg-16x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "e1c78d7227fec77887bd6a619d3463e238c3e01d"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-2x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "4d07900f24978ee3830ee2a6a4e2becaa0880645"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-32x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "13c9be7e94b80191385f6be3aad32d2effb59e0b"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-4x-v1.0",
+      "status": 200,
+      "files": 28,
+      "revision": "f8be1ba5454d0eb5c645393ec3261e74d0bf26a8"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-64x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "49c2dd0ddb04b23d6817e584c9865046ecd15424"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-8x-v1.0",
+      "status": 200,
+      "files": 28,
+      "revision": "548a82529fc10075c31f19ab1ed8c09dfb2e58f4"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-hybrid-16x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "772f60e944df9067d27fe2b9b41893709f502f85"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-hybrid-2x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "c14b7d55a8e6dc513117c252d509e548ae710184"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-hybrid-32x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "a1647112e5b01f338ad27fdd5bc90dc6eec2cfc7"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-hybrid-4x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "3406233316d866273e36894b5a5b5f7fd6533765"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-hybrid-64x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "b2cffaedff860c2e7d2156a8ddce3b40cc87430b"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-hybrid-8x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "f5ae4f5d4f10663cd9598bcce8aef44b40b18b80"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-spiht-16x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "f0a42aaa0b9716f7d53c1930aa266acab8dc1d06"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-spiht-2x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "600664e52a6f263e21857e757271fd44fa46cdcc"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-spiht-32x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "0e998511af1516ac30250860b58584bb2b7ccdae"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-spiht-4x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "8fa91bc2b30f9b8948e9810a18f90b6807a87efb"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-spiht-64x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "d7b1dd3241e8aaa96551a8a491f10d6eaf9f9038"
+    },
+    {
+      "id": "Ambiq/compressionkit-ecg-spiht-8x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "d4c56a760e022eac328e22efe7476076e554d9e9"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-16x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "928d302ac822712c4513488f6d4e0fef962bde37"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-2x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "af00d62fcdd8e8c12a2929bae9d22911ab518966"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-32x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "bff7e89fbe3c6b35a2db829d7da6022eb26fcf34"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-4x-v1.0",
+      "status": 200,
+      "files": 25,
+      "revision": "8e3b465983808d50d99799df6135aaffe68029ff"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-8x-v1.0",
+      "status": 200,
+      "files": 28,
+      "revision": "7e2b0cea808d1b1f168c4131ea5c00ffe50e9cce"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-hybrid-16x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "84b97ca62751662508d96022607e428d09e37133"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-hybrid-2x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "3dba534a54320c56a4059078ba2ef1c87bcdba28"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-hybrid-32x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "120cddde41db03f09ff9af92fe95fa3930762c19"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-hybrid-4x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "cd06163e34b4239f5886841fb0ae7029698550f1"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-hybrid-8x-v1.0",
+      "status": 200,
+      "files": 16,
+      "revision": "255fde95d9c65e157c0726c12bc78d497f344048"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-spiht-16x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "e1526d9b51c83f4f62474b684cc6a0845ba9c2c2"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-spiht-2x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "b2894e7ba0396bd3bf258bb1e0383b995d601724"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-spiht-32x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "2bfee75e1bd56e09e0eea02f8d39235fb0088efb"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-spiht-4x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "7380c6cf9c9fcdfb2cb7ddb84baae1aa61eaa700"
+    },
+    {
+      "id": "Ambiq/compressionkit-ppg-spiht-8x-v1.0",
+      "status": 200,
+      "files": 12,
+      "revision": "ea45b0f48f10c490ddea7394ade2b14abcdd9450"
+    }
+  ]
+}

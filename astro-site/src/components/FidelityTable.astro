@@ -1,0 +1,14 @@
+---
+import ppg from '../../content-data/fidelity-ppg.json';
+import ecg from '../../content-data/fidelity-ecg.json';
+import { validateFidelity } from '../../scripts/fidelity-data.mjs';
+interface Props { modality: 'ppg' | 'ecg'; id: string }
+const data = validateFidelity(Astro.props.modality === 'ppg' ? ppg : ecg);
+const table = data.tables.find((item: { id: string }) => item.id === Astro.props.id);
+if (!table) throw new Error(`Unknown fidelity table: ${Astro.props.id}`);
+---
+{Astro.props.id === 'headline' && <p>Data source: {data.provenance.kind === 'preserved-documentation' ? 'measurements preserved from the original documentation.' : 'exported golden quality scorecards.'}</p>}
+<table>
+  <thead><tr>{table.headers.map((header: string) => <th scope="col">{header}</th>)}</tr></thead>
+  <tbody>{table.rows.map((row: string[]) => <tr>{row.map((cell, index) => index === 0 ? <th scope="row">{cell}</th> : <td>{cell}</td>)}</tr>)}</tbody>
+</table>
