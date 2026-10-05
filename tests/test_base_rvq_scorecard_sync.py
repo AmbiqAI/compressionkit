@@ -70,7 +70,7 @@ def test_base_rvq_trainer_syncs_built_scorecard_into_deploy(monkeypatch, tmp_pat
         run_name="ppg_rvq_64hz_04x_golden",
         model_dump=lambda: {"run_name": "ppg_rvq_64hz_04x_golden"},
         data=SimpleNamespace(sampling_rate=64, steps_per_epoch=1, epochs=1),
-        model=SimpleNamespace(kmeans_init=False),
+        model=SimpleNamespace(kmeans_init=False, use_ema=False, num_levels=1),
         evaluation=SimpleNamespace(
             int8_calibration_frames=1,
             int8_validation_frames=1,

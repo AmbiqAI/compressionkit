@@ -42,6 +42,38 @@ For most users, the only runtime object you need is `compressionkit.runtime.RVQC
 
 The manifest is the source of truth. The runtime reads it first, then resolves the encoder, optional decoder, and codebook files from the names listed there.
 
+## RVQ Codebook Export and Training Parity
+
+When exporting `vq.get_weights()`, declare `rvq_num_levels`, `rvq_use_ema`, and
+`rvq_kmeans_init` from the trained model's configuration. Plain RVQ has one
+codebook matrix per level. EMA RVQ also stores count vectors and embedding-sum
+matrices, plus an optional k-means flag; these are training state, not additional
+codebooks. Export rejects weights that do not match the declared layout. The
+standalone NPZ/header writers accept codebook matrices only; first call
+`extract_codebooks(weights, num_levels=..., use_ema=..., kmeans_init=...)` for EMA.
+
+Saved-run repackaging uses the run's `config.json` and loads positional weight
+arrays in numeric order. Preserve original packages and use `golden repackage
+<id> --output-dir <separate-directory>` when repairing an existing export.
+
+With sample inputs, `reference_vectors.npz` contains both deployed-path vectors
+and independent `source_latents`, `source_indices`, `source_quantized_latents`,
+and `source_reconstructions` from the restored training quantizer. Validation
+requires identical indices and quantized latents for identical source latents;
+the float encoder and decoder comparisons use `atol=rtol=1e-5`. This isolates codebook
+correctness from encoder conversion and precision differences. Sample-data
+reconstructions also use the discrete trained path rather than bypassing VQ.
+
+Strict release validation rejects older RVQ references without these source
+arrays. Re-export them from the original training state; a self-consistent
+deployed reference alone does not establish training parity. Repackaging also
+recomputes model-card precision measurements instead of copying historical
+reports that may have used different codebooks.
+
+Correcting the exported level count changes packet interpretation. Keep existing
+packets paired with their original bundle and bind new packets to the corrected
+bundle revision; replacing tables inside an existing package is not a migration.
+
 ## Encoder Preprocessing and INT8 Parity
 
 Both RVQ encoders accept one normalized frame: PPG is `(1, 1, 320, 1)` at 64 Hz and ECG is `(1, 1, 512, 1)` at 256 Hz. Resample and frame the raw single-channel recording first, then normalize each frame independently:

@@ -138,7 +138,9 @@ def repackage_rvq_golden(
 
     import keras
 
+    from compressionkit.export.codebook import extract_codebooks, load_rvq_weights
     from compressionkit.export.deploy import export_for_deployment
+    from compressionkit.export.quantization import refresh_rvq_encoder_precision_reports
     from compressionkit.export.stimulus import export_stimulus_npz
 
     output_dir = output_dir or (run_dir / "deploy")
@@ -155,8 +157,18 @@ def repackage_rvq_golden(
 
     encoder = keras.models.load_model(encoder_path)
     decoder = keras.models.load_model(decoder_path)
-    rvq_npz = np.load(rvq_weights_path)
-    rvq_weights = [rvq_npz[k] for k in sorted(rvq_npz.files)]
+    rvq_weights = load_rvq_weights(rvq_weights_path)
+    # Use the saved run contract, not the current registry/config defaults.
+    saved_model = json.loads((run_dir / "config.json").read_text())["model"]
+    rvq_num_levels = saved_model["num_levels"]
+    rvq_use_ema = saved_model.get("use_ema", False)
+    rvq_kmeans_init = saved_model.get("kmeans_init", False)
+    codebooks = extract_codebooks(
+        rvq_weights, num_levels=rvq_num_levels, use_ema=rvq_use_ema, kmeans_init=rvq_kmeans_init
+    )
+    sizes = saved_model.get("codebook_sizes") or [saved_model["latent_width"]] * rvq_num_levels
+    if [cb.shape for cb in codebooks] != [(size, saved_model["embedding_dim"]) for size in sizes]:
+        raise ValueError("Saved RVQ codebook shapes do not match the training config")
 
     input_shape = encoder.input_shape
     if len(input_shape) in (3, 4):
@@ -181,39 +193,23 @@ def repackage_rvq_golden(
         "license": "other",
         "preprocessing_contract": preprocessing_contract,
     }
-    precision_paths = [
-        run_dir.parent / "precision-study" / f"{experiment.experiment_id}.json",
-        run_dir.parent / "rvq_encoder_precision_comparison.json",
-    ]
-    for precision_path in precision_paths:
-        if not precision_path.is_file():
-            continue
-        precision_payload = json.loads(precision_path.read_text())
-        variants = precision_payload.get("experiments", {}).get(experiment.experiment_id, {}).get("variants", {})
-        if isinstance(variants, dict):
-            model_card_info["encoder_precision_report"] = {
-                name: payload.get("report", {}) for name, payload in variants.items() if isinstance(payload, dict)
-            }
-            break
     if scorecard_payload is not None:
         model_card_info["scorecard_summary"] = scorecard_payload
 
     sample_inputs = rep_dataset[:10]
-    latents = encoder.predict(sample_inputs, verbose=0)
-    sample_reconstructions = decoder.predict(latents, verbose=0)
-    if isinstance(sample_reconstructions, dict):
-        sample_reconstructions = sample_reconstructions.get("reconstruction", sample_reconstructions.get("output"))
 
     artifacts = export_for_deployment(
         encoder=encoder,
         decoder=decoder,
         rvq_weights=rvq_weights,
+        rvq_num_levels=rvq_num_levels,
+        rvq_use_ema=rvq_use_ema,
+        rvq_kmeans_init=rvq_kmeans_init,
         rep_dataset=rep_dataset,
         quantization_validation_dataset=quantization_validation_dataset,
         output_dir=output_dir,
         sample_inputs=sample_inputs,
         sample_targets=sample_inputs,
-        sample_reconstructions=np.asarray(sample_reconstructions, dtype=np.float32),
         model_name=experiment.run_name,
         export_decoder_float32=True,
         export_decoder_int8=export_decoder_int8,
@@ -221,6 +217,8 @@ def repackage_rvq_golden(
     )
     quantization_report = json.loads((output_dir / "quantization_report.json").read_text())
     report_metrics = quantization_report["metrics"]
+    # Historical reports may have used different (including faulty) codebooks.
+    refresh_rvq_encoder_precision_reports(output_dir, quantization_validation_dataset)
     export_stimulus_npz(
         modality=experiment.modality,
         output_path=output_dir / "sample_stimulus.npz",

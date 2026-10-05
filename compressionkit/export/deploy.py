@@ -159,6 +159,9 @@ def export_for_deployment(
     decoder: keras.Model,
     rvq_weights: list[np.ndarray],
     *,
+    rvq_num_levels: int | None = None,
+    rvq_use_ema: bool = False,
+    rvq_kmeans_init: bool = False,
     rep_dataset: np.ndarray,
     quantization_validation_dataset: np.ndarray | None = None,
     output_dir: str | Path,
@@ -184,13 +187,17 @@ def export_for_deployment(
         encoder: Trained Keras encoder model.
         decoder: Trained Keras decoder model.
         rvq_weights: Weight list from ``rvq.get_weights()``.
+        rvq_num_levels: Expected trained RVQ level count; required for EMA.
+        rvq_use_ema: Whether weights use the EMA codebook/count/sum layout.
+        rvq_kmeans_init: Whether EMA weights include a k-means warm-start flag.
         rep_dataset: Representative input dataset for TFLite calibration.
         quantization_validation_dataset: Disjoint preprocessed frames for
             post-export INT8-vs-float32 parity validation. Required for INT8.
         output_dir: Directory to write all deployment artifacts.
         sample_inputs: Optional sample input frames for validation.
         sample_targets: Optional sample target frames for validation.
-        sample_reconstructions: Optional model reconstructions of targets.
+        sample_reconstructions: Optional reconstructions when inputs are absent.
+            With sample inputs, recomputed through the trained discrete RVQ path.
         quantization: Quantization mode for TFLite conversion.
         io_type: I/O type string for TFLite conversion.
         codebook_prefix: Prefix for codebook C array names.
@@ -207,6 +214,29 @@ def export_for_deployment(
         ``DeploymentArtifacts`` with paths to all exported files.
     """
     output_dir = Path(output_dir)
+    codebooks = extract_codebooks(
+        rvq_weights, num_levels=rvq_num_levels, use_ema=rvq_use_ema, kmeans_init=rvq_kmeans_init
+    )
+    if any(cb.shape != codebooks[0].shape for cb in codebooks):
+        raise ValueError("Deployment currently requires equally sized RVQ codebooks")
+    if codebooks[0].shape[1] != encoder.output_shape[-1] or codebooks[0].shape[1] != decoder.input_shape[-1]:
+        raise ValueError("RVQ embedding dimension does not match encoder output and decoder input")
+    source_reference = None
+    if sample_inputs is not None:
+        from compressionkit.export.rvq_reference import build_rvq_reference
+
+        source_reference = build_rvq_reference(
+            encoder,
+            decoder,
+            rvq_weights,
+            sample_inputs,
+            num_levels=len(codebooks),
+            use_ema=rvq_use_ema,
+            kmeans_init=rvq_kmeans_init,
+        )
+        # Sample reconstructions must represent the discrete trained path,
+        # not decoder(encoder(x)) with the quantizer bypassed.
+        sample_reconstructions = source_reference["source_reconstructions"]
     if quantization == "INT8" and quantization_validation_dataset is None:
         raise ValueError("INT8 export requires a disjoint quantization_validation_dataset")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -324,11 +354,11 @@ def export_for_deployment(
     # 3. Codebook tables
     logger.info("Exporting codebook tables...")
     artifacts.codebook_npz = export_codebooks_npz(
-        rvq_weights,
+        codebooks,
         output_dir / "codebook.npz",
     )
     artifacts.codebook_header = export_codebooks_header(
-        rvq_weights,
+        codebooks,
         output_dir / "codebook.h",
         prefix=codebook_prefix,
     )
@@ -363,7 +393,6 @@ def export_for_deployment(
         artifacts.scorecard = write_scorecard_artifact(output_dir, scorecard_summary)
 
     # 5. Canonical runtime hydration spec
-    codebooks = extract_codebooks(rvq_weights)
     preprocessing_contract = dict(model_card_info.get("preprocessing_contract", {})) if model_card_info else {}
     codec_spec = {
         "family": "rvq",
@@ -530,6 +559,7 @@ def export_for_deployment(
                 "indices": encoded_indices,
                 "reconstructions": decoded_frames,
             }
+            reference_payload.update(source_reference)
             if sample_targets is not None:
                 reference_payload["targets"] = np.asarray(sample_targets, dtype=np.float32)
             np.savez_compressed(artifacts.reference_vectors, **reference_payload)
@@ -539,6 +569,16 @@ def export_for_deployment(
                 exc_info=True,
             )
             artifacts.reference_vectors = Path()
+
+    if artifacts.reference_vectors != Path():
+        from compressionkit.export.validate import _validate_reference_vectors
+
+        parity_errors: list[str] = []
+        _validate_reference_vectors(
+            output_dir, "rvq", parity_errors, [], max_vectors=len(sample_inputs), require_training_reference=True
+        )
+        if parity_errors:
+            raise ValueError("RVQ trained-model parity failed: " + "; ".join(parity_errors))
 
     # 7b. Compare the deployed INT8 encoder against its float32 companion on
     # a disjoint, real preprocessed validation partition.
