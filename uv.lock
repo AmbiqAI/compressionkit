@@ -435,7 +435,7 @@ ingest = [
 requires-dist = [
     { name = "ai-edge-litert", specifier = ">=2.1.2" },
     { name = "h5py", specifier = ">=3.12.1" },
-    { name = "helia-edge", specifier = ">=0.6.0" },
+    { name = "helia-edge", specifier = ">=0.6.0,<0.8" },
     { name = "huggingface-hub", marker = "extra == 'hf'", specifier = ">=0.25" },
     { name = "keras", specifier = ">=3.12.0" },
     { name = "matplotlib", specifier = ">=3.9.0" },
