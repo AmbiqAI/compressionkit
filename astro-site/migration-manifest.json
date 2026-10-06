@@ -953,7 +953,7 @@
     }
   ],
   "watchedSources": {
-    "compressionkit/experiments/registry.py": "f5c1061d3ffbf395e7a59418e3c614f3a9e426a64543917f25cb193f03dd238f",
+    "compressionkit/experiments/registry.py": "352da197f1885fbf6c576e43a1ec0293d076b976639e8763f89f5adcaffc48bf",
     "scripts/build_customer_evidence_summary.py": "0b851664c750874d46ad0a4b8ddcda926f4bdd141fbc63d416bbe5e592d505e2",
     "scripts/build_cr_vs_fidelity.py": "191ad45d6e7a74a1380b7810a7a4fb0fff954a7487df88979e1588d5532d0bad",
     "configs/ecg_rvq_256hz_02x_golden.yaml": "1df9d1fec0bf94f754eb7dcf963c6244224381d5c77cf677c9f43f53ed76ccf0",
