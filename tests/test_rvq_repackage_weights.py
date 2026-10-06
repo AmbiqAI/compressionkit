@@ -35,7 +35,11 @@ def test_repackage_restores_saved_ema_weights(tmp_path, monkeypatch, bad_config)
         (tmp_path / name).touch()
     monkeypatch.setattr(keras.models, "load_model", lambda _: SimpleNamespace(input_shape=(None, 1, 16, 1)))
     frames = np.ones((2, 1, 16, 1), np.float32)
-    monkeypatch.setattr(repackage, "collect_release_quantization_frames", lambda *args: (frames, frames + 1, {"normalization": {"epsilon": 0.001}}))
+    monkeypatch.setattr(
+        repackage,
+        "collect_release_quantization_frames",
+        lambda *args: (frames, frames + 1, {"normalization": {"epsilon": 0.001}}),
+    )
     monkeypatch.setattr(repackage, "finalize_release_metadata", lambda *args: None)
     from compressionkit.export import deploy, quantization, stimulus
 

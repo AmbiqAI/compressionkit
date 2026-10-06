@@ -140,6 +140,7 @@ def repackage_rvq_golden(
 
     from compressionkit.export.codebook import extract_codebooks, load_rvq_weights
     from compressionkit.export.deploy import export_for_deployment
+    from compressionkit.export.quantization import refresh_rvq_encoder_precision_reports
     from compressionkit.export.stimulus import export_stimulus_npz, generate_normalized_stimulus
 
     output_dir = output_dir or (run_dir / "deploy")

@@ -40,7 +40,9 @@ def _tiny_decoder() -> keras.Model:
     return keras.Model(inputs, outputs, name="smoke_decoder")
 
 
-def _build_smoke_rvq_deploy(tmp_path, *, use_ema=False, export_decoder_float32=True, export_decoder_int8=True, quantization="FP32"):
+def _build_smoke_rvq_deploy(
+    tmp_path, *, use_ema=False, export_decoder_float32=True, export_decoder_int8=True, quantization="FP32"
+):
     encoder = _tiny_encoder()
     decoder = _tiny_decoder()
 
