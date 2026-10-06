@@ -93,6 +93,7 @@ def _validate_reference_vectors(
     warnings: list[str],
     *,
     max_vectors: int,
+    require_training_reference: bool = False,
 ) -> None:
     ref_path = deploy_dir / ArtifactFile.REFERENCE_VECTORS
     if not ref_path.exists():
@@ -147,9 +148,42 @@ def _validate_reference_vectors(
         return
 
     if family == "rvq":
+        source_keys = {"source_latents", "source_indices", "source_quantized_latents", "source_reconstructions"}
+        has_source = source_keys.issubset(blob.files)
+        if not has_source:
+            message = "RVQ reference vectors lack independent trained-quantizer references; re-export required"
+            (errors if require_training_reference else warnings).append(message)
         frames = np.asarray(blob[SampleArray.INPUT_FRAMES], dtype=np.float32)
         indices = np.asarray(blob[SampleArray.INDICES], dtype=np.int32)
         recon = np.asarray(blob[SampleArray.RECONSTRUCTIONS], dtype=np.float32)
+        if frames.shape[0] == 0:
+            errors.append("RVQ reference vectors contain no frames")
+            return
+        if has_source:
+            latent_shape = blob["source_latents"].shape
+            if (
+                latent_shape[0] != frames.shape[0]
+                or blob["source_quantized_latents"].shape != latent_shape
+                or blob["source_indices"].shape != (*latent_shape[:-1], codec.num_levels)
+                or blob["source_reconstructions"].shape != recon.shape
+            ):
+                errors.append("RVQ trained-quantizer reference shapes do not match the deployment contract")
+                return
+        float_decoder = None
+        if has_source:
+            decoder_spec = (codec.spec or codec.manifest).get("decoder", {})
+            float_tflite = decoder_spec.get("float32_tflite")
+            if not float_tflite or not (deploy_dir / float_tflite).is_file():
+                # The runtime may select an INT8 decoder. Compare training
+                # references to the exported float Keras companion instead;
+                # quantized output has separate deployed reference vectors.
+                from compressionkit.export.keras_reference import decode_keras_reference, load_keras_reference_decoder
+
+                keras_decoder = decoder_spec.get("keras")
+                if not keras_decoder:
+                    errors.append("RVQ training parity requires a float decoder companion")
+                    return
+                float_decoder = load_keras_reference_decoder(deploy_dir / keras_decoder)
         for idx in range(min(max_vectors, frames.shape[0])):
             sample = frames[idx : idx + 1]
             actual_indices = codec.encode(sample)
@@ -160,6 +194,27 @@ def _validate_reference_vectors(
             actual_recon = codec.decode(actual_indices)
             if not np.allclose(actual_recon, recon[idx : idx + 1], atol=1e-5):
                 errors.append(f"RVQ reference reconstruction mismatch at sample {idx}")
+            if has_source:
+                source_latent = blob["source_latents"][idx : idx + 1]
+                deployed_latent = codec.encode_latent(sample)
+                if deployed_latent.shape != source_latent.shape or not np.allclose(
+                    deployed_latent, source_latent, atol=1e-5, rtol=1e-5
+                ):
+                    errors.append(f"RVQ trained-encoder latent mismatch at sample {idx} (atol=rtol=1e-5)")
+                source_indices = blob["source_indices"][idx : idx + 1]
+                actual_source_indices = codec.quantize_latent(source_latent)
+                if not np.array_equal(actual_source_indices, source_indices):
+                    errors.append(f"RVQ trained-quantizer index mismatch at sample {idx}")
+                    continue
+                actual_latent = codec.dequantize_indices(source_indices)
+                if not np.array_equal(actual_latent, blob["source_quantized_latents"][idx : idx + 1]):
+                    errors.append(f"RVQ trained-quantizer latent mismatch at sample {idx}")
+                if float_decoder is None:
+                    source_recon = codec.decode_latent(actual_latent)
+                else:
+                    source_recon = decode_keras_reference(float_decoder, actual_latent)
+                if not np.allclose(source_recon, blob["source_reconstructions"][idx : idx + 1], atol=1e-5, rtol=1e-5):
+                    errors.append(f"RVQ trained-decoder reconstruction mismatch at sample {idx} (atol=rtol=1e-5)")
         return
 
     warnings.append(f"No reference-vector validator registered for family {family!r}")
@@ -297,7 +352,9 @@ def validate_deploy_package(
 
     if check_reference_vectors and not errors:
         try:
-            _validate_reference_vectors(root, family, errors, warnings, max_vectors=max_vectors)
+            _validate_reference_vectors(
+                root, family, errors, warnings, max_vectors=max_vectors, require_training_reference=strict_release
+            )
         except Exception as exc:
             errors.append(f"reference-vector validation failed: {exc}")
 

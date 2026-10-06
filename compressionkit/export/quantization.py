@@ -41,6 +41,26 @@ class RvqEncoderQuantizationReport:
         return self.encoder_input_saturation_fraction_max <= MAX_INPUT_SATURATION_FRACTION
 
 
+def refresh_rvq_encoder_precision_reports(deploy_dir: str | Path, frames: np.ndarray) -> None:
+    """Recompute the model card's precision results against this deploy package.
+
+    Call after trained-quantizer parity succeeds and before final checksums.
+    Historical reports must not be carried over when codebooks change.
+    """
+    root = Path(deploy_dir)
+    card_path = root / "model_card.json"
+    card = json.loads(card_path.read_text())
+    card["encoder_precision_report"] = {
+        name: asdict(evaluate_rvq_encoder_quantization(root, frames, max_frames=None, candidate_encoder_name=filename))
+        for name, filename in {
+            "int8": "encoder.tflite",
+            "fp16": "encoder_fp16.tflite",
+            "int16x8": "encoder_int16x8.tflite",
+        }.items()
+    }
+    write_json(card_path, card)
+
+
 def _prd_percent(actual: np.ndarray, expected: np.ndarray) -> float:
     """Return RMS percent difference, with a safe zero-reference fallback."""
     err = np.asarray(actual, dtype=np.float64) - np.asarray(expected, dtype=np.float64)

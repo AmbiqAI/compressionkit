@@ -6,6 +6,7 @@ import json
 
 import keras
 import numpy as np
+import pytest
 
 from compressionkit.experiments import cli as golden_cli
 from compressionkit.export import export_for_deployment, validate_deploy_package
@@ -39,7 +40,9 @@ def _tiny_decoder() -> keras.Model:
     return keras.Model(inputs, outputs, name="smoke_decoder")
 
 
-def _build_smoke_rvq_deploy(tmp_path, *, quantization="FP32", export_decoder_float32=True, export_decoder_int8=True):
+def _build_smoke_rvq_deploy(
+    tmp_path, *, use_ema=False, export_decoder_float32=True, export_decoder_int8=True, quantization="FP32"
+):
     encoder = _tiny_encoder()
     decoder = _tiny_decoder()
 
@@ -48,12 +51,24 @@ def _build_smoke_rvq_deploy(tmp_path, *, quantization="FP32", export_decoder_flo
     sample_targets = sample_inputs.copy()
     sample_reconstructions = decoder.predict(encoder.predict(sample_inputs, verbose=0), verbose=0)
     rvq_weights = [np.random.randn(NUM_EMBEDDINGS, EMBED_DIM).astype(np.float32)]
+    if use_ema:
+        from compressionkit.layers.ema_residual_vector_quantizer import EmaResidualVectorQuantizer
+
+        vq = EmaResidualVectorQuantizer(num_levels=2, num_embeddings=NUM_EMBEDDINGS, embedding_dim=EMBED_DIM)
+        vq.build(encoder.output_shape)
+        for cb, count, total in zip(vq._codebooks, vq._ema_counts, vq._ema_weights):
+            cb.assign(np.random.randn(NUM_EMBEDDINGS, EMBED_DIM).astype(np.float32))
+            count.assign(np.full(NUM_EMBEDDINGS, 10.0, np.float32))
+            total.assign(np.full((NUM_EMBEDDINGS, EMBED_DIM), 50.0, np.float32))
+        rvq_weights = vq.get_weights()
 
     deploy_dir = tmp_path / "deploy"
     artifacts = export_for_deployment(
         encoder,
         decoder,
         rvq_weights,
+        rvq_num_levels=2 if use_ema else 1,
+        rvq_use_ema=use_ema,
         rep_dataset=rep_dataset,
         output_dir=deploy_dir,
         sample_inputs=sample_inputs,
@@ -82,8 +97,9 @@ def _build_smoke_rvq_deploy(tmp_path, *, quantization="FP32", export_decoder_flo
     return deploy_dir, artifacts
 
 
-def test_export_for_deployment_smoke_validates_strict_release(tmp_path) -> None:
-    deploy_dir, artifacts = _build_smoke_rvq_deploy(tmp_path)
+@pytest.mark.parametrize("use_ema", [False, True])
+def test_export_for_deployment_smoke_validates_strict_release(tmp_path, use_ema) -> None:
+    deploy_dir, artifacts = _build_smoke_rvq_deploy(tmp_path, use_ema=use_ema)
 
     assert artifacts.manifest.exists()
     assert artifacts.codec_spec.exists()
@@ -108,6 +124,11 @@ def test_export_for_deployment_smoke_validates_strict_release(tmp_path) -> None:
     assert "reference_vectors.npz" in result.checked_files
 
     manifest = json.loads(artifacts.manifest.read_text())
+    assert manifest["codebook"]["num_levels"] == (2 if use_ema else 1)
+    with np.load(artifacts.reference_vectors) as refs:
+        assert refs["source_indices"].shape[-1] == (2 if use_ema else 1)
+        with np.load(artifacts.sample_data_npz) as samples:
+            np.testing.assert_array_equal(samples["reconstructions"], refs["source_reconstructions"])
     assert manifest["encoder"]["default_variant"] == "float32"
     assert manifest["encoder"]["default_tflite"] == "encoder_float32.tflite"
     assert manifest["encoder"]["float32_tflite"] == "encoder_float32.tflite"
@@ -127,6 +148,33 @@ def test_export_for_deployment_smoke_validates_strict_release(tmp_path) -> None:
     interpreter.invoke()
     assert interpreter.get_tensor(output_detail["index"]).dtype == np.float32
 
+    if use_ema:
+        from compressionkit.export.release import write_checksums
+
+        with np.load(artifacts.reference_vectors) as refs:
+            payload = {key: refs[key] for key in refs.files}
+        source_latents = payload["source_latents"].copy()
+        payload["source_latents"] = source_latents + 0.01
+        np.savez_compressed(artifacts.reference_vectors, **payload)
+        write_checksums(deploy_dir)
+        result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=1)
+        assert any("trained-encoder latent mismatch" in error for error in result.errors)
+        payload["source_latents"] = source_latents
+        # The deployed references still agree with themselves. An independent
+        # training token mismatch must nevertheless reject the package.
+        payload["source_indices"] = (payload["source_indices"] + 1) % NUM_EMBEDDINGS
+        np.savez_compressed(artifacts.reference_vectors, **payload)
+        write_checksums(deploy_dir)
+        result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=1)
+        assert any("trained-quantizer index mismatch" in error for error in result.errors)
+        for key in list(payload):
+            if key.startswith("source_"):
+                payload.pop(key)
+        np.savez_compressed(artifacts.reference_vectors, **payload)
+        write_checksums(deploy_dir)
+        result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=1)
+        assert any("lack independent trained-quantizer references" in error for error in result.errors)
+
 
 def test_validate_deploy_cli_smoke(tmp_path, capsys) -> None:
     deploy_dir, _artifacts = _build_smoke_rvq_deploy(tmp_path)
@@ -138,6 +186,35 @@ def test_validate_deploy_cli_smoke(tmp_path, capsys) -> None:
     assert "family: rvq" in out
     assert "validation: ok" in out
     assert "scorecard.json" in out
+
+
+def test_int8_only_decoder_preserves_independent_float_parity(tmp_path) -> None:
+    from compressionkit.export.release import write_checksums
+
+    deploy_dir, artifacts = _build_smoke_rvq_deploy(tmp_path, export_decoder_float32=False, quantization="INT8")
+    assert not (deploy_dir / "decoder_float32.tflite").exists()
+    assert artifacts.decoder_int8_tflite.exists()
+    result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=2)
+    assert result.ok, result.errors
+    assert result.warnings == []
+
+    # Float training references and INT8 deployed references both remain
+    # checked, rather than weakening the float tolerance for quantization.
+    with np.load(artifacts.reference_vectors) as refs:
+        payload = {key: refs[key] for key in refs.files}
+    original = payload["source_reconstructions"].copy()
+    payload["source_reconstructions"] += 0.1
+    np.savez_compressed(artifacts.reference_vectors, **payload)
+    write_checksums(deploy_dir)
+    result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=2)
+    assert any("trained-decoder reconstruction mismatch" in error for error in result.errors)
+
+    payload["source_reconstructions"] = original
+    payload["reconstructions"] += 0.1
+    np.savez_compressed(artifacts.reference_vectors, **payload)
+    write_checksums(deploy_dir)
+    result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=2)
+    assert any("RVQ reference reconstruction mismatch" in error for error in result.errors)
 
 
 def test_int8_encoder_export_supports_keras_only_decoder(tmp_path) -> None:

@@ -132,8 +132,15 @@ class RVQCodec:
 
         # Load codebook
         cb_path = self._deploy_dir / runtime_spec["codebook"]["npz"]
-        cb_data = np.load(cb_path)
-        self._codebooks = [cb_data[k] for k in sorted(cb_data.files)]
+        cb_info = runtime_spec["codebook"]
+        with np.load(cb_path, allow_pickle=False) as cb_data:
+            keys = [f"level_{i}" for i in range(cb_info["num_levels"])]
+            if set(cb_data.files) != set(keys):
+                raise ValueError("Codebook archive levels do not match the deployment contract")
+            self._codebooks = [cb_data[k] for k in keys]
+        expected_shape = (cb_info["num_embeddings"], cb_info["embedding_dim"])
+        if not self._codebooks or any(cb.shape != expected_shape for cb in self._codebooks):
+            raise ValueError("Codebook shapes do not match the deployment contract")
         self._num_levels = len(self._codebooks)
         self._num_embeddings = self._codebooks[0].shape[0]
         self._embedding_dim = self._codebooks[0].shape[1]
