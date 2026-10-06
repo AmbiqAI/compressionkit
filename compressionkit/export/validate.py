@@ -169,6 +169,21 @@ def _validate_reference_vectors(
             ):
                 errors.append("RVQ trained-quantizer reference shapes do not match the deployment contract")
                 return
+        float_decoder = None
+        if has_source:
+            decoder_spec = (codec.spec or codec.manifest).get("decoder", {})
+            float_tflite = decoder_spec.get("float32_tflite")
+            if not float_tflite or not (deploy_dir / float_tflite).is_file():
+                # The runtime may select an INT8 decoder. Compare training
+                # references to the exported float Keras companion instead;
+                # quantized output has separate deployed reference vectors.
+                import keras
+
+                keras_decoder = decoder_spec.get("keras")
+                if not keras_decoder:
+                    errors.append("RVQ training parity requires a float decoder companion")
+                    return
+                float_decoder = keras.models.load_model(deploy_dir / keras_decoder)
         for idx in range(min(max_vectors, frames.shape[0])):
             sample = frames[idx : idx + 1]
             actual_indices = codec.encode(sample)
@@ -194,7 +209,13 @@ def _validate_reference_vectors(
                 actual_latent = codec.dequantize_indices(source_indices)
                 if not np.array_equal(actual_latent, blob["source_quantized_latents"][idx : idx + 1]):
                     errors.append(f"RVQ trained-quantizer latent mismatch at sample {idx}")
-                source_recon = codec.decode_latent(actual_latent)
+                if float_decoder is None:
+                    source_recon = codec.decode_latent(actual_latent)
+                else:
+                    source_recon = float_decoder(actual_latent, training=False)
+                    if isinstance(source_recon, dict):
+                        source_recon = source_recon.get("reconstruction", source_recon.get("output"))
+                    source_recon = np.asarray(source_recon, dtype=np.float32)
                 if not np.allclose(source_recon, blob["source_reconstructions"][idx : idx + 1], atol=1e-5, rtol=1e-5):
                     errors.append(f"RVQ trained-decoder reconstruction mismatch at sample {idx} (atol=rtol=1e-5)")
         return

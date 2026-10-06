@@ -40,7 +40,7 @@ def _tiny_decoder() -> keras.Model:
     return keras.Model(inputs, outputs, name="smoke_decoder")
 
 
-def _build_smoke_rvq_deploy(tmp_path, *, use_ema=False):
+def _build_smoke_rvq_deploy(tmp_path, *, use_ema=False, export_decoder_float32=True, quantization="FP32"):
     encoder = _tiny_encoder()
     decoder = _tiny_decoder()
 
@@ -72,8 +72,12 @@ def _build_smoke_rvq_deploy(tmp_path, *, use_ema=False):
         sample_inputs=sample_inputs,
         sample_targets=sample_targets,
         sample_reconstructions=sample_reconstructions,
-        quantization="FP32",
-        io_type="float32",
+        quantization=quantization,
+        io_type="int8" if quantization == "INT8" else "float32",
+        quantization_validation_dataset=np.random.default_rng(75)
+        .uniform(-0.1, 0.1, rep_dataset.shape)
+        .astype(np.float32),
+        export_decoder_float32=export_decoder_float32,
         model_name="ppg_rvq_smoke",
         model_card_info={
             "run_name": "ppg_rvq_64hz_04x_golden",
@@ -179,3 +183,32 @@ def test_validate_deploy_cli_smoke(tmp_path, capsys) -> None:
     assert "family: rvq" in out
     assert "validation: ok" in out
     assert "scorecard.json" in out
+
+
+def test_int8_only_decoder_preserves_independent_float_parity(tmp_path) -> None:
+    from compressionkit.export.release import write_checksums
+
+    deploy_dir, artifacts = _build_smoke_rvq_deploy(tmp_path, export_decoder_float32=False, quantization="INT8")
+    assert not (deploy_dir / "decoder_float32.tflite").exists()
+    assert artifacts.decoder_int8_tflite.exists()
+    result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=2)
+    assert result.ok, result.errors
+    assert result.warnings == []
+
+    # Float training references and INT8 deployed references both remain
+    # checked, rather than weakening the float tolerance for quantization.
+    with np.load(artifacts.reference_vectors) as refs:
+        payload = {key: refs[key] for key in refs.files}
+    original = payload["source_reconstructions"].copy()
+    payload["source_reconstructions"] += 0.1
+    np.savez_compressed(artifacts.reference_vectors, **payload)
+    write_checksums(deploy_dir)
+    result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=2)
+    assert any("trained-decoder reconstruction mismatch" in error for error in result.errors)
+
+    payload["source_reconstructions"] = original
+    payload["reconstructions"] += 0.1
+    np.savez_compressed(artifacts.reference_vectors, **payload)
+    write_checksums(deploy_dir)
+    result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=2)
+    assert any("RVQ reference reconstruction mismatch" in error for error in result.errors)

@@ -63,6 +63,9 @@ requires identical indices and quantized latents for identical source latents;
 the float encoder and decoder comparisons use `atol=rtol=1e-5`. This isolates codebook
 correctness from encoder conversion and precision differences. Sample-data
 reconstructions also use the discrete trained path rather than bypassing VQ.
+For INT8-only decoder packages, the training comparison uses the exported float
+Keras decoder companion; the selected INT8 decoder is checked against its own
+deployed reference vectors. Float tolerances are not applied to INT8 outputs.
 
 Strict release validation rejects older RVQ references without these source
 arrays. Re-export them from the original training state; a self-consistent
