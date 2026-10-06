@@ -1,0 +1,1317 @@
+{
+  "release_id": "rvq-export-v1.1",
+  "date": "2026-10-06",
+  "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+  "scope": "11 single-stage corrected exports; no retraining or new physiological evaluation; no entropy priors",
+  "validation": {
+    "bundles": 11,
+    "reference_frames": 110,
+    "complete_packet_roundtrips": 440,
+    "source_tests_passed": 445,
+    "source_tests_optional_skips": 78
+  },
+  "releases": [
+    {
+      "experiment_id": "ecg-rvq-16x",
+      "hf_repo_id": "Ambiq/compressionkit-ecg-16x-v1.1",
+      "hub_revision": "2917a156cfc9e8c2e23aacfd278ec10ce5bef298",
+      "previous_repo_id": "Ambiq/compressionkit-ecg-16x-v1.0",
+      "previous_revision": "e1c78d7227fec77887bd6a619d3463e238c3e01d",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 256,
+      "frame_size": 512,
+      "nominal_compression_ratio": 16,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 68,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 15.058823529411764,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "abd30475d02ed18a8fb5761e15235378b32621cba69cbcabaecafe010ea14d92",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "e1c78d7227fec77887bd6a619d3463e238c3e01d",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 256,
+        "frame_size": 512,
+        "input_shape": [
+          1,
+          1,
+          512,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.515625,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 5.32648551190221,
+          "reconstruction_prd_percent_max": 29.25094354381138,
+          "reconstruction_prd_percent_p90": 8.20972189220826
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.03477722306192083,
+          "reconstruction_prd_percent_max": 6.084195739161758,
+          "reconstruction_prd_percent_p90": 0.8270459116324722
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.90625,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.8317500029081282,
+          "reconstruction_prd_percent_max": 17.76016577490633,
+          "reconstruction_prd_percent_p90": 4.440594093126392
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ecg-16x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ecg-16x-v1.0",
+          "revision": "e1c78d7227fec77887bd6a619d3463e238c3e01d"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "cbb6f44d3a78839010a725fcbf3e004b57d9205a8b94b1fafd19987c956968b4",
+          "decoder.keras": "44e220d2a8ca2489932877957d9bee28c0199a4390444ffc58e7ebb1451455ae",
+          "rvq_weights.npz": "1fe0dd479d9543042b33b2f599ae8817c7b86c18ee63c92e297d57447cff0457",
+          "config.json": "f40b6adcbbb940a69888fcd7df244feed2e10710e10b9a0bc0250c264f394063",
+          "quality_scorecard.json": "d0b8745ea4e6b4851bd7eb98ddad03d7f77600edaaf4e125e837ea0551862b18"
+        },
+        "saved_config_dataset_sources": [
+          "ptb-xl"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ecg-rvq-2x",
+      "hf_repo_id": "Ambiq/compressionkit-ecg-2x-v1.1",
+      "hub_revision": "5e7c5b7013939c34932f7766e0e6c967771d73e8",
+      "previous_repo_id": "Ambiq/compressionkit-ecg-2x-v1.0",
+      "previous_revision": "4d07900f24978ee3830ee2a6a4e2becaa0880645",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 256,
+      "frame_size": 512,
+      "nominal_compression_ratio": 2,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 516,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 1.9844961240310077,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "b0dcff52a5d52d6132223cb58ce40643e1b9bbfff3a985567a6e5d62f50ab1a3",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "4d07900f24978ee3830ee2a6a4e2becaa0880645",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 256,
+        "frame_size": 512,
+        "input_shape": [
+          1,
+          1,
+          512,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.27734375,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 7.231732308649096,
+          "reconstruction_prd_percent_max": 7.467517407691171,
+          "reconstruction_prd_percent_p90": 3.43325938079292
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 0.998046875,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.03768657521060596,
+          "reconstruction_prd_percent_max": 1.649463433907677,
+          "reconstruction_prd_percent_p90": 0.213636473882605
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.939453125,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.6892535283964113,
+          "reconstruction_prd_percent_max": 2.933627178937992,
+          "reconstruction_prd_percent_p90": 0.9401819006598036
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ecg-2x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ecg-2x-v1.0",
+          "revision": "4d07900f24978ee3830ee2a6a4e2becaa0880645"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "ee9c0cca37a411c003c4685f6da9a3376cb242d14f2eafc3d82ca89c9e3b6c31",
+          "decoder.keras": "8161b7e3bae1f2a16e35b2cee7749196592e26af1ba58d74617119e68ff1dd5c",
+          "rvq_weights.npz": "9da1fe2ab3481103b2d8f191a60897acd47c2561d65bd906d9c40a99d02bbcc7",
+          "config.json": "aedcf0112a1f157d1b13f4c3f6d6bcf9c05046fd13ff4e4da8c098de6a53df0c",
+          "quality_scorecard.json": "01cdd61014d7517ce06b5c31bd54e415338d679eadeed853dbf9a5eae13982be"
+        },
+        "saved_config_dataset_sources": [
+          "ptb-xl"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ecg-rvq-32x",
+      "hf_repo_id": "Ambiq/compressionkit-ecg-32x-v1.1",
+      "hub_revision": "76230861156c2ed5d09a4fe297d2df628622b128",
+      "previous_repo_id": "Ambiq/compressionkit-ecg-32x-v1.0",
+      "previous_revision": "13c9be7e94b80191385f6be3aad32d2effb59e0b",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 256,
+      "frame_size": 512,
+      "nominal_compression_ratio": 32,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 1,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 16384,
+      "packet_bytes": 36,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 28.444444444444443,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "88ecbfd74776d32f7646af444a46890519d13e2fc53e33027cc5decb792d2dab",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "13c9be7e94b80191385f6be3aad32d2effb59e0b",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 256,
+        "frame_size": 512,
+        "input_shape": [
+          1,
+          1,
+          512,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.78125,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 4.467638018756055,
+          "reconstruction_prd_percent_max": 27.19077027573804,
+          "reconstruction_prd_percent_p90": 9.669886963393884
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.05672508929764873,
+          "reconstruction_prd_percent_max": 13.332575875589855,
+          "reconstruction_prd_percent_p90": 0.9275455502882823
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.96875,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.8508853950155761,
+          "reconstruction_prd_percent_max": 24.734961967743228,
+          "reconstruction_prd_percent_p90": 5.947017975451684
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ecg-32x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ecg-32x-v1.0",
+          "revision": "13c9be7e94b80191385f6be3aad32d2effb59e0b"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "624a52832f12cc2c9f7f10100906ca1c0ba1d4a67a781f856ae7c81b6393c239",
+          "decoder.keras": "87fe087a5e1494965e89756765cf671333f8bf6164bd288e0541cca5669868dc",
+          "rvq_weights.npz": "fc4362ff6e31cf01e36a5d20e408da9b8afb9859449e5b136ffcf0f28e300e40",
+          "config.json": "08f8d14fb7477ddb48be2886a15261064bdd25b5bdf77ccf925cd7049f57456b",
+          "quality_scorecard.json": "cacc98bc7692ecbcce103f79e896e7ce85b50b0da97dc22cd16645866ace2556"
+        },
+        "saved_config_dataset_sources": [
+          "ptb-xl"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ecg-rvq-4x",
+      "hf_repo_id": "Ambiq/compressionkit-ecg-4x-v1.1",
+      "hub_revision": "605710fdad8a59fc4df20026e02a3ea3efb46598",
+      "previous_repo_id": "Ambiq/compressionkit-ecg-4x-v1.0",
+      "previous_revision": "f8be1ba5454d0eb5c645393ec3261e74d0bf26a8",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 256,
+      "frame_size": 512,
+      "nominal_compression_ratio": 4,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 260,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 3.9384615384615387,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "a10f3c33ce96deb905ecf224f14036d7ffe8944c689b869aa5f451f1ba41fb42",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "f8be1ba5454d0eb5c645393ec3261e74d0bf26a8",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 256,
+        "frame_size": 512,
+        "input_shape": [
+          1,
+          1,
+          512,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.39453125,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 6.140229744960842,
+          "reconstruction_prd_percent_max": 12.808473662196842,
+          "reconstruction_prd_percent_p90": 5.267588204772099
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.02294558028430689,
+          "reconstruction_prd_percent_max": 2.6307946045714523,
+          "reconstruction_prd_percent_p90": 0.23837874144596363
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.9453125,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.5951011642022491,
+          "reconstruction_prd_percent_max": 4.90118331410871,
+          "reconstruction_prd_percent_p90": 1.815759787613518
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ecg-4x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ecg-4x-v1.0",
+          "revision": "f8be1ba5454d0eb5c645393ec3261e74d0bf26a8"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "5c0584ec869d812746a6c8d6afe77e41d078434c49ad75ddf9d3002274ff8eed",
+          "decoder.keras": "cc752dacaf4ed2d95955d45b1b3a7cd94d39e2c88b2a3107b53b1dd878548758",
+          "rvq_weights.npz": "b7cf529c303d2a8a2c0bf0d41e98c1942167a0d6cd74ac7fa9c508699406ae7b",
+          "config.json": "f982ee1f2052326429ea15c7e18e0c82ccf707d67ebafd7cf764cf3c10938e3b",
+          "quality_scorecard.json": "aee254e9fcf0b1881325b9725c201846cdf327481f0b30408eef929d7f8cc7e9"
+        },
+        "saved_config_dataset_sources": [
+          "ptb-xl"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ecg-rvq-64x",
+      "hf_repo_id": "Ambiq/compressionkit-ecg-64x-v1.1",
+      "hub_revision": "e4b59faa963b7986286081db906b54db8b72f5b8",
+      "previous_repo_id": "Ambiq/compressionkit-ecg-64x-v1.0",
+      "previous_revision": "49c2dd0ddb04b23d6817e584c9865046ecd15424",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 256,
+      "frame_size": 512,
+      "nominal_compression_ratio": 64,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 1,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 16384,
+      "packet_bytes": 20,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 51.2,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "7b098351e5c93f8b2ec1a9aa40a29d2389c2d8100456248769e393117c96e2aa",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "49c2dd0ddb04b23d6817e584c9865046ecd15424",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 256,
+        "frame_size": 512,
+        "input_shape": [
+          1,
+          1,
+          512,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.875,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 3.813841871216057,
+          "reconstruction_prd_percent_max": 31.436281783128244,
+          "reconstruction_prd_percent_p90": 13.637585898481623
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.041841109143292664,
+          "reconstruction_prd_percent_max": 17.378431051524263,
+          "reconstruction_prd_percent_p90": 0.0
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.7727179991432114,
+          "reconstruction_prd_percent_max": 31.816809372271177,
+          "reconstruction_prd_percent_p90": 8.280915013423305
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ecg-64x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ecg-64x-v1.0",
+          "revision": "49c2dd0ddb04b23d6817e584c9865046ecd15424"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "f36fd1caac4455125a02ae95b45c95d3e551808dddb5982596a0e7caff291b9c",
+          "decoder.keras": "6177842322f65d5c0fffd9259ee41be09fd85b6908cb09f144f6f73d61ba2918",
+          "rvq_weights.npz": "ac6ac24c66ac86ffe72c914403809b6674d968b49b7250da59e40e4d218319aa",
+          "config.json": "9f18cc46dedebf954a2d01c082ca14201df4b74ef77c7d48841a966d2f72de8b",
+          "quality_scorecard.json": "2ead2557978695862e00506fcdc98e641d35f19e2bd7e723052d3e8864fec6d5"
+        },
+        "saved_config_dataset_sources": [
+          "ptb-xl"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ecg-rvq-8x",
+      "hf_repo_id": "Ambiq/compressionkit-ecg-8x-v1.1",
+      "hub_revision": "94008aacf80a70977edf410d02bec27a3589f71d",
+      "previous_repo_id": "Ambiq/compressionkit-ecg-8x-v1.0",
+      "previous_revision": "548a82529fc10075c31f19ab1ed8c09dfb2e58f4",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 256,
+      "frame_size": 512,
+      "nominal_compression_ratio": 8,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 132,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 7.757575757575758,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "fa595b1fd2ddf94770702659564bd2cfa736e46e0d07030fea4220bbb7d7efa1",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "548a82529fc10075c31f19ab1ed8c09dfb2e58f4",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 256,
+        "frame_size": 512,
+        "input_shape": [
+          1,
+          1,
+          512,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.3828125,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 6.487782146678019,
+          "reconstruction_prd_percent_max": 20.791750686143086,
+          "reconstruction_prd_percent_p90": 7.624651356385293
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.02934907370403674,
+          "reconstruction_prd_percent_max": 5.288753467215186,
+          "reconstruction_prd_percent_p90": 0.6379682991449382
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.921875,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.6776941527071608,
+          "reconstruction_prd_percent_max": 19.97349756820578,
+          "reconstruction_prd_percent_p90": 2.965120876815057
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ecg-8x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ecg-8x-v1.0",
+          "revision": "548a82529fc10075c31f19ab1ed8c09dfb2e58f4"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "962ce597c2c15e912094ff86112e76342a987d3eb831fe7b3facee49671c390f",
+          "decoder.keras": "deb44a851658e2c3f2edd7fee95fc7366053950b13933d47ded0e6eee8767e92",
+          "rvq_weights.npz": "601028fd213502c9ce9b8b1c3fc0f27ec7513fd1997e0aafa61ffd5d29413ba5",
+          "config.json": "82c1eb0ebff7d516ed1f5eafa56c13bcc6103eddf5949eb5f7695ff0a5a27473",
+          "quality_scorecard.json": "85c49af3864652c495720afd04f9d6ce5f4351c8bb0035d33ced13c929e66a7c"
+        },
+        "saved_config_dataset_sources": [
+          "ptb-xl"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ppg-rvq-16x",
+      "hf_repo_id": "Ambiq/compressionkit-ppg-16x-v1.1",
+      "hub_revision": "dbe1744b1e5bdaafd150413ae36a3befb5b62bbf",
+      "previous_repo_id": "Ambiq/compressionkit-ppg-16x-v1.0",
+      "previous_revision": "928d302ac822712c4513488f6d4e0fef962bde37",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 64,
+      "frame_size": 320,
+      "nominal_compression_ratio": 16,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 44,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 14.545454545454545,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "594a0c9c179c7d151ffd41517d9b157faabae574faf45eb2ba5ae8c6a4ac0204",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "928d302ac822712c4513488f6d4e0fef962bde37",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 64,
+        "frame_size": 320,
+        "input_shape": [
+          1,
+          1,
+          320,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.7,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 3.872741895776422,
+          "reconstruction_prd_percent_max": 12.612366334873357,
+          "reconstruction_prd_percent_p90": 6.704610042332522
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.030416584856261215,
+          "reconstruction_prd_percent_max": 4.630277169241111,
+          "reconstruction_prd_percent_p90": 0.0
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.975,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.6558023229147862,
+          "reconstruction_prd_percent_max": 8.093066900533758,
+          "reconstruction_prd_percent_p90": 3.0826103330604617
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ppg-16x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ppg-16x-v1.0",
+          "revision": "928d302ac822712c4513488f6d4e0fef962bde37"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "017c2672a4054c7b8e343f84d7b5688d8771059d457d095d63ba7b3c20b1ace9",
+          "decoder.keras": "0dcf7480e00bcace77462757229854cd18faf3b05ca7a67ab31038d17d1bf723",
+          "rvq_weights.npz": "ffcd030f474c5105df4db018730979fb7ad33b2bf3eff3dff66cdfe89534d0dd",
+          "config.json": "e60aa1e5fcc11a8d7cd0b805d3eea2fff84fcc2c4d43b8f43c67f90d52c803d6",
+          "quality_scorecard.json": "476b6dfe824e69b5e2b46d138d25b7e9ff418c2b4bd885e83e7d2eb281a6c3ce"
+        },
+        "saved_config_dataset_sources": [
+          "bidmc",
+          "butppg",
+          "ppg_dalia",
+          "wesad"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ppg-rvq-2x",
+      "hf_repo_id": "Ambiq/compressionkit-ppg-2x-v1.1",
+      "hub_revision": "419fc890d54798cc18a37e23f82064f395d1cdc7",
+      "previous_repo_id": "Ambiq/compressionkit-ppg-2x-v1.0",
+      "previous_revision": "af00d62fcdd8e8c12a2929bae9d22911ab518966",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 64,
+      "frame_size": 320,
+      "nominal_compression_ratio": 2,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 324,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 1.9753086419753085,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "37106cd6436b1fb92ea52247a581d47b446067301f57964bef117f5ded4df0a4",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "af00d62fcdd8e8c12a2929bae9d22911ab518966",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 64,
+        "frame_size": 320,
+        "input_shape": [
+          1,
+          1,
+          320,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.35,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 7.536643776030332,
+          "reconstruction_prd_percent_max": 6.125088839954151,
+          "reconstruction_prd_percent_p90": 3.05376936054176
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 0.990625,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.0633389911946514,
+          "reconstruction_prd_percent_max": 0.5703117990895303,
+          "reconstruction_prd_percent_p90": 0.16679176939878168
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.846875,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 1.0352796329361273,
+          "reconstruction_prd_percent_max": 1.7476337240960216,
+          "reconstruction_prd_percent_p90": 0.6590170026021227
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ppg-2x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ppg-2x-v1.0",
+          "revision": "af00d62fcdd8e8c12a2929bae9d22911ab518966"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "49e252de9148fbdb0f6599055e1929dd6bd6467b9d1947fe149413c9442401c5",
+          "decoder.keras": "054ef27ba4c7d07a5f939e69da2144c3cc9930316f9c6d6875db2ba7e0d53768",
+          "rvq_weights.npz": "b7798ad44d5181a19b46dda4d14042a4a5de8c3bffb7f2ed5efbb48a10f6033c",
+          "config.json": "0bc6d6937ebc03b04065bf90510fab58b9fe340567511f08dbe1fde3a5c50da8",
+          "quality_scorecard.json": "81223e7c7e4ec5e7c248c06d39ca2331cfebd1539389e2740f36982622ce00eb"
+        },
+        "saved_config_dataset_sources": [
+          "bidmc",
+          "butppg",
+          "ppg_dalia",
+          "wesad"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ppg-rvq-32x",
+      "hf_repo_id": "Ambiq/compressionkit-ppg-32x-v1.1",
+      "hub_revision": "94cd44ff71dde747d73187a05357491a2e955f7d",
+      "previous_repo_id": "Ambiq/compressionkit-ppg-32x-v1.0",
+      "previous_revision": "bff7e89fbe3c6b35a2db829d7da6022eb26fcf34",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 64,
+      "frame_size": 320,
+      "nominal_compression_ratio": 32,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 1,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 16384,
+      "packet_bytes": 24,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 26.666666666666668,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "a075c1ab5706aa56a6f59c3f2c17c88d07115ee31a3fe390d3908daeddcb32dd",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "bff7e89fbe3c6b35a2db829d7da6022eb26fcf34",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 64,
+        "frame_size": 320,
+        "input_shape": [
+          1,
+          1,
+          320,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.85,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 3.734960589655774,
+          "reconstruction_prd_percent_max": 20.874557395249976,
+          "reconstruction_prd_percent_p90": 11.31056659960422
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.02462919144008737,
+          "reconstruction_prd_percent_max": 8.945128537885628,
+          "reconstruction_prd_percent_p90": 0.0
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.5581851404504072,
+          "reconstruction_prd_percent_max": 15.2585554698384,
+          "reconstruction_prd_percent_p90": 5.6344101530630635
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ppg-32x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ppg-32x-v1.0",
+          "revision": "bff7e89fbe3c6b35a2db829d7da6022eb26fcf34"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "2e70ad3e4a3c0aa546ceb9d4c9ef62920374c2215f37c8c4a05da05c297a7507",
+          "decoder.keras": "89ccddddf76da38de2d0ebbf6675b9ade6e6696f486392e0929ee1a8c36e6768",
+          "rvq_weights.npz": "9fa042579e4f2d0f4a25e605ee26aa256c83521d2dd1196084d8ece06ccb33f9",
+          "config.json": "994a4795741fb52e712d9223366ceb8a8320f18a818d16a5270f8aafe3ed87d8",
+          "quality_scorecard.json": "ecbc7ad2359ee0452f347e293f381b842f7081b7a946fe6b523dbab344754b04"
+        },
+        "saved_config_dataset_sources": [
+          "bidmc",
+          "butppg",
+          "ppg_dalia",
+          "wesad"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ppg-rvq-4x",
+      "hf_repo_id": "Ambiq/compressionkit-ppg-4x-v1.1",
+      "hub_revision": "b8d8e104a9e3cf42215a82bf14336efc66472bab",
+      "previous_repo_id": "Ambiq/compressionkit-ppg-4x-v1.0",
+      "previous_revision": "8e3b465983808d50d99799df6135aaffe68029ff",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 64,
+      "frame_size": 320,
+      "nominal_compression_ratio": 4,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 164,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 3.902439024390244,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "decccc2dbf9014b746d48ebedff93a6465050d1cca6f0abc5e441972774f903d",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "8e3b465983808d50d99799df6135aaffe68029ff",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 64,
+        "frame_size": 320,
+        "input_shape": [
+          1,
+          1,
+          320,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.38125,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 4.873773993198822,
+          "reconstruction_prd_percent_max": 4.64368215317287,
+          "reconstruction_prd_percent_p90": 2.810208908957968
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 0.99375,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.03661526047261865,
+          "reconstruction_prd_percent_max": 0.6363130575288274,
+          "reconstruction_prd_percent_p90": 0.20304752913933233
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.8968750000000001,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.5836852859067797,
+          "reconstruction_prd_percent_max": 2.874972919860897,
+          "reconstruction_prd_percent_p90": 0.7264584090783407
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ppg-4x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ppg-4x-v1.0",
+          "revision": "8e3b465983808d50d99799df6135aaffe68029ff"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "4240d493c17e89b9db5711bb295065ce2aa5efcd4be64e06c69381eb2042defe",
+          "decoder.keras": "5050b11f19a9585c96d70fafe74648690c1603ffda493bd63aa1eec28a3159d2",
+          "rvq_weights.npz": "a684f9808d20ecf5006008ac16b9812ac3eaf33fbe7f45b40e3bf15f2de7c022",
+          "config.json": "826d6d1a95650b00ee6a184f014226458f12a6388aa9b05c75782071d827ccee",
+          "quality_scorecard.json": "9e3b800024964cc4414e4a023d2c4708e244e6eb3fffb21e5c8a30cf1a80855b"
+        },
+        "saved_config_dataset_sources": [
+          "bidmc",
+          "butppg",
+          "ppg_dalia",
+          "wesad"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    },
+    {
+      "experiment_id": "ppg-rvq-8x",
+      "hf_repo_id": "Ambiq/compressionkit-ppg-8x-v1.1",
+      "hub_revision": "24caa26b155a8173222620f4e5deb25a07d49879",
+      "previous_repo_id": "Ambiq/compressionkit-ppg-8x-v1.0",
+      "previous_revision": "7e2b0cea808d1b1f168c4131ea5c00ffe50e9cce",
+      "package_version": "1.1.0",
+      "sample_rate_hz": 64,
+      "frame_size": 320,
+      "nominal_compression_ratio": 8,
+      "codebook": {
+        "npz": "codebook.npz",
+        "header": "codebook.h",
+        "num_levels": 2,
+        "num_embeddings": 256,
+        "embedding_dim": 16
+      },
+      "codebook_value_bytes": 32768,
+      "packet_bytes": 84,
+      "packet_header_bytes": 4,
+      "compression_ratio_pcm16_including_header": 7.619047619047619,
+      "reference_frames": 10,
+      "packet_roundtrips": 40,
+      "encoder_variants": [
+        "float32",
+        "int8",
+        "fp16",
+        "int16x8"
+      ],
+      "published_checksums_sha256": "6dbd6fa243a873493008649b7743d7e26f88c3b7ac19e0c7aff8b1552d72125a",
+      "files_verified": 31,
+      "strict_local_validation": true,
+      "strict_staged_validation": true,
+      "strict_downloaded_validation": true,
+      "original_artifacts_unchanged": true,
+      "previous_head_unchanged": "7e2b0cea808d1b1f168c4131ea5c00ffe50e9cce",
+      "preprocessing_contract": {
+        "format_version": 1,
+        "sample_rate_hz": 64,
+        "frame_size": 320,
+        "input_shape": [
+          1,
+          1,
+          320,
+          1
+        ],
+        "normalization": {
+          "kind": "per_frame_layer_norm",
+          "mean": "mean over all samples in each frame",
+          "variance": "mean squared deviation over all samples in each frame",
+          "epsilon": 0.001,
+          "inverse_for_display": "raw = normalized * sqrt(variance + epsilon) + mean"
+        },
+        "int8_quantization": {
+          "calibration_frames": 4096,
+          "validation_frames": 2048,
+          "sampling_pool_frames": 65536,
+          "sampling_method": "seeded reservoir sample; disjoint calibration and validation partitions"
+        }
+      },
+      "encoder_precision_report": {
+        "int8": {
+          "code_index_match_fraction_median": 0.55,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 4.389877562740608,
+          "reconstruction_prd_percent_max": 7.991384284064365,
+          "reconstruction_prd_percent_p90": 4.357641338187402
+        },
+        "fp16": {
+          "code_index_match_fraction_median": 1.0,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.033742016676295075,
+          "reconstruction_prd_percent_max": 1.9677144163382787,
+          "reconstruction_prd_percent_p90": 0.5213478554658434
+        },
+        "int16x8": {
+          "code_index_match_fraction_median": 0.9375,
+          "encoder_input_saturation_fraction_max": 0.0,
+          "encoder_input_saturation_fraction_p90": 0.0,
+          "frames_checked": 2048,
+          "latent_prd_percent_p90": 0.783271725276413,
+          "reconstruction_prd_percent_max": 5.490851579379616,
+          "reconstruction_prd_percent_p90": 1.7842740509240795
+        }
+      },
+      "provenance": {
+        "release_version": "1.1.0",
+        "hf_repo_id": "Ambiq/compressionkit-ppg-8x-v1.1",
+        "source_commit": "7a5443834ec50e41f41d4ff2b1c2f27e73b1acf7",
+        "toolkit_version": "0.2.0",
+        "release_kind": "corrected_export_without_retraining",
+        "replaces": {
+          "repo_id": "Ambiq/compressionkit-ppg-8x-v1.0",
+          "revision": "7e2b0cea808d1b1f168c4131ea5c00ffe50e9cce"
+        },
+        "checkpoint_sha256": {
+          "encoder.keras": "ed422141fbd84bb62d9a769a3724eabe91dcf96835e6fac21ad599b510f55e38",
+          "decoder.keras": "e5ff41a311660919f6b1a91c1ae7405fb330042e073f12bd9692918d07464e13",
+          "rvq_weights.npz": "114ed973446fcf88a4b4364caea768c741c8365d43bcca0a3f2e0c1d0df921a2",
+          "config.json": "04ca414d2b1bddb6f99e5b2d8468de00c0dc0bcea02b99b98bfba45553d007b7",
+          "quality_scorecard.json": "f3a03e774b8e50c365258c57f1a181ab92b81c958150e907c0222f1e2dd0dfb2"
+        },
+        "saved_config_dataset_sources": [
+          "bidmc",
+          "butppg",
+          "ppg_dalia",
+          "wesad"
+        ],
+        "pretraining_ancestry": "not independently audited during export repair",
+        "sample_source": "synthetic physiokit, seed 42; no real calibration frames exported",
+        "physiological_scorecard_status": "historical; not reevaluated for this release",
+        "precision_report_status": "recomputed against corrected codebooks on content-disjoint real holdout",
+        "packet_compatibility": "corrected RVQ level counts; bind packets to exact repository and revision",
+        "entropy_prior_status": "not included or requalified"
+      }
+    }
+  ]
+}

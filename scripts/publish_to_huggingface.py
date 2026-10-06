@@ -5,18 +5,18 @@ Usage::
     # Publish from a golden deploy directory
     python scripts/publish_to_huggingface.py \\
         --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
-        --repo-id Ambiq/compressionkit-ppg-4x-v1.0
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.1
 
     # With a quality scorecard
     python scripts/publish_to_huggingface.py \\
         --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
-        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \\
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.1 \\
         --scorecard results/ppg_rvq_64hz_04x_golden/quality_scorecard.json
 
     # Dry run (generate model card only, don't upload)
     python scripts/publish_to_huggingface.py \\
         --deploy-dir results/ppg_rvq_64hz_04x_golden/deploy \\
-        --repo-id Ambiq/compressionkit-ppg-4x-v1.0 \\
+        --repo-id Ambiq/compressionkit-ppg-4x-v1.1 \\
         --dry-run
 
 Requires ``HF_TOKEN`` environment variable or ``huggingface-cli login``.
@@ -35,6 +35,7 @@ from pathlib import Path
 from compressionkit.export.artifact_contract import ArtifactFile
 from compressionkit.export.family_registry import CodecFamilySpec, get_family_spec
 from compressionkit.export.quantization import require_rvq_encoder_quantization_report
+from compressionkit.export.release import write_checksums
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -59,7 +60,10 @@ def _stage_deploy_files(
     so RVQ/SPIHT/hybrid share one staging path instead of three independently
     maintained copies.
     """
-    staged: list[str] = []
+    # Preserve the self-validating canonical package, including independent
+    # references and provenance files. HF aliases supplement that contract.
+    shutil.copytree(deploy_dir, staging_dir, dirs_exist_ok=True)
+    staged = [p.relative_to(staging_dir).as_posix() for p in sorted(staging_dir.rglob("*")) if p.is_file()]
 
     for src_name, dst_name in spec.hf_file_renames:
         src = deploy_dir / src_name
@@ -113,7 +117,7 @@ def publish(
 
     Args:
         deploy_dir: Path to deployment directory with ``deploy_manifest.json``.
-        repo_id: HuggingFace repo ID (e.g. ``Ambiq/compressionkit-ppg-4x-v1.0``).
+        repo_id: HuggingFace repo ID (e.g. ``Ambiq/compressionkit-ppg-4x-v1.1``).
         scorecard_path: Optional path to ``quality_scorecard.json``.
         license_id: SPDX license ID for the model card.
         private: Whether to create a private repo.
@@ -176,6 +180,10 @@ def publish(
         readme_path.write_text(card_text)
         staged.append("README.md")
         logger.info("Generated README.md model card (%d chars)", len(card_text))
+        # The model card and legacy aliases differ from the local package.
+        # Hash the actual uploaded files after all staging changes.
+        write_checksums(staging_dir)
+        staged = sorted({*staged, str(ArtifactFile.CHECKSUMS)})
     except Exception:
         shutil.rmtree(staging_dir, ignore_errors=True)
         raise
@@ -228,7 +236,7 @@ def main() -> None:
         "--repo-id",
         type=str,
         required=True,
-        help="HuggingFace repo ID (e.g. Ambiq/compressionkit-ppg-4x-v1.0).",
+        help="HuggingFace repo ID (e.g. Ambiq/compressionkit-ppg-4x-v1.1).",
     )
     parser.add_argument(
         "--scorecard",

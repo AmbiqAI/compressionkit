@@ -55,11 +55,18 @@ def test_repackage_publishes_synthetic_samples_with_real_calibration(tmp_path, m
 
     monkeypatch.setattr(deploy, "export_for_deployment", export)
     experiment = SimpleNamespace(
-        method="rvq", experiment_id="test", run_name="test", modality="ppg", sample_rate=64, compression_ratio=8
+        method="rvq",
+        experiment_id="test",
+        run_name="test",
+        modality="ppg",
+        sample_rate=64,
+        compression_ratio=8,
+        hf_version="v1.1",
     )
     repackage.repackage_rvq_golden(experiment, run_dir=tmp_path, num_stimulus=2)
     assert calls[0]["rep_dataset"] is calibration
     assert calls[0]["quantization_validation_dataset"] is holdout
+    assert calls[0]["model_version"] == "1.1"
     samples = calls[0]["sample_inputs"]
     assert samples.shape == (2, 1, 16, 1)
     assert np.allclose(samples.mean(axis=(1, 2, 3)), 0, atol=1e-6)
@@ -67,6 +74,8 @@ def test_repackage_publishes_synthetic_samples_with_real_calibration(tmp_path, m
     staging = tmp_path / "staging"
     staging.mkdir()
     _stage_deploy_files(get_family_spec("rvq"), tmp_path / "deploy", staging, None)
-    with np.load(staging / "sample_stimulus.npz") as published:
+    with np.load(staging / "sample_data.npz") as published:
         np.testing.assert_array_equal(published["inputs"], samples)
         assert not np.any(np.isin(published["inputs"], [123.0, 124.0]))
+    with np.load(staging / "sample_stimulus.npz") as published:
+        assert not np.any(np.isin(published["stimulus"], [123.0, 124.0]))

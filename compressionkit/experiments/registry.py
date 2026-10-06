@@ -22,8 +22,9 @@ needs to reproduce it from a clean checkout:
 * ``run_name`` — ``{modality}_{method}_{sample_rate}hz_{cr:02d}x_golden``
   (matches AGENTS.md naming; ``method="rvq"`` preserves the historical infix).
 * ``hf_repo_id`` — the published HuggingFace repo id, including the release-track
-  suffix from ``hf_version`` (e.g. ``Ambiq/compressionkit-ppg-4x-v1.0``). Two-stage
-  entries share their parent codec's repo id (the prior is bundled alongside it).
+  suffix from ``hf_version`` (e.g. ``Ambiq/compressionkit-ppg-4x-v1.1``). Two-stage
+  entries retain their last qualified track until separately requalified after
+  a parent codec release change.
 * ``hf_version`` — release-track suffix (default ``"v1.0"``) that ``hf_repo_id``
   must include. ``_check_naming`` only validates the two fields are consistent —
   moving an experiment to a new release track means updating both together.
@@ -224,7 +225,8 @@ def _ppg_codec(cr: int) -> GoldenExperiment:
         run_name=f"ppg_rvq_64hz_{cr:02d}x_golden",
         sample_rate=64,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x-v1.0",
+        hf_repo_id=f"Ambiq/compressionkit-ppg-{cr}x-v1.1",
+        hf_version="v1.1",
         dataset_id="ppg-unified-strict-sanitize-v1",
         expected_metrics=_PPG_EXPECTED_METRICS.get(cr),
     )
@@ -240,12 +242,15 @@ def _ecg_codec(cr: int) -> GoldenExperiment:
         run_name=f"ecg_rvq_256hz_{cr:02d}x_golden",
         sample_rate=256,
         compression_ratio=cr,
-        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x-v1.0",
+        hf_repo_id=f"Ambiq/compressionkit-ecg-{cr}x-v1.1",
+        hf_version="v1.1",
         dataset_id="ptb-xl",
         expected_metrics=_ECG_EXPECTED_METRICS.get(cr),
     )
 
 
+# Entropy priors remain on their historical v1.0 track; the v1.1 export
+# repair releases only single-stage codecs and does not qualify those priors.
 def _ppg_two_stage(cr: int) -> GoldenExperiment:
     parent_id = f"ppg-rvq-{cr}x"
     return GoldenExperiment(

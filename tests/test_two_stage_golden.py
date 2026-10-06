@@ -29,8 +29,11 @@ def test_two_stage_entry_invariants(exp) -> None:
     assert parent.structure == "codec"
     assert parent.modality == exp.modality
     assert parent.compression_ratio == exp.compression_ratio
-    # Bundled HF repo: same as parent codec.
-    assert exp.hf_repo_id == parent.hf_repo_id
+    # Priors remain historical until separately requalified. A single-stage
+    # export repair must not promote an untested prior.
+    assert exp.hf_version == "v1.0"
+    assert parent.hf_version == "v1.1"
+    assert exp.hf_repo_id == parent.hf_repo_id.replace("-v1.1", "-v1.0")
     # Bundled run dir: same as parent codec.
     assert exp.run_name == parent.run_name
     # Recipe is registered.
@@ -63,3 +66,10 @@ def test_prior_config_resolve_parent_run_dir_default(tmp_path: Path) -> None:
     assert cfg.parent_run_dir is None
     cfg2 = cfg.model_copy(update={"parent_run_dir": tmp_path / "ecg_rvq_256hz_04x_golden"})
     assert cfg2.parent_run_dir.name == "ecg_rvq_256hz_04x_golden"
+
+
+def test_unqualified_historical_prior_cannot_be_published(tmp_path: Path) -> None:
+    from compressionkit.experiments.runner import _publish
+
+    with pytest.raises(ValueError, match="Requalify the entropy prior"):
+        _publish(get_golden("ecg-rvq-4x-prior"), tmp_path, dry_run=True)

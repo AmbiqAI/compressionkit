@@ -4,7 +4,9 @@ description: "Download a codec bundle, run a sample frame, or load a local entro
 ---
 
 
-Published v1 RVQ bundles live at `Ambiq/compressionkit-{modality}-{cr}x-{version}` (e.g. `-v1.0`).
+Corrected single-stage RVQ bundles use `Ambiq/compressionkit-{modality}-{cr}x-v1.1`.
+The original `v1.0` bundles remain available for historical results and packets.
+See [release details](/compressionkit/rvq-v11-release/) for compatibility and validation.
 This page shows the minimum code to download one and run the encoder + decoder on a sample frame.
 SPIHT and hybrid package links are listed on their [experiment pages](/compressionkit/experiments/). The RVQ example below uses the RVQ-specific loader.
 
@@ -22,7 +24,9 @@ for the `snapshot_download` / `from_pretrained` calls below.
 ## 2. Single-stage codec
 
 Single-stage repos contain `encoder_int8.tflite`, `encoder_float32.tflite`, `decoder_int8.tflite`,
-`codebook.npz`, `sample_stimulus.npz`, and `demo_recordings.npz`. The float32 encoder supports browser and host LiteRT integrations with float32 I/O. [`RVQCodec.from_pretrained`](/compressionkit/reference/api/compressionkit/runtime/codec/#compressionkit.runtime.codec.RVQCodec.from_pretrained) downloads the bundle and wires
+`codebook.npz`, normalized synthetic `sample_data.npz`, raw synthetic `sample_stimulus.npz`,
+independent `reference_vectors.npz`, and `checksums.json`. Real demo recordings are optional.
+The float32 encoder supports browser and host LiteRT integrations with float32 I/O. [`RVQCodec.from_pretrained`](/compressionkit/reference/api/compressionkit/runtime/codec/#compressionkit.runtime.codec.RVQCodec.from_pretrained) downloads the bundle and wires
 up the LiteRT interpreters. Use the full source-checkout installation above: package imports also require Keras and evaluation dependencies.
 
 ```python
@@ -30,13 +34,13 @@ from huggingface_hub import snapshot_download
 from compressionkit.runtime import RVQCodec
 import numpy as np
 
-repo = "Ambiq/compressionkit-ppg-4x-v1.0"
+repo = "Ambiq/compressionkit-ppg-4x-v1.1"
 codec = RVQCodec.from_pretrained(repo)
 
 # Sanity check on the bundled license-safe sample (same cached files).
-# Published bundles ship `inputs`, `targets`, and `reconstructions` arrays.
+# sample_data carries normalized inputs, targets, and reconstructions.
 deploy_dir = snapshot_download(repo)
-signal = np.load(f"{deploy_dir}/sample_stimulus.npz")["inputs"][:1]
+signal = np.load(f"{deploy_dir}/sample_data.npz")["inputs"][:1]
 indices = codec.encode(signal)
 recon = codec.decode(indices)
 print("shape:", recon.shape)
@@ -64,9 +68,10 @@ scripts/devcontainer.sh exec -- uv run python scripts/attach_rvq_demo_recordings
 
 :::note[Note]
 Use `RVQCodec.from_pretrained(repo_id)` rather than `RVQCodec(local_dir)` on a raw
-`snapshot_download` directory. HuggingFace bundles store the manifest as `config.json`
-(not `deploy_manifest.json`) and rename the TFLite files to `*_int8.tflite`;
-`from_pretrained` reconciles those names so the constructor can find them.
+`snapshot_download` directory. Older HuggingFace bundles use `config.json` and
+`*_int8.tflite` aliases; `from_pretrained` reconciles those names. The v1.1
+releases retain the canonical deploy filenames as well as the aliases and can
+be validated directly.
 
 :::
 

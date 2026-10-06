@@ -172,6 +172,28 @@ class TestModelCardGeneration:
         card = generate_model_card(mock_deploy, license_id="mit")
         assert "license: mit" in card
 
+    def test_corrected_export_labels_historical_scorecard(self, mock_deploy, mock_scorecard):
+        from compressionkit.export.model_card import generate_model_card
+
+        (mock_deploy / "model_card.json").write_text(
+            json.dumps(
+                {
+                    "release_provenance": {
+                        "release_kind": "corrected_export_without_retraining",
+                        "source_commit": "source-sha",
+                        "physiological_scorecard_status": "historical; not reevaluated for this release",
+                        "packet_compatibility": "bind packets to exact repository and revision",
+                        "pretraining_ancestry": "not independently audited",
+                    }
+                }
+            )
+        )
+        card = generate_model_card(mock_deploy, scorecard_path=mock_scorecard)
+        assert "historical; not reevaluated" in card
+        assert "bind packets to exact repository and revision" in card
+        assert "source-sha" in card
+        assert "release_provenance.json" in card
+
 
 # ── Publish staging ────────────────────────────────────────────────
 
@@ -185,6 +207,10 @@ class TestPublishStaging:
         (mock_deploy / "encoder_float32.tflite").write_bytes(b"\x00" * 100)
         (mock_deploy / "codebook.npz").write_bytes(b"\x00" * 50)
         (mock_deploy / "encoder.h").write_text("// header")
+        (mock_deploy / "reference_vectors.npz").write_bytes(b"independent training references")
+        (mock_deploy / "scorecard.json").write_text('{"historical": true}')
+        (mock_deploy / "release_provenance.json").write_text('{"source_commit": "test"}')
+        (mock_deploy / "checksums.json").write_text("{}")
 
         from scripts.publish_to_huggingface import publish
 
@@ -206,6 +232,21 @@ class TestPublishStaging:
         assert (staging_dir / "quality_scorecard.json").exists()
         assert (staging_dir / "quantization_report.json").exists()
         assert (staging_dir / "README.md").exists()
+        for name in (
+            "deploy_manifest.json",
+            "encoder.tflite",
+            "reference_vectors.npz",
+            "scorecard.json",
+            "release_provenance.json",
+        ):
+            assert (staging_dir / name).read_bytes() == (mock_deploy / name).read_bytes()
+        from compressionkit.export.release import sha256_file
+
+        checksums = json.loads((staging_dir / "checksums.json").read_text())
+        assert set(checksums) == {p.name for p in staging_dir.iterdir() if p.name != "checksums.json"}
+        for name, entry in checksums.items():
+            assert entry["sha256"] == sha256_file(staging_dir / name)
+            assert entry["bytes"] == (staging_dir / name).stat().st_size
 
         # README should be a proper model card
         readme = (staging_dir / "README.md").read_text()

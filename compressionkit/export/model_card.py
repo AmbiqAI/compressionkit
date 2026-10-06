@@ -188,6 +188,18 @@ def generate_model_card(
         lines.append(f"- **Encoder Output:** `{output_shape}`")
     lines.append("")
 
+    provenance = model_card_info.get("release_provenance")
+    if isinstance(provenance, dict):
+        lines.extend(["## Release Provenance", ""])
+        lines.append(f"Release kind: {provenance.get('release_kind', 'see release_provenance.json')}.")
+        lines.append(f"Export source commit: `{provenance.get('source_commit', 'unknown')}`.")
+        lines.append(f"Physiological scorecard: {provenance.get('physiological_scorecard_status', 'see provenance')}.")
+        lines.append(f"Packet compatibility: {provenance.get('packet_compatibility', 'see provenance')}.")
+        lines.append(f"Pretraining ancestry: {provenance.get('pretraining_ancestry', 'see provenance')}.")
+        lines.extend(
+            ["See `release_provenance.json` for checkpoint hashes, replaced revision, and sample provenance.", ""]
+        )
+
     # Quality metrics (if scorecard available)
     if scorecard:
         lines.append("## Quality Metrics")

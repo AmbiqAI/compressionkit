@@ -1,5 +1,5 @@
 ---
-title: "ECG Models (v1.0)"
+title: "ECG Models (v1.1 exports)"
 description: "ECG codec configurations, evaluation results and supporting resources."
 ---
 
@@ -22,10 +22,11 @@ Two-stage variants: [`ecg-rvq-4x-prior`](/compressionkit/experiments/ecg-rvq-4x-
 
 :::
 
-## Published RVQ results
+## Historical RVQ results
 
-The table below summarizes the published RVQ bundles. These are the v1 packages
-available through HuggingFace and the runtime loader.
+The v1.1 bundles correct the exports of existing checkpoints without retraining.
+The tables below are historical physiological evaluations, not new measurements of the corrected deployment bundles.
+See [release details](/compressionkit/rvq-v11-release/) for measured export parity and packet sizes.
 
 These validation results and the noise-aware customer scorecards use different evaluation views. Keep the metric definitions and recording windows with the numbers when comparing results.
 
@@ -207,7 +208,7 @@ For the full runtime guide, see [Deployment Guide](/compressionkit/deployment/).
 
 - Frame shape: `(1, 1, 512, 1)` float32
 - Sample rate: `256 Hz`
-- Default HuggingFace repo pattern: `Ambiq/compressionkit-ecg-{cr}x-v1.0`
+- Default HuggingFace repo pattern: `Ambiq/compressionkit-ecg-{cr}x-v1.1`
 
 ### Quickstart
 
@@ -219,7 +220,7 @@ from compressionkit.runtime import RVQCodec
 t = np.arange(512, dtype=np.float32) / 256.0
 signal = (0.75 * np.sin(2.0 * np.pi * 1.1 * t) + 0.12 * np.sin(2.0 * np.pi * 9.0 * t)).reshape(1, 1, 512, 1)
 
-codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x-v1.0")
+codec = RVQCodec.from_pretrained("Ambiq/compressionkit-ecg-4x-v1.1")
 indices = codec.encode(signal.astype(np.float32))
 reconstruction = codec.decode(indices)
 ```

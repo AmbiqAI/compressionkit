@@ -72,7 +72,13 @@ def test_repackage_restores_saved_ema_weights(tmp_path, monkeypatch, bad_config)
 
     monkeypatch.setattr(deploy, "export_for_deployment", export)
     experiment = SimpleNamespace(
-        method="rvq", experiment_id="test", run_name="test", modality="ecg", sample_rate=256, compression_ratio=8
+        method="rvq",
+        experiment_id="test",
+        run_name="test",
+        modality="ecg",
+        sample_rate=256,
+        compression_ratio=8,
+        hf_version="v1.1",
     )
     if bad_config:
         with pytest.raises(ValueError, match=r"Expected .* RVQ weight arrays"):
