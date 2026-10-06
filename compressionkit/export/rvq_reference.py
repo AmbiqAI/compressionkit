@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import keras
 import numpy as np
+import tensorflow as tf
 
 from compressionkit.layers.ema_residual_vector_quantizer import EmaResidualVectorQuantizer
 from compressionkit.layers.residual_vector_quantizer import ResidualVectorQuantizer
@@ -25,6 +26,7 @@ def build_rvq_reference(
     encode/decode methods, independently of export extraction and runtime VQ.
     No training calls or EMA updates occur. Source-latent comparisons isolate
     codebook export from changes caused by encoder conversion/quantization.
+    References run on CPU to avoid GPU TF32 rounding changing an FP32 gate.
 
     Args:
         encoder: Float Keras encoder from the training run.
@@ -38,26 +40,31 @@ def build_rvq_reference(
     Returns:
         Source latents, indices, quantized latents, and decoded waveforms.
     """
-    stride = 3 if use_ema else 1
-    kwargs = {
-        "num_levels": num_levels,
-        "num_embeddings": [weights[stride * i].shape[0] for i in range(num_levels)],
-        "embedding_dim": weights[0].shape[1],
-    }
-    vq = EmaResidualVectorQuantizer(**kwargs, kmeans_init=kmeans_init) if use_ema else ResidualVectorQuantizer(**kwargs)
-    vq.build(encoder.output_shape)
-    vq.set_weights(weights)
-    latent = np.asarray(encoder(inputs, training=False), dtype=np.float32)
-    indices = vq.encode(latent)
-    quantized = keras.ops.convert_to_numpy(vq.decode(indices, latent.shape))
-    decoded = decoder(quantized, training=False)
-    if isinstance(decoded, dict):
-        decoded = decoded.get("reconstruction", decoded.get("output"))
-    return {
-        "source_latents": latent,
-        "source_indices": np.stack([keras.ops.convert_to_numpy(i) for i in indices], axis=-1).reshape(
-            *latent.shape[:-1], num_levels
-        ),
-        "source_quantized_latents": np.asarray(quantized, dtype=np.float32),
-        "source_reconstructions": np.asarray(decoded, dtype=np.float32),
-    }
+    with tf.device("/CPU:0"):
+        stride = 3 if use_ema else 1
+        kwargs = {
+            "num_levels": num_levels,
+            "num_embeddings": [weights[stride * i].shape[0] for i in range(num_levels)],
+            "embedding_dim": weights[0].shape[1],
+        }
+        vq = (
+            EmaResidualVectorQuantizer(**kwargs, kmeans_init=kmeans_init)
+            if use_ema
+            else ResidualVectorQuantizer(**kwargs)
+        )
+        vq.build(encoder.output_shape)
+        vq.set_weights(weights)
+        latent = np.asarray(encoder(inputs, training=False), dtype=np.float32)
+        indices = vq.encode(latent)
+        quantized = keras.ops.convert_to_numpy(vq.decode(indices, latent.shape))
+        decoded = decoder(quantized, training=False)
+        if isinstance(decoded, dict):
+            decoded = decoded.get("reconstruction", decoded.get("output"))
+        return {
+            "source_latents": latent,
+            "source_indices": np.stack([keras.ops.convert_to_numpy(i) for i in indices], axis=-1).reshape(
+                *latent.shape[:-1], num_levels
+            ),
+            "source_quantized_latents": np.asarray(quantized, dtype=np.float32),
+            "source_reconstructions": np.asarray(decoded, dtype=np.float32),
+        }

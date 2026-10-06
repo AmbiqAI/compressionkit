@@ -39,6 +39,7 @@ Packet checks reused `RVQFrames` from the sibling checkout at `80d774d`, supplie
 
 - Reproduced the original extractor returning four tables from an actual two-level EMA layer.
 - Regression coverage includes EMA/non-EMA, warm-start state, numeric checkpoint and level ordering, malformed layouts, independent training references, and C99 compilation with float32 table parity.
+- After review fixes, 50 focused tests pass under normal GPU devcontainer settings. Float references use a local CPU context to avoid TF32 rounding; INT8-only decoders retain both float-companion training checks and quantized deployed-reference checks. A fresh independent review found no remaining actionable findings and verified 19 focused tests.
 - All 11 regenerated single-stage candidates pass strict deploy validation on ten independent training-reference frames each, with no errors or warnings.
 - Recomputed INT8, FP16, and INT16x8 model-card reports on real disjoint validation partitions of 2,048 frames per run. Historical physiological scorecards remain historical results; no physiological evaluation or retraining was performed.
 - Original run/deploy artifacts remain unchanged. Corrected candidates and evidence are in the repair worktree's git-ignored `results/issue-74/`: `audit.json`, `source-checksums.json`, `strict-validation.json`, `environment.txt`, test output, and investigation scripts.

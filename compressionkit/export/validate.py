@@ -178,12 +178,14 @@ def _validate_reference_vectors(
                 # references to the exported float Keras companion instead;
                 # quantized output has separate deployed reference vectors.
                 import keras
+                import tensorflow as tf
 
                 keras_decoder = decoder_spec.get("keras")
                 if not keras_decoder:
                     errors.append("RVQ training parity requires a float decoder companion")
                     return
-                float_decoder = keras.models.load_model(deploy_dir / keras_decoder)
+                with tf.device("/CPU:0"):
+                    float_decoder = keras.models.load_model(deploy_dir / keras_decoder)
         for idx in range(min(max_vectors, frames.shape[0])):
             sample = frames[idx : idx + 1]
             actual_indices = codec.encode(sample)
@@ -212,7 +214,8 @@ def _validate_reference_vectors(
                 if float_decoder is None:
                     source_recon = codec.decode_latent(actual_latent)
                 else:
-                    source_recon = float_decoder(actual_latent, training=False)
+                    with tf.device("/CPU:0"):
+                        source_recon = float_decoder(actual_latent, training=False)
                     if isinstance(source_recon, dict):
                         source_recon = source_recon.get("reconstruction", source_recon.get("output"))
                     source_recon = np.asarray(source_recon, dtype=np.float32)

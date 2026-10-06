@@ -63,6 +63,8 @@ requires identical indices and quantized latents for identical source latents;
 the float encoder and decoder comparisons use `atol=rtol=1e-5`. This isolates codebook
 correctness from encoder conversion and precision differences. Sample-data
 reconstructions also use the discrete trained path rather than bypassing VQ.
+Training references run on CPU with full float32 operations, so GPU TF32 rounding
+cannot change the reference or fail the float32 conversion gate.
 For INT8-only decoder packages, the training comparison uses the exported float
 Keras decoder companion; the selected INT8 decoder is checked against its own
 deployed reference vectors. Float tolerances are not applied to INT8 outputs.
