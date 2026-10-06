@@ -18,7 +18,7 @@ Reproduce the `ppg-rvq-8x-prior` configuration. Prepare its dataset before runni
 
 - **Dataset**: [Open unified PPG v1](/compressionkit/datasets/) (`dataset_id: ppg-unified-strict-sanitize-v1`)
 - **License**: Open (BIDMC, BUT PPG, PPG-DaLiA, WESAD — mixed open licenses, no restricted-access dependency)
-- **Notes**: Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. Published v1 PPG goldens are MESA-free. Build the cache with `scripts/build_ppg_cache.py`.
+- **Notes**: Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. The saved training configuration uses these open sources; complete pretraining ancestry was not independently audited in the export repair. Build the cache with `scripts/build_ppg_cache.py`.
 
 The lifecycle runner pre-flights dataset availability before training (see the
 [dataset contract](/compressionkit/api/datasets/)).
@@ -35,8 +35,11 @@ Results land under `results/ppg_rvq_64hz_08x_golden/`; deploy artifacts under `r
 
 ## Parent codec
 
+The parent codec now uses corrected v1.1 exports. This prior remains on its
+historical v1.0 track and has not been requalified for that release.
+
 This entry is the entropy-prior stage paired with [`ppg-rvq-8x`](/compressionkit/experiments/ppg-rvq-8x/).
-Codec and prior artifacts publish to the same HuggingFace repo
+The historical codec and prior artifacts use the v1.0 HuggingFace repo
 ([`Ambiq/compressionkit-ppg-8x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ppg-8x-v1.0)).
 
 ## Evaluation Metrics
@@ -56,7 +59,7 @@ The deploy package contains the following artifacts, depending on the export con
 - `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).
 - `decoder.keras` — float32 Python reference decoder.
 - `codebook.npz` / `codebook.h` — RVQ codebook tables.
-- `sample_data.npz` — license-safe input/target/reconstruction reference frames (published to HuggingFace as `sample_stimulus.npz`).
+- `sample_data.npz` — normalized synthetic inputs, targets and reconstructions; `sample_stimulus.npz` contains raw synthetic waveforms.
 - `model_card.json`, `deploy_manifest.json` — metadata.
 - `prior_int8.tflite` / `prior_int8.h` / `prior_manifest.json` — entropy prior (two-stage only).
 
@@ -64,4 +67,4 @@ The deploy package contains the following artifacts, depending on the export con
 
 - Tweak the YAML to explore neighbouring operating points; copy the file before editing.
 - For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.
-- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ppg-rvq-8x-prior --publish`.
+- Publication is blocked until the prior is requalified against its parent's corrected v1.1 release.

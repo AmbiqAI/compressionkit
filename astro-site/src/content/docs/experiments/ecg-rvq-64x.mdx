@@ -10,6 +10,9 @@ Reproduce the `ecg-rvq-64x` configuration. Prepare its dataset before running th
 
 ## Overview
 
+The v1.1 bundle corrects the export of the existing checkpoint without retraining.
+Its physiological scorecard remains historical; see [release validation](/compressionkit/rvq-v11-release/).
+
 <ExperimentFacts id="ecg-rvq-64x" />
 
 <span id="dataset-license"></span>
@@ -50,7 +53,7 @@ The deploy package contains the following artifacts, depending on the export con
 - `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).
 - `decoder.keras` — float32 Python reference decoder.
 - `codebook.npz` / `codebook.h` — RVQ codebook tables.
-- `sample_data.npz` — license-safe input/target/reconstruction reference frames (published to HuggingFace as `sample_stimulus.npz`).
+- `sample_data.npz` — normalized synthetic inputs, targets and reconstructions; `sample_stimulus.npz` contains raw synthetic waveforms.
 - `model_card.json`, `deploy_manifest.json` — metadata.
 
 ## Customization Notes

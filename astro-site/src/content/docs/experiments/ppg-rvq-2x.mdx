@@ -10,6 +10,9 @@ Reproduce the `ppg-rvq-2x` configuration. Prepare its dataset before running the
 
 ## Overview
 
+The v1.1 bundle corrects the export of the existing checkpoint without retraining.
+Its physiological scorecard remains historical; see [release validation](/compressionkit/rvq-v11-release/).
+
 <ExperimentFacts id="ppg-rvq-2x" />
 
 <span id="dataset-license"></span>
@@ -18,7 +21,7 @@ Reproduce the `ppg-rvq-2x` configuration. Prepare its dataset before running the
 
 - **Dataset**: [Open unified PPG v1](/compressionkit/datasets/) (`dataset_id: ppg-unified-strict-sanitize-v1`)
 - **License**: Open (BIDMC, BUT PPG, PPG-DaLiA, WESAD — mixed open licenses, no restricted-access dependency)
-- **Notes**: Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. Published v1 PPG goldens are MESA-free. Build the cache with `scripts/build_ppg_cache.py`.
+- **Notes**: Sources: BIDMC, BUT PPG, PPG-DaLiA, and WESAD. The saved training configuration uses these open sources; complete pretraining ancestry was not independently audited in the export repair. Build the cache with `scripts/build_ppg_cache.py`.
 
 The lifecycle runner pre-flights dataset availability before training (see the
 [dataset contract](/compressionkit/api/datasets/)).
@@ -50,7 +53,7 @@ The deploy package contains the following artifacts, depending on the export con
 - `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).
 - `decoder.keras` — float32 Python reference decoder.
 - `codebook.npz` / `codebook.h` — RVQ codebook tables.
-- `sample_data.npz` — license-safe input/target/reconstruction reference frames (published to HuggingFace as `sample_stimulus.npz`).
+- `sample_data.npz` — normalized synthetic inputs, targets and reconstructions; `sample_stimulus.npz` contains raw synthetic waveforms.
 - `model_card.json`, `deploy_manifest.json` — metadata.
 
 ## Customization Notes

@@ -35,8 +35,11 @@ Results land under `results/ecg_rvq_256hz_04x_golden/`; deploy artifacts under `
 
 ## Parent codec
 
+The parent codec now uses corrected v1.1 exports. This prior remains on its
+historical v1.0 track and has not been requalified for that release.
+
 This entry is the entropy-prior stage paired with [`ecg-rvq-4x`](/compressionkit/experiments/ecg-rvq-4x/).
-Codec and prior artifacts publish to the same HuggingFace repo
+The historical codec and prior artifacts use the v1.0 HuggingFace repo
 ([`Ambiq/compressionkit-ecg-4x-v1.0`](https://huggingface.co/Ambiq/compressionkit-ecg-4x-v1.0)).
 
 ## Evaluation Metrics
@@ -56,7 +59,7 @@ The deploy package contains the following artifacts, depending on the export con
 - `decoder.tflite` / `decoder.h` — decoder (float32 + optional INT8).
 - `decoder.keras` — float32 Python reference decoder.
 - `codebook.npz` / `codebook.h` — RVQ codebook tables.
-- `sample_data.npz` — license-safe input/target/reconstruction reference frames (published to HuggingFace as `sample_stimulus.npz`).
+- `sample_data.npz` — normalized synthetic inputs, targets and reconstructions; `sample_stimulus.npz` contains raw synthetic waveforms.
 - `model_card.json`, `deploy_manifest.json` — metadata.
 - `prior_int8.tflite` / `prior_int8.h` / `prior_manifest.json` — entropy prior (two-stage only).
 
@@ -64,4 +67,4 @@ The deploy package contains the following artifacts, depending on the export con
 
 - Tweak the YAML to explore neighbouring operating points; copy the file before editing.
 - For new recipes, prefer the `compressionkit/recipes/` package recipes as a starting point.
-- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ecg-rvq-4x-prior --publish`.
+- Publication is blocked until the prior is requalified against its parent's corrected v1.1 release.
