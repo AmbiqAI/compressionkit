@@ -21,8 +21,8 @@ for the `snapshot_download` / `from_pretrained` calls below.
 
 ## 2. Single-stage codec
 
-Single-stage repos contain `encoder_int8.tflite`, `decoder_int8.tflite`, `codebook.npz`, and
-`sample_stimulus.npz`. [`RVQCodec.from_pretrained`](/compressionkit/reference/api/compressionkit/runtime/codec/#compressionkit.runtime.codec.RVQCodec.from_pretrained) downloads the bundle and wires
+Single-stage repos contain `encoder_int8.tflite`, `encoder_float32.tflite`, `decoder_int8.tflite`,
+`codebook.npz`, `sample_stimulus.npz`, and `demo_recordings.npz`. The float32 encoder supports browser and host LiteRT integrations with float32 I/O. [`RVQCodec.from_pretrained`](/compressionkit/reference/api/compressionkit/runtime/codec/#compressionkit.runtime.codec.RVQCodec.from_pretrained) downloads the bundle and wires
 up the LiteRT interpreters. Use the full source-checkout installation above: package imports also require Keras and evaluation dependencies.
 
 ```python
@@ -40,6 +40,25 @@ signal = np.load(f"{deploy_dir}/sample_stimulus.npz")["inputs"][:1]
 indices = codec.encode(signal)
 recon = codec.decode(indices)
 print("shape:", recon.shape)
+```
+
+
+`demo_recordings.npz` holds ten real, quality-gated continuous examples at the model rate (`signals` has shape `(10, samples)`). Read `demo_recordings_manifest.json` with it: the manifest records source provenance, ODC-By attribution, signal offsets, and the quality measurements used for selection. Apply the model's usual framing and normalization before inference.
+
+For each 64 Hz PPG 320-sample frame or 256 Hz ECG 512-sample frame, use per-frame layer normalization before either encoder variant:
+
+```python
+mean = frame.mean()
+scale = np.sqrt(np.mean((frame - mean) ** 2) + 1e-3)
+encoder_input = (frame - mean) / scale
+```
+
+For display in raw units, undo it after decoding with `decoded * scale + mean`. INT8 RVQ releases produced under the current release policy include `quantization_report.json`, which records parity against `encoder_float32.tflite` on a 2,048-frame real-preprocessed holdout distinct from the 4,096 frames used for LiteRT calibration.
+
+To refresh all local RVQ bundles before publishing an asset update:
+
+```bash
+scripts/devcontainer.sh exec -- uv run python scripts/attach_rvq_demo_recordings.py --modality all
 ```
 
 

@@ -194,6 +194,23 @@ def generate_model_card(
         lines.append("")
         _add_scorecard_section(lines, scorecard)
 
+    precision_report = model_card_info.get("encoder_precision_report")
+    if isinstance(precision_report, dict):
+        lines.append("## Encoder Precision Parity")
+        lines.append("")
+        lines.append("Difference from FP32 reconstruction on a disjoint real-data holdout; lower is better.")
+        lines.append("")
+        lines.append("| Encoder | P90 PRD | Worst PRD | Status |")
+        lines.append("|---|---:|---:|---|")
+        for name, metrics in precision_report.items():
+            if not isinstance(metrics, dict):
+                continue
+            p90 = float(metrics.get("reconstruction_prd_percent_p90", 0.0))
+            maximum = float(metrics.get("reconstruction_prd_percent_max", 0.0))
+            status = "recommended" if p90 <= 10.0 else "higher error; use knowingly"
+            lines.append(f"| {name} | {p90:.2f}% | {maximum:.2f}% | {status} |")
+        lines.append("")
+
     # Usage
     lines.append("## Usage")
     lines.append("")
@@ -224,6 +241,9 @@ def generate_model_card(
     lines.append("| File | Description |")
     lines.append("|------|-------------|")
     lines.append("| `encoder_int8.tflite` | INT8 quantized encoder (on-device) |")
+    lines.append("| `encoder_float32.tflite` | Float32 encoder for browser/server runtimes |")
+    lines.append("| `encoder_fp16.tflite` | FP16 encoder variant for supported edge runtimes |")
+    lines.append("| `encoder_int16x8.tflite` | INT16x8 encoder variant for supported edge runtimes |")
     lines.append("| `encoder.h` | C header for encoder |")
     lines.append("| `encoder.keras` | Float32 Python reference encoder (training/inspection use) |")
     lines.append("| `decoder_float32.tflite` | Float32 decoder (server-side evaluation) |")
@@ -233,6 +253,9 @@ def generate_model_card(
     lines.append("| `codebook.h` | C header for codebook |")
     lines.append("| `config.json` | Deployment manifest |")
     lines.append("| `sample_stimulus.npz` | Synthetic test data |")
+    if "demo_recordings" in manifest:
+        lines.append("| `demo_recordings.npz` | 10 real, quality-gated browser-demo recordings |")
+        lines.append("| `demo_recordings_manifest.json` | Recording provenance, license, and quality metadata |")
     lines.append("| `quality_scorecard.json` | Full evaluation metrics |")
     lines.append("")
 
@@ -240,6 +263,23 @@ def generate_model_card(
     lines.append("## Dataset & License")
     lines.append("")
     lines.append(_dataset_provenance_note(model_card_info.get("dataset_sources"), modality, context="Training"))
+    demo_recordings = manifest.get("demo_recordings", {})
+    if isinstance(demo_recordings, dict):
+        demo_manifest_path = deploy_dir / str(demo_recordings.get("manifest", ""))
+        if demo_manifest_path.is_file():
+            demo_manifest = json.loads(demo_manifest_path.read_text())
+            source = demo_manifest.get("source", {})
+            if isinstance(source, dict):
+                dataset = source.get("dataset", "the source dataset")
+                license_name = source.get("license", "its original license")
+                license_url = source.get("license_url")
+                source_url = source.get("url")
+                reference = f" [{license_url}]({license_url})" if license_url else ""
+                source_link = f" ([source]({source_url}))" if source_url else ""
+                lines.append(
+                    f"Demo recordings: {dataset}{source_link}; real, quality-gated excerpts are released under "
+                    f"{license_name}.{reference}"
+                )
     lines.append("")
     if license_id == "other":
         lines.append(

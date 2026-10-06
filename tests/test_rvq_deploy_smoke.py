@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import keras
 import numpy as np
 
@@ -37,7 +39,7 @@ def _tiny_decoder() -> keras.Model:
     return keras.Model(inputs, outputs, name="smoke_decoder")
 
 
-def _build_smoke_rvq_deploy(tmp_path):
+def _build_smoke_rvq_deploy(tmp_path, *, quantization="FP32", export_decoder_float32=True, export_decoder_int8=True):
     encoder = _tiny_encoder()
     decoder = _tiny_decoder()
 
@@ -57,8 +59,13 @@ def _build_smoke_rvq_deploy(tmp_path):
         sample_inputs=sample_inputs,
         sample_targets=sample_targets,
         sample_reconstructions=sample_reconstructions,
-        quantization="FP32",
-        io_type="float32",
+        quantization=quantization,
+        io_type="int8" if quantization == "INT8" else "float32",
+        quantization_validation_dataset=np.random.default_rng(75)
+        .uniform(-0.1, 0.1, rep_dataset.shape)
+        .astype(np.float32),
+        export_decoder_float32=export_decoder_float32,
+        export_decoder_int8=export_decoder_int8,
         model_name="ppg_rvq_smoke",
         model_card_info={
             "run_name": "ppg_rvq_64hz_04x_golden",
@@ -80,6 +87,11 @@ def test_export_for_deployment_smoke_validates_strict_release(tmp_path) -> None:
 
     assert artifacts.manifest.exists()
     assert artifacts.codec_spec.exists()
+    assert artifacts.encoder_float32_tflite.exists()
+    assert artifacts.encoder_fp16_tflite.exists()
+    assert artifacts.encoder_fp16_header.exists()
+    assert artifacts.encoder_int16x8_tflite.exists()
+    assert artifacts.encoder_int16x8_header.exists()
     assert artifacts.scorecard.exists()
     assert artifacts.reference_vectors.exists()
     assert artifacts.readme.exists()
@@ -95,6 +107,26 @@ def test_export_for_deployment_smoke_validates_strict_release(tmp_path) -> None:
     assert "scorecard.json" in result.checked_files
     assert "reference_vectors.npz" in result.checked_files
 
+    manifest = json.loads(artifacts.manifest.read_text())
+    assert manifest["encoder"]["default_variant"] == "float32"
+    assert manifest["encoder"]["default_tflite"] == "encoder_float32.tflite"
+    assert manifest["encoder"]["float32_tflite"] == "encoder_float32.tflite"
+    assert manifest["encoder"]["fp16_tflite"] == "encoder_fp16.tflite"
+    assert manifest["encoder"]["int16x8_tflite"] == "encoder_int16x8.tflite"
+
+    from compressionkit.runtime._litert import Interpreter
+
+    interpreter = Interpreter(model_path=str(artifacts.encoder_float32_tflite))
+    interpreter.allocate_tensors()
+    input_detail = interpreter.get_input_details()[0]
+    output_detail = interpreter.get_output_details()[0]
+    assert input_detail["dtype"] == np.float32
+    assert output_detail["dtype"] == np.float32
+    sample = np.load(deploy_dir / "sample_data.npz")["inputs"][:1]
+    interpreter.set_tensor(input_detail["index"], sample)
+    interpreter.invoke()
+    assert interpreter.get_tensor(output_detail["index"]).dtype == np.float32
+
 
 def test_validate_deploy_cli_smoke(tmp_path, capsys) -> None:
     deploy_dir, _artifacts = _build_smoke_rvq_deploy(tmp_path)
@@ -106,3 +138,18 @@ def test_validate_deploy_cli_smoke(tmp_path, capsys) -> None:
     assert "family: rvq" in out
     assert "validation: ok" in out
     assert "scorecard.json" in out
+
+
+def test_int8_encoder_export_supports_keras_only_decoder(tmp_path) -> None:
+    from pathlib import Path
+
+    deploy_dir, artifacts = _build_smoke_rvq_deploy(
+        tmp_path, quantization="INT8", export_decoder_float32=False, export_decoder_int8=False
+    )
+    assert artifacts.decoder_keras.exists()
+    assert not (deploy_dir / "decoder.tflite").exists()
+    assert not (deploy_dir / "decoder_float32.tflite").exists()
+    assert artifacts.reference_vectors == Path()
+    report = json.loads(artifacts.quantization_report.read_text())
+    assert report["metrics"]["frames_checked"] == 4
+    assert report["passed"]

@@ -1,7 +1,7 @@
 """Unified deployment export for RVQ autoencoder models.
 
 Exports all components needed for deployment:
-  1. Encoder — INT8 TFLite + C header  (on-device)
+  1. Encoder — INT8 TFLite + C header and FP32 LiteRT (edge/browser)
   2. Codebook tables — C header + NumPy archive  (on-device)
   3. Decoder — Keras model + optional TFLite exports  (server / on-device)
   4. Model card JSON with metadata and scorecard summary
@@ -40,6 +40,11 @@ class DeploymentArtifacts:
     output_dir: Path
     encoder_tflite: Path = field(default_factory=Path)
     encoder_header: Path = field(default_factory=Path)
+    encoder_float32_tflite: Path = field(default_factory=Path)
+    encoder_fp16_tflite: Path = field(default_factory=Path)
+    encoder_fp16_header: Path = field(default_factory=Path)
+    encoder_int16x8_tflite: Path = field(default_factory=Path)
+    encoder_int16x8_header: Path = field(default_factory=Path)
     encoder_keras: Path = field(default_factory=Path)
     decoder_keras: Path = field(default_factory=Path)
     decoder_float32_tflite: Path = field(default_factory=Path)
@@ -49,6 +54,7 @@ class DeploymentArtifacts:
     codebook_header: Path = field(default_factory=Path)
     sample_data_npz: Path = field(default_factory=Path)
     reference_vectors: Path = field(default_factory=Path)
+    quantization_report: Path = field(default_factory=Path)
     model_card: Path = field(default_factory=Path)
     scorecard: Path = field(default_factory=Path)
     codec_spec: Path = field(default_factory=Path)
@@ -95,7 +101,9 @@ AI codec deploy package for {modality_label} at {cr_label}.
 
 * `deploy_manifest.json` — top-level package manifest.
 * `codec_spec.json` — canonical runtime hydration contract.
-* `encoder.tflite`, `encoder.h` — edge encoder artifacts.
+* `encoder_float32.tflite` — default FP32 encoder for browser and host LiteRT runtimes.
+* `encoder.tflite`, `encoder_fp16.tflite`, `encoder_int16x8.tflite` — INT8, FP16,
+  and INT16x8 edge encoder variants (each with a C header).
 * `encoder.keras` — float32 Python reference encoder (training/inspection use).
 * `codebook.npz`, `codebook.h` — RVQ codebook tables.
 * `decoder.keras` and optional decoder TFLite files — reconstruction artifacts.
@@ -152,6 +160,7 @@ def export_for_deployment(
     rvq_weights: list[np.ndarray],
     *,
     rep_dataset: np.ndarray,
+    quantization_validation_dataset: np.ndarray | None = None,
     output_dir: str | Path,
     sample_inputs: np.ndarray | None = None,
     sample_targets: np.ndarray | None = None,
@@ -176,6 +185,8 @@ def export_for_deployment(
         decoder: Trained Keras decoder model.
         rvq_weights: Weight list from ``rvq.get_weights()``.
         rep_dataset: Representative input dataset for TFLite calibration.
+        quantization_validation_dataset: Disjoint preprocessed frames for
+            post-export INT8-vs-float32 parity validation. Required for INT8.
         output_dir: Directory to write all deployment artifacts.
         sample_inputs: Optional sample input frames for validation.
         sample_targets: Optional sample target frames for validation.
@@ -196,6 +207,8 @@ def export_for_deployment(
         ``DeploymentArtifacts`` with paths to all exported files.
     """
     output_dir = Path(output_dir)
+    if quantization == "INT8" and quantization_validation_dataset is None:
+        raise ValueError("INT8 export requires a disjoint quantization_validation_dataset")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     artifacts = DeploymentArtifacts(output_dir=output_dir)
@@ -212,7 +225,50 @@ def export_for_deployment(
     artifacts.encoder_tflite = enc_tflite
     artifacts.encoder_header = enc_header
 
-    # 1b. Encoder (.keras -- float32 reference alongside the quantized
+    # 1b. Float32 encoder LiteRT (browser/host runtime without Keras).
+    logger.info("Exporting float32 encoder TFLite...")
+    enc_f32_tflite, _ = export_encoder_tflite(
+        encoder,
+        rep_dataset=rep_dataset,
+        output_dir=output_dir,
+        tflite_name="encoder_float32.tflite",
+        header_name="_encoder_float32.h",
+        c_array_name="encoder_float32",
+        quantization="FP32",
+        io_type="float32",
+    )
+    artifacts.encoder_float32_tflite = enc_f32_tflite
+
+    # 1c. Additional MCU encoder precisions. ``encoder.tflite`` remains the
+    # backwards-compatible INT8 filename; explicit names let an application
+    # select its HeliaAOT-supported precision without changing codec payloads.
+    logger.info("Exporting FP16 and INT16x8 encoder variants...")
+    enc_fp16_tflite, enc_fp16_header = export_encoder_tflite(
+        encoder,
+        rep_dataset=rep_dataset,
+        output_dir=output_dir,
+        tflite_name="encoder_fp16.tflite",
+        header_name="encoder_fp16.h",
+        c_array_name="encoder_fp16",
+        quantization="FP16",
+        io_type="float32",
+    )
+    enc_int16x8_tflite, enc_int16x8_header = export_encoder_tflite(
+        encoder,
+        rep_dataset=rep_dataset,
+        output_dir=output_dir,
+        tflite_name="encoder_int16x8.tflite",
+        header_name="encoder_int16x8.h",
+        c_array_name="encoder_int16x8",
+        quantization="INT16X8",
+        io_type="float32",
+    )
+    artifacts.encoder_fp16_tflite = enc_fp16_tflite
+    artifacts.encoder_fp16_header = enc_fp16_header
+    artifacts.encoder_int16x8_tflite = enc_int16x8_tflite
+    artifacts.encoder_int16x8_header = enc_int16x8_header
+
+    # 1d. Encoder (.keras -- float32 reference alongside the quantized
     # encoder.tflite used on-device; mirrors the decoder.keras reference below).
     logger.info("Exporting encoder as .keras...")
     encoder_keras_path = output_dir / "encoder.keras"
@@ -320,12 +376,27 @@ def export_for_deployment(
         "package_version": model_version,
         "input_contract": {
             "encoder_input_shape": list(encoder.input_shape),
-            "encoder_input_dtype": io_type,
+            "encoder_input_dtype": "float32",
         },
         "preprocessing_contract": preprocessing_contract,
         "encoder": {
-            "tflite": enc_tflite.name,
+            "tflite": enc_f32_tflite.name,
             "header": enc_header.name,
+            "default_variant": "float32",
+            "default_tflite": enc_f32_tflite.name,
+            "float32_tflite": enc_f32_tflite.name,
+            "fp16_tflite": enc_fp16_tflite.name,
+            "fp16_header": enc_fp16_header.name,
+            "int16x8_tflite": enc_int16x8_tflite.name,
+            "int16x8_header": enc_int16x8_header.name,
+            "int8_tflite": enc_tflite.name,
+            "int8_header": enc_header.name,
+            "variants": {
+                "float32": {"tflite": enc_f32_tflite.name, "input_dtype": "float32"},
+                "fp16": {"tflite": enc_fp16_tflite.name, "input_dtype": "float32"},
+                "int16x8": {"tflite": enc_int16x8_tflite.name, "input_dtype": "float32"},
+                "int8": {"tflite": enc_tflite.name, "input_dtype": io_type},
+            },
             "keras": encoder_keras_path.name,
             "input_shape": list(encoder.input_shape),
             "output_shape": list(encoder.output_shape),
@@ -398,8 +469,17 @@ def export_for_deployment(
         "io_type": io_type,
         "artifacts": artifacts.as_dict(),
         "encoder": {
-            "tflite": enc_tflite.name,
+            "tflite": enc_f32_tflite.name,
             "header": enc_header.name,
+            "default_variant": "float32",
+            "default_tflite": enc_f32_tflite.name,
+            "float32_tflite": enc_f32_tflite.name,
+            "fp16_tflite": enc_fp16_tflite.name,
+            "fp16_header": enc_fp16_header.name,
+            "int16x8_tflite": enc_int16x8_tflite.name,
+            "int16x8_header": enc_int16x8_header.name,
+            "int8_tflite": enc_tflite.name,
+            "int8_header": enc_header.name,
             "keras": encoder_keras_path.name,
             "input_shape": list(encoder.input_shape),
             "output_shape": list(encoder.output_shape),
@@ -459,6 +539,21 @@ def export_for_deployment(
                 exc_info=True,
             )
             artifacts.reference_vectors = Path()
+
+    # 7b. Compare the deployed INT8 encoder against its float32 companion on
+    # a disjoint, real preprocessed validation partition.
+    if quantization == "INT8":
+        from compressionkit.export.quantization import (
+            evaluate_rvq_encoder_quantization,
+            write_rvq_encoder_quantization_report,
+        )
+
+        report = evaluate_rvq_encoder_quantization(output_dir, quantization_validation_dataset, max_frames=None)
+        artifacts.quantization_report = write_rvq_encoder_quantization_report(
+            output_dir,
+            report,
+            calibration_frames=int(np.asarray(rep_dataset).shape[0]),
+        )
 
     # 8. File-integrity manifest (written last so it can include everything else).
     artifacts.checksums = write_checksums(output_dir)

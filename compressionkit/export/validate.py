@@ -226,6 +226,67 @@ def validate_deploy_package(
     for rel in family_spec.release_extras if family_spec is not None else default_release_extras:
         _check_file(root, rel, checked_files, errors, warnings, required=strict_release, label="release artifact")
 
+    # Real browser-demo recordings are attached in a separate, source-data
+    # release step. They are optional for a clean model export, but once the
+    # manifest advertises them both artifacts are part of the package contract.
+    demo_recordings = manifest.get("demo_recordings")
+    if demo_recordings is not None:
+        if not isinstance(demo_recordings, dict):
+            errors.append("demo_recordings manifest entry must be an object")
+        else:
+            _check_file(
+                root,
+                str(demo_recordings.get("npz", "demo_recordings.npz")),
+                checked_files,
+                errors,
+                warnings,
+                required=True,
+                label="demo recordings artifact",
+            )
+            _check_file(
+                root,
+                str(demo_recordings.get("manifest", "demo_recordings_manifest.json")),
+                checked_files,
+                errors,
+                warnings,
+                required=True,
+                label="demo recordings artifact",
+            )
+
+    quantization_validation = manifest.get("quantization_validation")
+    if quantization_validation is not None:
+        if not isinstance(quantization_validation, dict):
+            errors.append("quantization_validation manifest entry must be an object")
+        else:
+            report_name = str(quantization_validation.get("report", "quantization_report.json"))
+            report_path = root / report_name
+            _check_file(
+                root,
+                report_name,
+                checked_files,
+                errors,
+                warnings,
+                required=True,
+                label="quantization validation report",
+            )
+            if report_path.is_file():
+                try:
+                    report = _load_json(report_path)
+                    if report.get("passed") is not True:
+                        errors.append("quantization validation report is not passed")
+                except (OSError, ValueError, json.JSONDecodeError) as exc:
+                    errors.append(f"invalid quantization validation report: {exc}")
+    elif family == "rvq" and manifest.get("quantization") == "INT8" and strict_release:
+        errors.append("missing quantization_validation for INT8 RVQ release")
+
+    if family == "rvq" and manifest.get("quantization") == "INT8":
+        try:
+            from compressionkit.export.quantization import require_rvq_encoder_quantization_report
+
+            require_rvq_encoder_quantization_report(root)
+        except ValueError as exc:
+            errors.append(str(exc))
+
     if check_runtime:
         try:
             from compressionkit.runtime import load_codec

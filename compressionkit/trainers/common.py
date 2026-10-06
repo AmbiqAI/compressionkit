@@ -9,6 +9,7 @@ per-signal trainer modules next to these helpers.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -101,6 +102,80 @@ def collect_rep_dataset(
     return fallback.astype(np.float32)
 
 
+def collect_disjoint_quantization_datasets(
+    val_ds: tf.data.Dataset,
+    *,
+    calibration_frames: int,
+    validation_frames: int,
+    sampling_pool_frames: int,
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Reservoir-sample disjoint calibration and holdout frame partitions.
+
+    The complete validation split is scanned up to ``sampling_pool_frames``.
+    Reservoir sampling makes the retained frames representative without holding
+    the full split in memory, then a seeded shuffle creates non-overlapping
+    calibration and post-export validation partitions. Exact float32 frame
+    content is deduplicated before sampling, including repeated dataset passes.
+    The scan remains bounded even when a repeating stream is too small.
+
+    Args:
+        val_ds: Batched validation dataset yielding ``(inputs, targets)``.
+        calibration_frames: Number of frames to provide to the TFLite converter.
+        validation_frames: Number of different frames for post-export parity.
+        sampling_pool_frames: Maximum source frames to scan before sampling.
+        seed: Deterministic sampling seed.
+
+    Returns:
+        ``(calibration_frames, validation_frames)`` arrays.
+
+    Raises:
+        ValueError: If the validation stream cannot supply both partitions.
+    """
+    required = calibration_frames + validation_frames
+    if calibration_frames <= 0 or validation_frames <= 0:
+        raise ValueError("Calibration and validation frame counts must be positive")
+    if sampling_pool_frames < required:
+        raise ValueError("sampling_pool_frames must cover both quantization partitions")
+
+    rng = np.random.default_rng(seed)
+    reservoir: np.ndarray | None = None
+    frames_seen = 0
+    samples_scanned = 0
+    fingerprints: set[bytes] = set()
+    for inputs, _ in val_ds:
+        batch = np.asarray(inputs.numpy(), dtype=np.float32)
+        if reservoir is None:
+            reservoir = np.empty((required, *batch.shape[1:]), dtype=np.float32)
+        for frame in batch:
+            samples_scanned += 1
+            fingerprint = hashlib.sha256(np.where(frame == 0, np.float32(0), frame).tobytes()).digest()
+            if fingerprint in fingerprints:
+                if samples_scanned >= sampling_pool_frames:
+                    break
+                continue
+            fingerprints.add(fingerprint)
+            if frames_seen < required:
+                reservoir[frames_seen] = frame
+            else:
+                selected = int(rng.integers(0, frames_seen + 1))
+                if selected < required:
+                    reservoir[selected] = frame
+            frames_seen += 1
+            if samples_scanned >= sampling_pool_frames:
+                break
+        if samples_scanned >= sampling_pool_frames:
+            break
+
+    if reservoir is None or frames_seen < required:
+        raise ValueError(
+            f"Validation stream yielded {frames_seen} distinct frames from {samples_scanned} samples; "
+            f"need {required} disjoint quantization frames"
+        )
+    rng.shuffle(reservoir)
+    return reservoir[:calibration_frames].copy(), reservoir[calibration_frames:].copy()
+
+
 # ---------------------------------------------------------------------------
 # Training history → scalar summary
 # ---------------------------------------------------------------------------
@@ -166,6 +241,7 @@ def write_long_recording_eval(payload: dict[str, Any], run_dir: Path) -> Path:
 
 __all__ = [
     "BEST_CKPT_NAME",
+    "collect_disjoint_quantization_datasets",
     "collect_rep_dataset",
     "extract_history_metrics",
     "reload_best_weights",

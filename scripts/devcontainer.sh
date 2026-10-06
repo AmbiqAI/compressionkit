@@ -19,6 +19,7 @@
 #
 # Usage:
 #   scripts/devcontainer.sh up                  # bring the container up (idempotent)
+#   scripts/devcontainer.sh rebuild             # recreate it using the current devcontainer.json
 #   scripts/devcontainer.sh id                   # print the running container id
 #   scripts/devcontainer.sh exec -- <cmd> [args] # run a command in the container
 #   scripts/devcontainer.sh shell                # open an interactive shell
@@ -46,6 +47,16 @@
 
 set -euo pipefail
 
+# This helper manages Docker from the host.  A Remote Containers terminal is
+# already *in* the target container, where commands should be run directly.
+# Detect that case before attempting to discover the host's NVM installation;
+# otherwise the resulting "devcontainer CLI not found" error is misleading.
+if [[ -f /.dockerenv || -f /run/.containerenv ]]; then
+    echo "error: scripts/devcontainer.sh must be run from the host, not from inside the dev container." >&2
+    echo "Run the requested command directly here instead (for example: uv run pytest -q)." >&2
+    exit 2
+fi
+
 # Resolve the main worktree path: the dev container is created against the
 # primary checkout, not any linked `git worktree add` copy. `git worktree
 # list` always prints the main worktree first.
@@ -65,6 +76,52 @@ if [[ -z "${MAIN_WORKSPACE}" ]]; then
     exit 1
 fi
 
+# Outside-agent shells are non-interactive, so they do not necessarily source
+# the user's shell profile that activates an NVM-managed Node installation.
+# The Dev Containers CLI is a Node executable whose ``#!/usr/bin/env node``
+# shebang must use the same Node version that installed it.  If it is not
+# already on PATH, find the newest NVM-managed CLI and prepend its ``bin``
+# directory, which makes both ``devcontainer`` and its matching ``node``
+# available without changing the caller's global Node selection.
+ensure_devcontainer_cli() {
+    if command -v devcontainer >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local nvm_dir="${NVM_DIR:-${HOME:-}/.nvm}"
+    local candidates=()
+    local candidate
+    shopt -s nullglob
+    candidates=("${nvm_dir}"/versions/node/*/bin/devcontainer)
+    shopt -u nullglob
+
+    for ((candidate = ${#candidates[@]} - 1; candidate >= 0; candidate--)); do
+        if [[ -x "${candidates[candidate]}" ]]; then
+            export PATH="$(dirname "${candidates[candidate]}"):${PATH}"
+            return 0
+        fi
+    done
+
+    echo "error: devcontainer CLI not found on PATH or under ${nvm_dir}" >&2
+    echo "Install @devcontainers/cli or set PATH/NVM_DIR before running this helper." >&2
+    return 1
+}
+
+ensure_devcontainer_cli
+
+acquire_lifecycle_lock() {
+    # Two overlapping `devcontainer up` invocations can both observe no
+    # container and create duplicates with the same workspace label.  Keep
+    # the lock host-local because this script controls local Docker state.
+    local workspace_hash
+    workspace_hash="$(printf '%s' "${MAIN_WORKSPACE}" | sha256sum | cut -c1-16)"
+    exec 9>"/tmp/devcontainer-${workspace_hash}.lock"
+    if ! flock -n 9; then
+        echo "error: another dev-container up or rebuild is already running for ${MAIN_WORKSPACE}" >&2
+        return 1
+    fi
+}
+
 container_id() {
     local ids
     ids="$(docker ps -q --filter "label=devcontainer.local_folder=${MAIN_WORKSPACE}")"
@@ -78,6 +135,18 @@ container_id() {
 }
 
 cmd_up() {
+    acquire_lifecycle_lock
+    devcontainer up --workspace-folder "${MAIN_WORKSPACE}"
+}
+
+cmd_rebuild() {
+    acquire_lifecycle_lock
+    local id
+    id="$(container_id)"
+    if [[ -n "${id}" ]]; then
+        echo "Removing the existing dev container so the current configuration is applied..."
+        docker rm -f "${id}" >/dev/null
+    fi
     devcontainer up --workspace-folder "${MAIN_WORKSPACE}"
 }
 
@@ -187,6 +256,7 @@ subcommand="${1:-}"
 
 case "${subcommand}" in
     up) cmd_up ;;
+    rebuild) cmd_rebuild ;;
     id) cmd_id ;;
     exec)
         [[ "${1:-}" == "--" ]] && shift
@@ -198,7 +268,7 @@ case "${subcommand}" in
     gpu-check) cmd_gpu_check ;;
     gpu-recover) cmd_gpu_recover ;;
     *)
-        echo "usage: $(basename "$0") {up|id|exec -- <cmd>|shell|down|status|gpu-check|gpu-recover}" >&2
+        echo "usage: $(basename "$0") {up|rebuild|id|exec -- <cmd>|shell|down|status|gpu-check|gpu-recover}" >&2
         exit 1
         ;;
 esac

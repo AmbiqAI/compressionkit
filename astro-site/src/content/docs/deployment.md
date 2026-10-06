@@ -55,6 +55,7 @@ Use `load_codec()` for the common interface across families. The lower-level exa
 | `deploy_manifest.json` | Yes | Declares file names, tensor shapes, quantization mode, and codebook metadata. | Runtime metadata |
 | `encoder.tflite` | Yes | INT8 LiteRT encoder used to produce continuous latents from input frames. | MCU / edge device |
 | `encoder.h` | Yes | C header for the quantized encoder blob. | MCU firmware |
+| `encoder_float32.tflite` | Yes | Float32 LiteRT encoder for browser and host runtimes without Keras. | Browser / x86 / ARM Linux |
 | `encoder.keras` | Yes | Reference encoder kept in Keras format. | Server / offline tools |
 | `decoder.keras` | Yes | Reference decoder kept in Keras format. | Server / offline tools |
 | `decoder_float32.tflite` | Optional, exported by default | Float32 LiteRT decoder for host-side reconstruction without Keras. | x86 / ARM Linux |
@@ -63,9 +64,39 @@ Use `load_codec()` for the common interface across families. The lower-level exa
 | `codebook.npz` | Yes | NumPy archive containing RVQ codebook tables. | Python runtime |
 | `codebook.h` | Yes | C header containing RVQ codebook tables. | MCU firmware |
 | `sample_data.npz` | Optional | Synthetic or evaluation sample inputs / targets / reconstructions. | Validation / demos |
+| `demo_recordings.npz` | Release | Ten real, quality-gated continuous recordings, resampled to the model rate. | Browser demos |
+| `demo_recordings_manifest.json` | Release | Dataset attribution, license, source offsets, and quality metrics for the demo recordings. | Browser demos / compliance |
 | `model_card.json` | Optional | Metadata used when publishing to HuggingFace. | Release tooling |
 
 The manifest is the source of truth. The runtime reads it first, then resolves the encoder, optional decoder, and codebook files from the names listed there.
+
+## Encoder Preprocessing and INT8 Parity
+
+Both RVQ encoders accept one normalized frame: PPG is `(1, 1, 320, 1)` at 64 Hz and ECG is `(1, 1, 512, 1)` at 256 Hz. Resample and frame the raw single-channel recording first, then normalize each frame independently:
+
+```python
+mean = frame.mean()
+scale = np.sqrt(np.mean((frame - mean) ** 2) + 1e-3)
+normalized = (frame - mean) / scale
+```
+
+Retain `mean` and `scale` to return a decoded frame to its original units: `raw = decoded * scale + mean`. Do not feed raw ADC or continuous values directly to `encoder_int8.tflite`; its calibration domain is this training-time normalized representation.
+
+Every INT8 RVQ export reservoir-samples up to 65,536 real preprocessed validation frames, using 4,096 frames for LiteRT calibration and a disjoint 2,048-frame holdout for `quantization_report.json`. The release gate requires at most 1% input saturation on that holdout. A P90 reconstruction PRD target of 10% against the float32 encoder remains a quality recommendation. Worst-frame PRD remains a 15% tail-risk warning in the report, rather than a release blocker, because isolated RVQ decision-boundary crossings can be disproportionate. `compressionkit golden validate-all --strict-release` and the Hugging Face publisher reject INT8 RVQ releases without a passed report.
+
+## Real Browser-Demo Recordings
+
+RVQ releases carry ten 30-second real recordings in `demo_recordings.npz`: BIDMC PPG at 64 Hz and MIT-BIH ECG at 256 Hz. The companion manifest retains ODC-By attribution and the quality gate results. Signals are continuous source waveforms after resampling; apply the model's normal framing and normalization before inference.
+
+Refresh local bundles before a manual Hugging Face update:
+
+```bash
+scripts/devcontainer.sh exec -- uv run python scripts/attach_rvq_demo_recordings.py --modality all
+```
+
+To update only validated release candidates, repeat `--experiment-id`, for example `--experiment-id ecg-rvq-2x --experiment-id ecg-rvq-4x`.
+
+Use `--duration-seconds 120` for two-minute clips. The command updates only existing `results/*/deploy/` packages, their manifests, and checksums; it does not train or re-export models.
 
 ## Local Runtime Quickstart
 
