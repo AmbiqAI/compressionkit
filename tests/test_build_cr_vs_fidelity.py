@@ -159,3 +159,17 @@ def test_main_writes_markdown(tmp_path: Path):
     text = out.read_text()
     assert "# ECG CR vs. Fidelity" in text
     assert "08x" in text
+
+
+def test_standalone_report_links_use_published_documentation():
+    assert "https://ambiqai.github.io/compressionkit/experiments/" in mod.build_document([], "ppg")
+    spec = importlib.util.spec_from_file_location(
+        "customer_evidence_report",
+        Path(__file__).resolve().parent.parent / "scripts" / "build_customer_evidence_summary.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    report = module.render_document([])
+    for route in ("models/ppg", "models/ecg", "methods/cr_vs_fidelity_ppg", "methods/cr_vs_fidelity_ecg"):
+        assert f"https://ambiqai.github.io/compressionkit/{route}/" in report

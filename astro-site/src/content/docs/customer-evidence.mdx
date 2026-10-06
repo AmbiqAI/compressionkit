@@ -1,0 +1,72 @@
+---
+title: "Customer evidence"
+description: "Compare recorded codec quality and package sizes, with evaluation context and limitations."
+---
+
+import EvidenceTable from "../../components/EvidenceTable.astro";
+
+Use these recorded scorecards to shortlist codec configurations, then evaluate them on representative signals from your application. Compression ratio (CR) describes payload reduction; it does not describe reconstruction quality by itself.
+
+<span id="release-decision-overview"></span>
+
+## What these results cover
+
+These tables are recorded evaluation snapshots, not a live inventory of downloadable models. Sample counts and metric definitions must be read alongside the values. Refreshing the site does not run an evaluation.
+
+- **PPG:** 5-second frames at 64 Hz. Sample counts vary by ratio.
+- **ECG:** 2-second frames at 256 Hz.
+- **Quality:** this page uses noise-aware scorecards. The model pages also show a separate validation and long-recording evaluation; those values should not be treated as the same run.
+- **Package size:** encoder, decoder, and codebook files. These sizes do not measure runtime RAM, firmware size, or inference latency.
+
+<span id="compression-and-deploy-ladder"></span>
+
+## Compression and quality
+
+Lower error is better within the same evaluation. **N** is the reported sample count. A dash means the measurement was not reported, not zero.
+
+<span id="ppg-release-ladder"></span>
+
+### PPG quality
+
+<EvidenceTable id="ppg-quality" />
+
+<span id="ecg-release-ladder"></span>
+
+### ECG quality
+
+<EvidenceTable id="ecg-quality" />
+
+## Package footprint
+
+The reported total excludes validation samples and documentation. Component sizes are rounded independently, so their displayed sum may differ from the total.
+
+### PPG files
+
+<EvidenceTable id="ppg-files" />
+
+### ECG files
+
+<EvidenceTable id="ecg-files" />
+
+## Detailed signal measurements
+
+These metrics help investigate differences that a single waveform score can miss. Definitions and measurement limitations are in the [validation scorecard](/compressionkit/validation-scorecard/).
+
+### PPG detail
+
+<EvidenceTable id="ppg-detail" />
+
+### ECG detail
+
+<EvidenceTable id="ecg-detail" />
+
+<span id="how-to-use-this-page"></span>
+
+## Choose a candidate
+
+1. Shortlist ratios that meet your payload budget.
+2. Inspect the waveform and heart-rate errors together. Check sample counts and noise conditions before comparing rows.
+3. Examine the [PPG](/compressionkit/models/ppg/) or [ECG](/compressionkit/models/ecg/) plots and the detailed [PPG](/compressionkit/methods/cr_vs_fidelity_ppg/) or [ECG](/compressionkit/methods/cr_vs_fidelity_ecg/) noise buckets.
+4. Run the [evaluation notebook](/compressionkit/guides/02_evaluate_on_your_data/) on your recordings, then validate a [deploy package](/compressionkit/deployment/).
+
+No fixed ratio is recommended for a clinical or product use case by these aggregate measurements alone.

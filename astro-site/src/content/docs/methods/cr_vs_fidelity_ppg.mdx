@@ -1,0 +1,43 @@
+---
+title: "PPG CR vs. Fidelity"
+description: "Compare PPG compression ratios with recorded waveform and noise-bucket metrics."
+---
+
+import FidelityTable from "../../../components/FidelityTable.astro";
+
+This page summarizes how compression ratio (CR) trades off against signal- and physiology-level fidelity for the v1 RVQ goldens. The **Effective CR** column is populated when an entropy-prior run is available; otherwise, the codec CR is the release-facing operating point. CRs are reported alongside the [noise-aware metrics](/compressionkit/validation-scorecard/) so it is easy to inspect the difference between waveform faithfulness, clean-reference fidelity, and physiological metric preservation.
+
+## Headline summary (all samples)
+
+<FidelityTable modality="ppg" id="headline" />
+
+
+<FidelityTable modality="ppg" id="physiology" />
+
+
+<FidelityTable modality="ppg" id="seams" />
+
+
+<span id="noise-stratified-detail-clean-median-noisy-tertiles"></span>
+
+## Noise-stratified detail (clean / median / noisy tertiles)
+
+Tertiles are formed from a band-power noise estimate over each input recording; *clean* is the lowest-noise third, *noisy* is the highest.
+
+<FidelityTable modality="ppg" id="noise" />
+
+
+<FidelityTable modality="ppg" id="noise-spectral" />
+
+
+<span id="how-to-read-this-table"></span>
+
+## How to read these results
+
+- **Faithful PRD** compares reconstruction with the recorded input; **Truth PRD** uses the fixture's clean reference. Their difference depends on the input noise and reference construction.
+- **PRDN-noise** is a noise-normalized error measure. Interpret it with waveform and physiological errors, not as proof of denoising by itself.
+- **HR MAE** and band error describe the measurements in this evaluation. Acceptance thresholds depend on your application.
+- **Seam ratio** reports boundary energy relative to the window center. A missing value means no result was reported.
+- Sample counts and noise-bucket composition can differ across ratios. Preserve that context when comparing candidates.
+
+See the [validation scorecard](/compressionkit/validation-scorecard/) for definitions and [customer evidence](/compressionkit/customer-evidence/) for a compact comparison.

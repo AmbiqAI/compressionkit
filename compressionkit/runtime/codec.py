@@ -1,8 +1,8 @@
 """Lightweight RVQ codec for inference using LiteRT + numpy.
 
-This module requires only ``numpy`` and ``ai-edge-litert`` (or
-``tflite-runtime``).  No Keras, TensorFlow, or training dependencies
-are needed.
+Model inference uses NumPy and a LiteRT interpreter. Importing this module
+also initializes the compressionkit package, including its Keras and
+evaluation dependencies. Install the full package dependencies.
 
 Example::
 

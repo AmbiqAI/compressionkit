@@ -5,7 +5,7 @@
 #   bash scripts/refresh_golden_plots.sh
 #
 # Reads results/*/summary.json → results/golden_summary.{csv,json}
-# Generates docs/assets/plots/*.png (light + dark theme variants)
+# Generates astro-site/public/assets/plots/*.png (light + dark theme variants)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,5 +17,5 @@ python scripts/collect_golden_results.py
 echo "==> Generating plots..."
 python scripts/plot_golden_results.py
 
-echo "==> Done. Plots saved to docs/assets/plots/"
-ls -lh docs/assets/plots/*.png
+echo "==> Done. Plots saved to astro-site/public/assets/plots/"
+ls -lh astro-site/public/assets/plots/*.png

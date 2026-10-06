@@ -1,0 +1,60 @@
+---
+title: "compressionKIT"
+description: "Build, evaluate and package compression codecs for ECG and PPG signals."
+template: splash
+hero:
+  tagline: A Python-based AI Development Kit for compressing ECG and PPG signals. Compare codecs, measure reconstructed signal quality, and prepare models for edge applications.
+---
+
+import Card from '@ambiqai/helia-ui/astro/Card';
+import CardHeader from '@ambiqai/helia-ui/astro/CardHeader';
+import CardContent from '@ambiqai/helia-ui/astro/CardContent';
+import CardGrid from '@ambiqai/helia-ui/astro/CardGrid';
+import Icon from '@ambiqai/helia-ui/astro/Icon';
+
+## Less data to store. More signal to work with.
+
+compressionKIT is a Python-based AI Development Kit for compressing ECG and PPG waveforms. It brings together codec models, signal preprocessing, evaluation tools, and export utilities so you can compare compression methods using the same workflow.
+
+A **codec** encodes a frame of samples into a smaller representation, then decodes it back into a waveform. Compression is lossy: a smaller payload can also change the reconstructed signal. Use the included scorecards to measure that tradeoff before choosing a configuration.
+
+## Why it matters
+
+<CardGrid columns={2}>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="wave-square" text="Retain waveform recordings" /></CardHeader><CardContent><p>Explore smaller payloads for local storage, transfer, and later analysis. Measure reconstructed signal quality alongside the reduction in data size.</p><p><a href="/compressionkit/use-cases/">Explore use cases →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="chart-line" text="Compare quality and size" /></CardHeader><CardContent><p>Inspect waveform error, heart-rate error, and behavior under noise across PPG and ECG configurations.</p><p><a href="/compressionkit/customer-evidence/">Review the evidence →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="microchip" text="Prepare deployment artifacts" /></CardHeader><CardContent><p>Export models, codebooks, manifests, and reference vectors. Use these to validate the codec and plan its integration into your application.</p><p><a href="/compressionkit/deployment/">Explore deployment →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="puzzle-piece" text="Build on reusable components" /></CardHeader><CardContent><p>Use the provided experiments or compose your own workflow from datasets, models, evaluation functions, and exporters.</p><p><a href="/compressionkit/experiment-architecture/">Build your own workflow →</a></p></CardContent></Card>
+</CardGrid>
+
+## Start with a codec. Expand when you need to.
+
+1. **Try a round trip.** [Install from source](/compressionkit/getting-started/) and encode/decode a synthetic frame. You do not need a training dataset.
+2. **Evaluate your signal.** Use an [example notebook](/compressionkit/examples/) to inspect reconstructions and errors on your recordings.
+3. **Compare configurations.** Browse [PPG and ECG models](/compressionkit/models/) and choose candidates against your quality and payload requirements.
+4. **Prepare integration.** [Validate the deploy package](/compressionkit/deployment/#recommended-validation), then measure memory, latency, and quality in your target application.
+
+<span id="what-compressionkit-is"></span>
+
+<span id="where-compressionkit-fits"></span>
+
+<span id="what-current-goldens-show"></span>
+
+<span id="how-to-read-the-evidence"></span>
+
+<span id="guiding-principles"></span>
+
+<span id="high-level-getting-started"></span>
+
+<span id="current-v1-artifacts"></span>
+
+<span id="where-to-go-next"></span>
+
+## Explore the toolkit
+
+<CardGrid columns={2}>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="circle-play" text="Getting started" /></CardHeader><CardContent><p>Install compressionKIT and run your first encode/decode example.</p><p><a href="/compressionkit/getting-started/">Start here →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="cloud-arrow-down" text="Hugging Face bundles" /></CardHeader><CardContent><p>Load a remote bundle or an existing local deploy directory.</p><p><a href="/compressionkit/huggingface/">Load a codec →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="table-cells-large" text="Model zoo" /></CardHeader><CardContent><p>Review signal-specific results, configurations, and reconstruction plots.</p><p><a href="/compressionkit/models/">Browse models →</a></p></CardContent></Card>
+  <Card as="article"><CardHeader titleAs="h3"><Icon name="flask" text="Reproducible experiments" /></CardHeader><CardContent><p>Find a registered configuration, prepare its dataset, and run the workflow.</p><p><a href="/compressionkit/experiments/">Explore experiments →</a></p></CardContent></Card>
+</CardGrid>

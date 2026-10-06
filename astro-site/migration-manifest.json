@@ -1,0 +1,994 @@
+{
+  "baseline": "69b94d836dd8a24f227d411e99ef4ff2a7de2b7d",
+  "items": [
+    {
+      "source": "docs/EVALUATION_PLAN.md",
+      "sha256": "0a98c7130343d3adbdd02bae2a9f141d06c3b5fd675842d1a8f5589c948a4a31",
+      "disposition": "excluded",
+      "review": "pending",
+      "reason": "Internal evaluation planning retained in repository.",
+      "retiredSource": true,
+      "retainedAt": "maintainer-notes/EVALUATION_PLAN.md"
+    },
+    {
+      "source": "docs/adding-a-codec-family.md",
+      "sha256": "40843bbc7f7dce24f4369c7e2608c13f1c6463e8cfabd0f46e3d4af53f4e26db",
+      "destination": "astro-site/src/content/docs/adding-a-codec-family.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/api/configs.md",
+      "sha256": "f1b6f5c4f7a968f39f29c4eb1063b655d7592f60d461488e22ea4e0f81850b86",
+      "destination": "astro-site/src/content/docs/api/configs.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/api/datasets.md",
+      "sha256": "a6abdbffa18a7d933d1491570ac67f462532a943e1be953a9563094c4d74c2be",
+      "destination": "astro-site/src/content/docs/api/datasets.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/api/evaluation.md",
+      "sha256": "71f8a7ace8ac52cca43794f5379b2eb4256c4f2e300afff6092768392f908604",
+      "destination": "astro-site/src/content/docs/api/evaluation.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/api/export.md",
+      "sha256": "ba59d2e024f4a221f633ca188b46c0324ade0a588620d79b31dd30f3ea009f28",
+      "destination": "astro-site/src/content/docs/api/export.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/api/models.md",
+      "sha256": "05f1f387b54201dfa4f9bdb0c78f0ac6b711b83de9507b292b1d329de1f6a4b1",
+      "destination": "astro-site/src/content/docs/api/models.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/api/preprocessing.md",
+      "sha256": "db5de45666063d7f2c485447d8c52cdc67d71d138c6daf108a417f36c34dbad1",
+      "destination": "astro-site/src/content/docs/api/preprocessing.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-dark.png",
+      "sha256": "50cdc40c02f9d489adfff763e3bf14070dee52a57caafb0c2dadf821b09f12b1",
+      "destination": "astro-site/public/assets/compressionkit-dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-dashboard-full.jpeg",
+      "sha256": "6580cd489b29d6e7e8ec65f62925ebd2d89e7028210d50fadb575339b30679b7",
+      "destination": "astro-site/public/assets/compressionkit-dashboard-full.jpeg",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-icon-white.png",
+      "sha256": "29fb28e962f746f8c46f44aab790703b891377efffdd3c2e53b1c6ba45001214",
+      "destination": "astro-site/public/assets/compressionkit-icon-white.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-icon.png",
+      "sha256": "f9b024d793c78e2c18f6a7b25081c51350ba79c2cfa7ff8b3558ef7818a53cb5",
+      "destination": "astro-site/public/assets/compressionkit-icon.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-icon.svg",
+      "sha256": "16d27136d25744d3b378657aa8d367266cbae3cfcb25a9b57ebf463d1ecb8fa9",
+      "destination": "astro-site/public/assets/compressionkit-icon.svg",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-light.png",
+      "sha256": "da9d22b2c84f6b052874fe65698a8bc4368e0d16c2a7aa63764b8dbe27998c36",
+      "destination": "astro-site/public/assets/compressionkit-light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-live-stream.jpeg",
+      "sha256": "64aeb9bedc68f85f86edc610650e0cbe65eaa4582387c6849f49dfe471d5ed0d",
+      "destination": "astro-site/public/assets/compressionkit-live-stream.jpeg",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-ppg-overview.jpeg",
+      "sha256": "f7765a9ea0604fe03d974481b4ce4bb0f06647c3e298892b7bc87ebfbea40cc1",
+      "destination": "astro-site/public/assets/compressionkit-ppg-overview.jpeg",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/compressionkit-ppg-recordings.jpeg",
+      "sha256": "001a06ebba0acd61fbc3004b19fd4b86f9c037f0d9fc6135854f06b996cb1c83",
+      "destination": "astro-site/public/assets/compressionkit-ppg-recordings.jpeg",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/favicon.png",
+      "sha256": "29fb28e962f746f8c46f44aab790703b891377efffdd3c2e53b1c6ba45001214",
+      "destination": "astro-site/public/assets/favicon.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_cos_dark.png",
+      "sha256": "fe94c6b6289ae39f30d77d41ed2e37be0ed3c822a6abe811fbf5ca080c0c4f7c",
+      "destination": "astro-site/public/assets/plots/ecg_cos_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_cos_light.png",
+      "sha256": "f165487e081deadba214622b64ee2a4ad4f16ee294888a73949068035cf28933",
+      "destination": "astro-site/public/assets/plots/ecg_cos_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_effective_rate_dark.png",
+      "sha256": "2ad17796cd9e6f8b162414034649fea81c1fb9992a24652e991aa18c5b8a201b",
+      "destination": "astro-site/public/assets/plots/ecg_effective_rate_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_effective_rate_light.png",
+      "sha256": "0f41c81b55a2130eeaf89a715992bb1ce936b6126acbb17e4a58c63f8497aa3d",
+      "destination": "astro-site/public/assets/plots/ecg_effective_rate_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_mse_dark.png",
+      "sha256": "52f730903558366ca2ccc5f5d13f18bc6ec2d227ded3ea6af8efee2c830d9c14",
+      "destination": "astro-site/public/assets/plots/ecg_mse_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_mse_light.png",
+      "sha256": "f332808b79d7da4f316ea87d29c3e950ac568ee2c9c3548eaadf863f319d13f9",
+      "destination": "astro-site/public/assets/plots/ecg_mse_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_prd_dark.png",
+      "sha256": "a7e70af3ed1c816d061015b82baa3e059035f705718c3018f0947e3fd6e56e5b",
+      "destination": "astro-site/public/assets/plots/ecg_prd_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_prd_light.png",
+      "sha256": "3b9995ee0c6007e2dd6a68e65c5d20a494b86fdcfe06177c6ffb5b9c9d2018e9",
+      "destination": "astro-site/public/assets/plots/ecg_prd_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_robustness_winners_artifacts.png",
+      "sha256": "5534422aa006c560d2874b4665ff732292efcd56b536d8e58260b9539ab8b1dc",
+      "destination": "astro-site/public/assets/plots/ecg_robustness_winners_artifacts.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ecg_robustness_winners_snr.png",
+      "sha256": "99f33a263c2162465ae389c6ee3c08a3fd5d16849f8830a0f47c831e050758a1",
+      "destination": "astro-site/public/assets/plots/ecg_robustness_winners_snr.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_cos_dark.png",
+      "sha256": "322334b90696919425f4478d28a4410fa97a156165f4fd31bbad585b9d7c24b0",
+      "destination": "astro-site/public/assets/plots/ppg_cos_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_cos_light.png",
+      "sha256": "420c17ae136b196246960e7596e25fcefe804a36b3dcff6a9854122d5334135a",
+      "destination": "astro-site/public/assets/plots/ppg_cos_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_effective_rate_dark.png",
+      "sha256": "03a872d0af505caf7d45a970ee8163bc325d66763de0dec71da38b93e424b8a8",
+      "destination": "astro-site/public/assets/plots/ppg_effective_rate_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_effective_rate_light.png",
+      "sha256": "f4035a8662883adcd85e2740cfcf00b374b1db25564acd27eb5853ced8e8c533",
+      "destination": "astro-site/public/assets/plots/ppg_effective_rate_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_hr_dark.png",
+      "sha256": "2e56b0918074ffb5a51e5e66bddb873f389cce67e4629e8c5eab4f64de6692ab",
+      "destination": "astro-site/public/assets/plots/ppg_hr_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_hr_light.png",
+      "sha256": "0911339b36c21470d314a7d66989ee2ff09f40cca2c658739dc9c8512e25beb5",
+      "destination": "astro-site/public/assets/plots/ppg_hr_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_mse_dark.png",
+      "sha256": "b76da9c44485fd3c2abb5a90201ccd671cd5e332639ceec5965dd107f71866cd",
+      "destination": "astro-site/public/assets/plots/ppg_mse_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_mse_light.png",
+      "sha256": "11444666bcd30fe71c8dd43dc961ae32fc3c7842a4272d3a003a3e46779c835f",
+      "destination": "astro-site/public/assets/plots/ppg_mse_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_prd_dark.png",
+      "sha256": "24464b733c2773a30e246eb6153e8091d7cc968b59f025c2eb624339b3caaad3",
+      "destination": "astro-site/public/assets/plots/ppg_prd_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_prd_light.png",
+      "sha256": "4da4940ef337529398666f596da3be68250f20ee498ac204c22a19ee136ea592",
+      "destination": "astro-site/public/assets/plots/ppg_prd_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_rmssd_dark.png",
+      "sha256": "6ec897e9682379e55e75d45f0c3ce20f42d606470de6e9b02246d933a73efdfc",
+      "destination": "astro-site/public/assets/plots/ppg_rmssd_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_rmssd_light.png",
+      "sha256": "995809e9529bef71244fd51c8c1779a1967de9170b1208d97cdc980ed147caff",
+      "destination": "astro-site/public/assets/plots/ppg_rmssd_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_robustness_winners_artifacts.png",
+      "sha256": "5ddebda11872fc34d6498f749959988fb671aeed2f52b76202f89c55630b5463",
+      "destination": "astro-site/public/assets/plots/ppg_robustness_winners_artifacts.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_robustness_winners_snr.png",
+      "sha256": "7ae071f1e66514b92d61421071c9c814595381db6ce9e688de1c3077a5eecbe1",
+      "destination": "astro-site/public/assets/plots/ppg_robustness_winners_snr.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_sdnn_dark.png",
+      "sha256": "febe1b01c51d0c12c6dd40fab79698503c16aabe98dbe4dfbce607af0d44f7ba",
+      "destination": "astro-site/public/assets/plots/ppg_sdnn_dark.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/assets/plots/ppg_sdnn_light.png",
+      "sha256": "a542ef353b66ab3e028484a39a6b766e16a4c069f4b66258ccc1bb5def882473",
+      "destination": "astro-site/public/assets/plots/ppg_sdnn_light.png",
+      "disposition": "copied",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/cli.md",
+      "sha256": "8c8bb36515e54e602227afe8422007f52db60c93df11f6d1f8f21ce830f9f394",
+      "destination": "astro-site/src/content/docs/cli.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/customer-evidence.md",
+      "sha256": "9d4ab36ac67c8f2a73946506c54f928f5e33469100d294d462d916fea04b4024",
+      "destination": "astro-site/src/content/docs/customer-evidence.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/datasets.md",
+      "sha256": "1390884eca57e57ad9c96dfecd06bc086dc8b85baaabee83013f38313745dd45",
+      "destination": "astro-site/src/content/docs/datasets.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/demo/ppg-codec.md",
+      "sha256": "c4d46ad973a397a29f226541b36b2da9ef35d8c60a82d3cf2f1df5a3bb44b0a0",
+      "destination": "astro-site/src/content/docs/demo/ppg-codec.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/deployment.md",
+      "sha256": "dc685193a3e563177654824da68a1b2457f7ccdcdb2498f71459667728aeef37",
+      "destination": "astro-site/src/content/docs/deployment.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/entropy-coding-research.md",
+      "sha256": "52add63999841ed4155eeebfcacc502b73d7cd8edc1ac1d5ba6c30d7e3933d9c",
+      "disposition": "excluded",
+      "reason": "Internal roadmap or research planning; retain in repository, exclude from public site.",
+      "retiredSource": true,
+      "retainedAt": "maintainer-notes/entropy-coding-research.md"
+    },
+    {
+      "source": "docs/examples.md",
+      "sha256": "a4163ffdc8b7a7888e7e3e514cfa4c514a0abb83b08c84818b51baf5b2af55b4",
+      "destination": "astro-site/src/content/docs/examples.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiment-architecture.md",
+      "sha256": "79dad357f1a6b23cdce465a904a4c4b06f8394b6f5a5ff1d4584d577d704d818",
+      "destination": "astro-site/src/content/docs/experiment-architecture.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-hybrid-16x.md",
+      "sha256": "58422eddec0828f0d88ba4e662d08721e8eb88fa7f39f2fa67091fc0e674e706",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-16x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-hybrid-2x.md",
+      "sha256": "2241a2b016884fa0ed12986bf33ecb13d825035c5ce4c36de16774b8447cd509",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-2x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-hybrid-32x.md",
+      "sha256": "7077d93672842b8bf298855517a6dc3e7fb6e53c1043b41fdacaac8aef68af1a",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-32x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-hybrid-4x.md",
+      "sha256": "c0dc2781f598a03bad47a8b163e8dcb9d208f3c07487b3995f2e9a350c6a244b",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-4x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-hybrid-64x.md",
+      "sha256": "62aef0c56e9b5e432c1b31b5a47f62b6b8fbb236b79354af625c096c4154d6a6",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-64x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-hybrid-8x.md",
+      "sha256": "7625bf96b1ede7bea8e03c99c1a6901318ec606129056c09e638e242f9c4f56f",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-8x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-16x.md",
+      "sha256": "8ed3c7503378a51dd3f4f312bf81ddfc570269a0dfbb8f3384db79b5f83802cd",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-16x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-2x.md",
+      "sha256": "3ca932666b36e7feb1b6d3615f6b4ad7d8dde47f3d58fc1deef41dc4edcabd28",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-2x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-32x.md",
+      "sha256": "2e5b57cb9fdc71b6fa88840372a849d8c530e76d18365364ab77fd1525a1a335",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-32x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-4x-prior.md",
+      "sha256": "a46ffec8dec919b1b1decbe9c7fc8eb91d55244771a57c5db750101e36a0d9a2",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-4x-prior.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-4x.md",
+      "sha256": "3e4c7e0396c42fbb51ada3126436dbe7d8d031dc678a7a31e2efb5804a1a8a46",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-4x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-64x.md",
+      "sha256": "056de6e863cdbfaeed7a34a9141406dcecdf012470c314e7775d174eb4a168e2",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-64x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-8x-prior.md",
+      "sha256": "2b215473f8b60efcb5f391e52e02e756cf48fc5384d11a19e88b89f46a585095",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-8x-prior.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-rvq-8x.md",
+      "sha256": "7533438e56df3ebe4783b9d8a4e3b71980623886b68b7ab1a665dd4d5c536dda",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-8x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-spiht-16x.md",
+      "sha256": "bc2130934da4c2a8ce46cfb369b4e84d75c27402a471ad4154e9d992c34dabb9",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-16x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-spiht-2x.md",
+      "sha256": "49bca3e68c46e4ac31e6b3160167c365547a40e40bcef8a9362a9b7b5fbe7e8d",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-2x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-spiht-32x.md",
+      "sha256": "962af791d3042f12a405f8338ea5d355636162d9785f2b97cb8f9abac08405e2",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-32x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-spiht-4x.md",
+      "sha256": "323312ba1ac1e1d8f5d747a1036bf19a43c0b1aaedd637c96a5aec3f1f44d287",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-4x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-spiht-64x.md",
+      "sha256": "d194a59bfb5e70f3e86aa959786ab25e0582ccd1f8b773c770cdbc78a1dc0c98",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-64x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ecg-spiht-8x.md",
+      "sha256": "d838f2b7fb1b091659f81188aa8346acffcbc07738aa807a397dd55c92180b1f",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-8x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/index.md",
+      "sha256": "6e86ff9daf15253db7c7831e95921cd90f4d262b719386c569d12f3e2648ee04",
+      "destination": "astro-site/src/content/docs/experiments/index.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-hybrid-16x.md",
+      "sha256": "b05cbfddcd7a35f5443b5930922b207d246cda9e6692a5933709822b048c757e",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-16x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-hybrid-2x.md",
+      "sha256": "d8c71490fecb37ba8cfc597fd871f0069779b3fb44d64977751ee46a92a2b4ba",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-2x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-hybrid-32x.md",
+      "sha256": "442a53764211d1d4b5811e760c5b41f3162c037030b999064f2b02edb12916d8",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-32x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-hybrid-4x.md",
+      "sha256": "ad619dc6f26f9b28a967fe400b4e87004283b6da97783ca6b423da3557f23a46",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-4x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-hybrid-8x.md",
+      "sha256": "b753951159da5f0c4db297267f11d76381c04e0431acff6ec2c8647b6b49715c",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-8x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-rvq-16x.md",
+      "sha256": "7c14516ccbfa57f7e0a3db4fcb467b597a1cb38ee75011eff68b2143606ed5ef",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-16x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-rvq-2x.md",
+      "sha256": "589e24a60a2af4db5d48ceef336f59cb17457e8a37140223585e7995efae9cc0",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-2x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-rvq-32x.md",
+      "sha256": "4cd73fa89fb87512b54c76acd57db7e14a331bcf748bb5d420d6215084c102c9",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-32x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-rvq-4x-prior.md",
+      "sha256": "a72c5eb78320c3860fa9f2847f2194e1f1bf3303d30e27a606ab5b6299a9b05a",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-4x-prior.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-rvq-4x.md",
+      "sha256": "579ec4488dbb2b2eeef8cc4dcf9a6ef56058d9f16d72a4aafdc135899291e797",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-4x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-rvq-8x-prior.md",
+      "sha256": "4becb313d1fba60d1bd2fa20f3361947804d2e82872b0bcc942deb06d35ca1f1",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-8x-prior.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-rvq-8x.md",
+      "sha256": "ad6c71d8e8d2d5a84fe9547e782b401b4433eadadb4a76468127ad480c50ab0b",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-8x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-spiht-16x.md",
+      "sha256": "81bb4bf32b42a1e9a59515624fbaf85b146d979d1656df333346a5f94bf1e35d",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-16x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-spiht-2x.md",
+      "sha256": "934d51afae3abbfe23f9421f62958c70f274f69abb4b1854419edd460dff5bc5",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-2x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-spiht-32x.md",
+      "sha256": "64c12c5a4d86d0bcda20776725f2b402624721f214209d858fa58b17ab001224",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-32x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-spiht-4x.md",
+      "sha256": "6885c07766c97366d93bdf1f2bc19d96cc1537517edc1a728329f5dde53a5352",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-4x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/experiments/ppg-spiht-8x.md",
+      "sha256": "af35a4cf8cc2cc933cc1941f5a6be09bb29a6dd82c4293eceb6677f6d31789ea",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-8x.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/getting-started.md",
+      "sha256": "c3d91ce82ac70c4f290caca0c3ae3bc40a5d1b48bd86ae185716ce768dfea386",
+      "destination": "astro-site/src/content/docs/getting-started.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/huggingface.md",
+      "sha256": "80b0f912b3a69d1d8e72017c494eae8f28d49afb445fd566c7eaac26edad8257",
+      "destination": "astro-site/src/content/docs/huggingface.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/index.md",
+      "sha256": "899a54840c736901a2c0ecb946ac205b8cc86a45e0542e68b9e6dcf3d4f4fb3c",
+      "destination": "astro-site/src/content/docs/index.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/javascripts/math.js",
+      "sha256": "3867725481a1ca94634e87b3ab884d7b3b82c8d3f3200ec971f01b4acb21030a",
+      "disposition": "excluded",
+      "reason": "Zensical-specific presentation file; replaced by shared UI.",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/methods/cr_vs_fidelity_ecg.md",
+      "sha256": "a96e361f74af29463870499e299373a5f6018449f461d3794d4b9f0dacfdb014",
+      "destination": "astro-site/src/content/docs/methods/cr_vs_fidelity_ecg.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/methods/cr_vs_fidelity_ppg.md",
+      "sha256": "f91134163b1eff783a06db940458a8c411e452cbf1e2bb2b4eb63070c144134a",
+      "destination": "astro-site/src/content/docs/methods/cr_vs_fidelity_ppg.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/methods/index.md",
+      "sha256": "86e4dad01121551b03e3910fb676d894ca67fde1733579ebb06b286a1fc3b674",
+      "destination": "astro-site/src/content/docs/methods/index.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/methods/rvq.md",
+      "sha256": "199828b67fc89687932dcbff4651e0bae8ba177e4c9af50688ea58d66d890852",
+      "destination": "astro-site/src/content/docs/methods/rvq.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/models/ecg.md",
+      "sha256": "5142bc4d42432b4576c23db1ab78739c9f6853647ed9d5ade24a8010f0ee499d",
+      "destination": "astro-site/src/content/docs/models/ecg.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/models/index.md",
+      "sha256": "3a2f97ed4700b407e886224d764daaa0993983d292ad4dc05d695268f1b03881",
+      "destination": "astro-site/src/content/docs/models/index.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/models/ppg.md",
+      "sha256": "691fa879f9aa2cc6038a25be0fb1ec117af4c899d3030f3b5583769d46dbea59",
+      "destination": "astro-site/src/content/docs/models/ppg.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/overrides/main.html",
+      "sha256": "5acd21523371f27b919975b601d87c569e72bce6da00e4544294f6e02fa8eb73",
+      "disposition": "excluded",
+      "reason": "Zensical-specific presentation file; replaced by shared UI.",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/release-contract.md",
+      "sha256": "f1f8587933eebba2f497debfc0f58616369aaa230a0d087fed4be55e82141599",
+      "destination": "astro-site/src/content/docs/release-contract.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/signals/ecg.md",
+      "sha256": "298cc3b6f9427dec2037486e64a91e325d2ed33778aec216c461728afd30788c",
+      "destination": "astro-site/src/content/docs/signals/ecg.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/signals/index.md",
+      "sha256": "6b104aff5c102e53462f7400c4dec39622d31a3d51f8057b0c1d103b1113874a",
+      "destination": "astro-site/src/content/docs/signals/index.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/signals/ppg-workflow.md",
+      "sha256": "907052f4608ef6dc585f1f342fbb0bca74e0c66cf711bf1981f9f8b4fd9c517b",
+      "destination": "astro-site/src/content/docs/signals/ppg-workflow.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/signals/ppg.md",
+      "sha256": "1be3f7ac87ceeec202da2593333f97bb78d6ad22b8e03b7d27eb2552fded6621",
+      "destination": "astro-site/src/content/docs/signals/ppg.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/stylesheets/brand.css",
+      "sha256": "8973a061a0835054c193b61eb7ca3d3daafe6b0f2fbde297f080bdc840a053c7",
+      "disposition": "excluded",
+      "reason": "Zensical-specific presentation file; replaced by shared UI.",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/stylesheets/custom.css",
+      "sha256": "e5dfaabed71e8b9b3d529f45076d35382966fff245a664deb80d3f8ee2fb6d4c",
+      "disposition": "excluded",
+      "reason": "Zensical-specific presentation file; replaced by shared UI.",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/use-cases.md",
+      "sha256": "2c293c84c3c99034fc7aefef5d4bdaae27047a71da859a783ca6694a58fe0391",
+      "destination": "astro-site/src/content/docs/use-cases.mdx",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "docs/v1-roadmap.md",
+      "sha256": "1b39118e2af5a703e0ae424f441e416527d233a125d9d2f6a21b4000b265a8d3",
+      "disposition": "excluded",
+      "reason": "Internal roadmap or research planning; retain in repository, exclude from public site.",
+      "retiredSource": true,
+      "retainedAt": "maintainer-notes/v1-roadmap.md"
+    },
+    {
+      "source": "docs/validation-scorecard.md",
+      "sha256": "f4f8751da8f07793857d888c2f4d1063b2e9ceb5cb7cd2f152deb2ddaecd07b8",
+      "destination": "astro-site/src/content/docs/validation-scorecard.md",
+      "disposition": "migrated",
+      "review": "content-and-render-audited",
+      "review_evidence": "astro-site/AUDIT.md",
+      "retiredSource": true
+    },
+    {
+      "source": "examples/01_quickstart_golden_codec.ipynb",
+      "sha256": "7db614615625ab25e5c654eff9510b862db338469186d06acd4a94e7b321edac",
+      "disposition": "migrated",
+      "reason": "Preserve canonical notebook; guide rendering and execution audit pending.",
+      "destination": "generated notebook guide and byte-identical download",
+      "review": "execution not verified"
+    },
+    {
+      "source": "examples/02_evaluate_on_your_data.ipynb",
+      "sha256": "8271881efdb6267c94f3b1ec58574b0c108ebb4b83efeb0df03580d1c708af94",
+      "disposition": "migrated",
+      "reason": "Preserve canonical notebook; guide rendering and execution audit pending.",
+      "destination": "generated notebook guide and byte-identical download",
+      "review": "execution not verified"
+    },
+    {
+      "source": "examples/03_quickstart_golden_codec_ecg.ipynb",
+      "sha256": "87552e8780c280c675bf340ea26c541c3ee323f0be71388bb37c5d6764b9947c",
+      "disposition": "migrated",
+      "reason": "Preserve canonical notebook; guide rendering and execution audit pending.",
+      "destination": "generated notebook guide and byte-identical download",
+      "review": "execution not verified"
+    }
+  ],
+  "watchedSources": {
+    "compressionkit/experiments/registry.py": "f5c1061d3ffbf395e7a59418e3c614f3a9e426a64543917f25cb193f03dd238f",
+    "scripts/build_customer_evidence_summary.py": "0b851664c750874d46ad0a4b8ddcda926f4bdd141fbc63d416bbe5e592d505e2",
+    "scripts/build_cr_vs_fidelity.py": "191ad45d6e7a74a1380b7810a7a4fb0fff954a7487df88979e1588d5532d0bad",
+    "configs/ecg_rvq_256hz_02x_golden.yaml": "1df9d1fec0bf94f754eb7dcf963c6244224381d5c77cf677c9f43f53ed76ccf0",
+    "configs/ecg_rvq_256hz_02x_golden_hier.yaml": "51124d1af33803d53a77fe7797cffae921e7f6d90af7a74cb28d97912dbbc9ed",
+    "configs/ecg_rvq_256hz_02x_golden_spectral_lo.yaml": "b259e16efd961aac9b70c5fda932354fe1a2269e28a22b4097ad248f75553c06",
+    "configs/ecg_rvq_256hz_04x_golden.yaml": "80c711327a1efa4e47d75229ea1b41449a679ed9b168555e9f42ced3fce80e0d",
+    "configs/ecg_rvq_256hz_04x_golden_hier.yaml": "f57921d5befee9dc83a56794cf98b3f0be909ae997da6810054809e55f38ae9d",
+    "configs/ecg_rvq_256hz_04x_golden_prior.yaml": "c44e3ef81e5ed8e3cf5410e02f48d92296fd727790df047d576235b23da520db",
+    "configs/ecg_rvq_256hz_04x_golden_spectral_lo.yaml": "ef393a259f2ff038555c8d0e2706dcb8a30d60af6b440cf209e0d90b7f50c0b3",
+    "configs/ecg_rvq_256hz_08x_golden.yaml": "d91738246a7ef43e0c2bd06245648bfb5309aaa2af1a80e84eb7ed8e8ca183bd",
+    "configs/ecg_rvq_256hz_08x_golden_empirical_midpoint.yaml": "929481e5af7f793d591f2801e340686d9b6af552a05f87388769874ab3c17c72",
+    "configs/ecg_rvq_256hz_08x_golden_hier.yaml": "0742e5b05f4d5b34e0e810dd3040d61165e673b71b5896598c22b78486a1d824",
+    "configs/ecg_rvq_256hz_08x_golden_prior.yaml": "55a1a7607ba1358b1448fd16dca9453d14c98ec579cd73d02fd77476c3a588d7",
+    "configs/ecg_rvq_256hz_08x_golden_spectral_lo.yaml": "79e00bdd4b2448232f92594ab98a1a0b68bc51ac4ce6a6a6aca1cdf845661e64",
+    "configs/ecg_rvq_256hz_16x_golden.yaml": "93499daa7765d4a7e1912493e70806a69c8af87d96b1ac036fe5f2c7db0416a2",
+    "configs/ecg_rvq_256hz_16x_golden_hier.yaml": "bfbb59f688a7821b993096d9d594e72f5e9079fde11a5ab96677343f8846d6b5",
+    "configs/ecg_rvq_256hz_16x_golden_spectral_lo.yaml": "efed36b09df76284d4fd96a8b4e579618938b29f643875ba16784a9735122245",
+    "configs/ecg_rvq_256hz_32x_golden.yaml": "6163d01cfb9b61a482b6c066cc2aae7baf0d6dfa37b60d9b6bcc94c62a89cc8c",
+    "configs/ecg_rvq_256hz_32x_golden_spectral_lo.yaml": "b0f0cef4567fb838d93630e1dbafa3a226a9f3bcdf15101f34f7edd292a47101",
+    "configs/ecg_rvq_256hz_64x_golden.yaml": "e5a2151dfffdc919d0d45d15df85fb28c61b82ca0fefcb59589b7ac2de3640c8",
+    "configs/ecg_rvq_256hz_64x_golden_spectral_lo.yaml": "3536de446753dbb13d1a55f02abab474ce6a8da78d4f81ee65c19ef20d70a798",
+    "configs/ppg_h5_rvq_16x_mixed_golden_sched.yaml": "a81822c0d8194eafd9a921bd50660cfb2b53167b411991d8f9f3ad9f652642c4",
+    "configs/ppg_h5_rvq_16x_mixed_golden_sched_spectral_lo.yaml": "c58dcc260f9c6eb6219fdf9ee570bd79331c9cdefde7b803f085f47d70188f1c",
+    "configs/ppg_h5_rvq_2x_mixed_golden_sched.yaml": "3ec74c299baec861371fd451ca02813ebb92fb7bda5a8567b215a13069993656",
+    "configs/ppg_h5_rvq_2x_mixed_golden_sched_spectral_lo.yaml": "be2c1166b1b05a0c4a13c39529289a15c63da5dcecfc67ed401457f5426f9431",
+    "configs/ppg_h5_rvq_4x_mixed_golden_sched.yaml": "63f463e89e6fe35c0657110317c4854d641456debbe3ee18b668125090167537",
+    "configs/ppg_h5_rvq_4x_mixed_golden_sched_spectral_lo.yaml": "42857f3b4b602fb0764a55376e8830946777ac047807c01e1d628b2d7b7454d7",
+    "configs/ppg_h5_rvq_8x_mixed_golden_sched.yaml": "e34b0a080cc9c585cfe9b268b7d62958c686c2f60d3af1d1e4cb40e160fe8450",
+    "configs/ppg_h5_rvq_8x_mixed_golden_sched_spectral_lo.yaml": "1e83a1af39866c29a65a966c6bde45d5a21247e67954dbe369ff98f80760cf83",
+    "configs/ppg_rvq_64hz_02x_golden.yaml": "e2fe2da650680467832fb468cdb95fe3e3540a1e59c9d04d624137446428da56",
+    "configs/ppg_rvq_64hz_04x_golden.yaml": "8df153f3cea0ea8b700f6507f9d28bcba1f61c27652a76fef93c9080e9c6e36e",
+    "configs/ppg_rvq_64hz_04x_golden_prior.yaml": "fe36e577d9e6f83301cd1b838a111ed9b2bd3246fa98e3af328036db40f44de7",
+    "configs/ppg_rvq_64hz_08x_golden.yaml": "59b87675dcbad058637d1ad86dea17452780d35e30ced081d68b17adad76baf1",
+    "configs/ppg_rvq_64hz_08x_golden_prior.yaml": "c1681bccfc6d3ff06687387735687e31c2d22683f4f137e3af3dbd717909cbdd",
+    "configs/ppg_rvq_64hz_16x_golden.yaml": "902f10f4edea20e0482d3b3616c0aca3c1a5693772d182e333e62a373d22a47c",
+    "configs/ppg_rvq_64hz_32x_golden.yaml": "94bf4a91a5b7d154cb510138e07dcc77ec1189e7f48a8df958f4528723782340"
+  }
+}

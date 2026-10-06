@@ -1,0 +1,1151 @@
+{
+  "checkedAt": "2026-10-02T21:11:23.323Z",
+  "source": "Published original site heading IDs",
+  "results": [
+    {
+      "route": "adding-a-codec-family",
+      "destination": "astro-site/src/content/docs/adding-a-codec-family.md",
+      "headings": 5,
+      "missing": [
+        {
+          "id": "two-different-meanings-of-family-dont-conflate-them",
+          "text": "Two different meanings of \"family\" — don't conflate them"
+        }
+      ]
+    },
+    {
+      "route": "api/evaluation",
+      "destination": "astro-site/src/content/docs/api/evaluation.md",
+      "headings": 8,
+      "missing": [
+        {
+          "id": "compressionkit.evaluation.metrics.PRD",
+          "text": "compressionkit.evaluation.metrics.PRD"
+        },
+        {
+          "id": "compressionkit.evaluation.metrics.TruePRD",
+          "text": "compressionkit.evaluation.metrics.TruePRD"
+        },
+        {
+          "id": "compressionkit.evaluation.metrics.compute_signal_metrics",
+          "text": "compressionkit.evaluation.metrics.compute_signal_metrics(original, reconstructed, *, noise_power=None)"
+        },
+        {
+          "id": "compressionkit.evaluation.metrics.compute_ppg_physiokit_metrics",
+          "text": "compressionkit.evaluation.metrics.compute_ppg_physiokit_metrics(signal, *, sample_rate, low_hz, high_hz, order, min_peaks)"
+        },
+        {
+          "id": "compressionkit.evaluation.metrics.summarize_physiokit_alignment",
+          "text": "compressionkit.evaluation.metrics.summarize_physiokit_alignment(originals, reconstructions, *, sample_rate, low_hz, high_hz, order, min_peaks)"
+        },
+        {
+          "id": "compressionkit.evaluation.artifacts.save_sample_artifacts",
+          "text": "compressionkit.evaluation.artifacts.save_sample_artifacts(sample_id, original, reconstructed, sampling_rate, run_dir, band_original=None, band_reconstructed=None, physiokit_metrics=None, save_plot=True)"
+        }
+      ]
+    },
+    {
+      "route": "api/export",
+      "destination": "astro-site/src/content/docs/api/export.md",
+      "headings": 1,
+      "missing": [
+        {
+          "id": "compressionkit.export.tflite.export_encoder_tflite",
+          "text": "compressionkit.export.tflite.export_encoder_tflite(encoder, *, rep_dataset, output_dir, tflite_name='encoder.tflite', header_name='encoder.h', c_array_name='encoder', quantization='INT8', io_type='int8')"
+        }
+      ]
+    },
+    {
+      "route": "api/datasets",
+      "destination": "astro-site/src/content/docs/api/datasets.md",
+      "headings": 9,
+      "missing": [
+        {
+          "id": "compressionkit.datasets.ppg.load_ppg_signal",
+          "text": "compressionkit.datasets.ppg.load_ppg_signal(edf_file, *, target_rate=64, offset_samples=0, num_samples=None, target_label='Pleth')"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.load_ppg_splits",
+          "text": "compressionkit.datasets.ppg.load_ppg_splits(datasets_dir, glob_pattern, *, train_ratio=0.8, val_ratio=0.2, seed=42, **load_kwargs)"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.load_ppg_file_splits",
+          "text": "compressionkit.datasets.ppg.load_ppg_file_splits(datasets_dir, glob_pattern, *, train_ratio=0.8, val_ratio=0.2, seed=42)"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.build_ppg_tfrecord_cache",
+          "text": "compressionkit.datasets.ppg.build_ppg_tfrecord_cache(*, datasets_dir, glob_pattern, cache_root, target_rate, target_label, offset_samples, segment_samples, frame_size, shuffle_seed, train_ratio=0.8, val_ratio=0.2, windows_per_subject_train=64, windows_per_subject_val=16, force_rebuild=False)"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.make_ppg_inmemory_dataset",
+          "text": "compressionkit.datasets.ppg.make_ppg_inmemory_dataset(data, *, frame_size, batch_size, buffer_size, preprocessor, augmenter, target_data=None, null_aug_cfg=None, shuffle=True)"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.make_ppg_tfrecord_dataset",
+          "text": "compressionkit.datasets.ppg.make_ppg_tfrecord_dataset(tfrecord_paths, *, frame_size, segment_samples, batch_size, shuffle_buffer_size, preprocessor, augmenter, input_filter_cfg, target_filter_cfg, sample_rate, shuffle, seed=42, null_aug_cfg=None)"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.make_ppg_stream_dataset",
+          "text": "compressionkit.datasets.ppg.make_ppg_stream_dataset(file_paths, *, frame_size, window_samples, batch_size, subject_buffer_size, window_buffer_size, windows_per_subject, interleave_cycle_length, target_rate, target_label, offset_samples, preprocessor, augmenter, input_filter_cfg, target_filter_cfg, shuffle, seed=42, null_aug_cfg=None)"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.collect_random_samples",
+          "text": "compressionkit.datasets.ppg.collect_random_samples(dataset, sample_count, rng, pool_multiplier=5)"
+        },
+        {
+          "id": "compressionkit.datasets.ppg.bandpass_filter_batch",
+          "text": "compressionkit.datasets.ppg.bandpass_filter_batch(signals, *, sample_rate, low_hz, high_hz, order=3)"
+        }
+      ]
+    },
+    {
+      "route": "api/configs",
+      "destination": "astro-site/src/content/docs/api/configs.md",
+      "headings": 9,
+      "missing": [
+        {
+          "id": "compressionkit.configs.ppg_rvq.PpgRvqConfig",
+          "text": "compressionkit.configs.ppg_rvq.PpgRvqConfig"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.PpgRvqConfig.from_yaml",
+          "text": "from_yaml(path)\n\n  \n      classmethod"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.DataConfig",
+          "text": "compressionkit.configs.ppg_rvq.DataConfig"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.ModelConfig",
+          "text": "compressionkit.configs.ppg_rvq.ModelConfig"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.TrainingConfig",
+          "text": "compressionkit.configs.ppg_rvq.TrainingConfig"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.EvaluationConfig",
+          "text": "compressionkit.configs.ppg_rvq.EvaluationConfig"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.EvaluationConfig.num_plot_samples",
+          "text": "num_plot_samples = 50\n\n  \n      class-attribute\n      instance-attribute"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.EvaluationConfig.num_samples",
+          "text": "num_samples = 1000\n\n  \n      class-attribute\n      instance-attribute"
+        },
+        {
+          "id": "compressionkit.configs.ppg_rvq.OutputConfig",
+          "text": "compressionkit.configs.ppg_rvq.OutputConfig"
+        }
+      ]
+    },
+    {
+      "route": "api/preprocessing",
+      "destination": "astro-site/src/content/docs/api/preprocessing.md",
+      "headings": 3,
+      "missing": [
+        {
+          "id": "compressionkit.preprocessing.ppg.build_preprocessor",
+          "text": "compressionkit.preprocessing.ppg.build_preprocessor(frame_size, epsilon=0.001)"
+        },
+        {
+          "id": "compressionkit.preprocessing.ppg.build_augmenter",
+          "text": "compressionkit.preprocessing.ppg.build_augmenter(noise_factor=(0.01, 0.1), *, aug_cfg=None)"
+        },
+        {
+          "id": "compressionkit.preprocessing.ppg.generate_synthetic_ppg_batch",
+          "text": "compressionkit.preprocessing.ppg.generate_synthetic_ppg_batch(*, num_segments, signal_length, sample_rate, heart_rate_bpm=None, frequency_modulation=None, ibi_randomness=None, seed=1337)"
+        }
+      ]
+    },
+    {
+      "route": "api/models",
+      "destination": "astro-site/src/content/docs/api/models.md",
+      "headings": 4,
+      "missing": [
+        {
+          "id": "compressionkit.models.rvq_autoencoder.build_rvq_autoencoder",
+          "text": "compressionkit.models.rvq_autoencoder.build_rvq_autoencoder(frame_size, *, embedding_dim=16, latent_width=256, in_ch=1, out_ch=1, base_filters=32, multiplier=1.25, num_levels=2, beta=0.25, num_stages=4, encoder_block_norm='batch', encoder_head_norm='none', decoder_block_norm='none', decoder_head_norm='layer', use_residual=False, use_ema=False, ema_decay=0.99, encoder_type='default', expand_ratio=4.0, causal=False, discard_tail=0, bottleneck_type='rvq', fsq_levels=None, decoder_type='default', decoder_state_size=32, decoder_num_ssm_blocks=2, hier_detail_scale=0.25, revive_dead_codes=False, revive_threshold=0.03, kmeans_init=False, structured_dropout=False, dropout_levels=None, decoder_activation='relu', encoder_blocks_per_stage=1, codebook_sizes=None, prefix_loss_weights=None, prefix_loss_target='lowpass', prefix_loss_lowpass_kernel=9, prefix_loss_initial_scale=1.0)"
+        },
+        {
+          "id": "compressionkit.models.rvq_autoencoder.build_encoder_2d",
+          "text": "compressionkit.models.rvq_autoencoder.build_encoder_2d(input_len=2048, in_ch=1, base=32, embedding_dim=16, multiplier=1.25, num_stages=4, block_norm='batch', head_norm='none', use_residual=False, blocks_per_stage=1)"
+        },
+        {
+          "id": "compressionkit.models.rvq_autoencoder.build_decoder_2d",
+          "text": "compressionkit.models.rvq_autoencoder.build_decoder_2d(output_len=2048, out_ch=1, base=32, embedding_dim=16, multiplier=1.25, num_stages=4, decoder_block_norm='none', head_norm='layer', use_residual=False, activation='relu')"
+        },
+        {
+          "id": "compressionkit.models.rvq_autoencoder.compute_compression_stats",
+          "text": "compressionkit.models.rvq_autoencoder.compute_compression_stats(frame_size, *, bit_depth, num_channels=1, latent_width, num_levels, downsample_factor=16, bottleneck_type='rvq', fsq_levels=None, codebook_sizes=None)"
+        }
+      ]
+    },
+    {
+      "route": "cli",
+      "destination": "astro-site/src/content/docs/cli.md",
+      "headings": 14,
+      "missing": [
+        {
+          "id": "usage_1",
+          "text": "Usage"
+        },
+        {
+          "id": "arguments_1",
+          "text": "Arguments"
+        },
+        {
+          "id": "example_1",
+          "text": "Example"
+        },
+        {
+          "id": "configuration_1",
+          "text": "Configuration"
+        },
+        {
+          "id": "outputs_1",
+          "text": "Outputs"
+        }
+      ]
+    },
+    {
+      "route": "customer-evidence",
+      "destination": "astro-site/src/content/docs/customer-evidence.md",
+      "headings": 5,
+      "missing": [
+        {
+          "id": "release-decision-overview",
+          "text": "Release decision overview"
+        },
+        {
+          "id": "compression-and-deploy-ladder",
+          "text": "Compression and deploy ladder"
+        },
+        {
+          "id": "ppg-release-ladder",
+          "text": "PPG release ladder"
+        },
+        {
+          "id": "ecg-release-ladder",
+          "text": "ECG release ladder"
+        },
+        {
+          "id": "how-to-use-this-page",
+          "text": "How to use this page"
+        }
+      ]
+    },
+    {
+      "route": "demo/ppg-codec",
+      "destination": "astro-site/src/content/docs/demo/ppg-codec.md",
+      "headings": 17,
+      "missing": [
+        {
+          "id": "overview",
+          "text": "Overview"
+        },
+        {
+          "id": "what-the-demo-shows",
+          "text": "What The Demo Shows"
+        },
+        {
+          "id": "architecture",
+          "text": "Architecture"
+        },
+        {
+          "id": "dashboard-walkthrough",
+          "text": "Dashboard Walkthrough"
+        },
+        {
+          "id": "original-and-reconstruction-views",
+          "text": "Original and reconstruction views"
+        },
+        {
+          "id": "control-panel",
+          "text": "Control panel"
+        },
+        {
+          "id": "compression-intelligence",
+          "text": "Compression intelligence"
+        },
+        {
+          "id": "live-noise-controls",
+          "text": "Live Noise Controls"
+        },
+        {
+          "id": "live-stream-experience",
+          "text": "Live Stream Experience"
+        },
+        {
+          "id": "recordings-experience",
+          "text": "Recordings Experience"
+        },
+        {
+          "id": "demo-setup",
+          "text": "Demo Setup"
+        },
+        {
+          "id": "hardware-and-software",
+          "text": "Hardware and software"
+        },
+        {
+          "id": "supported-platform-today",
+          "text": "Supported platform today"
+        },
+        {
+          "id": "flashing-firmware",
+          "text": "Flashing Firmware"
+        },
+        {
+          "id": "running-the-demo",
+          "text": "Running The Demo"
+        },
+        {
+          "id": "why-this-matters",
+          "text": "Why This Matters"
+        },
+        {
+          "id": "positioning-summary",
+          "text": "Positioning Summary"
+        }
+      ]
+    },
+    {
+      "route": "datasets",
+      "destination": "astro-site/src/content/docs/datasets.md",
+      "headings": 9,
+      "missing": [
+        {
+          "id": "ecg-ptb-xl",
+          "text": "ECG — PTB-XL"
+        },
+        {
+          "id": "ppg-mesa-open-sources",
+          "text": "PPG — MESA + open sources"
+        }
+      ]
+    },
+    {
+      "route": "examples",
+      "destination": "astro-site/src/content/docs/examples.md",
+      "headings": 2,
+      "missing": []
+    },
+    {
+      "route": "deployment",
+      "destination": "astro-site/src/content/docs/deployment.md",
+      "headings": 11,
+      "missing": [
+        {
+          "id": "mcu-edge-device-path",
+          "text": "MCU / edge-device path"
+        }
+      ]
+    },
+    {
+      "route": "experiment-architecture",
+      "destination": "astro-site/src/content/docs/experiment-architecture.md",
+      "headings": 9,
+      "missing": [
+        {
+          "id": "codebase-audit",
+          "text": "Codebase Audit"
+        },
+        {
+          "id": "refactoring-direction",
+          "text": "Refactoring Direction"
+        },
+        {
+          "id": "heliaedge-candidates",
+          "text": "HeliaEdge Candidates"
+        },
+        {
+          "id": "review-checklist",
+          "text": "Review Checklist"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-hybrid-2x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-2x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-hybrid-32x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-32x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-hybrid-16x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-16x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-hybrid-4x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-4x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-hybrid-64x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-64x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-hybrid-8x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-hybrid-8x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-2x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-2x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-32x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-32x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-16x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-16x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-4x-prior",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-4x-prior.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-64x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-64x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-4x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-4x.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-8x-prior",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-8x-prior.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-rvq-8x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-rvq-8x.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-spiht-16x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-16x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-spiht-2x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-2x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-spiht-4x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-4x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-spiht-32x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-32x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-spiht-64x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-64x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments",
+      "destination": "astro-site/src/content/docs/experiments/index.md",
+      "headings": 3,
+      "missing": [
+        {
+          "id": "v1-registry",
+          "text": "v1 Registry"
+        },
+        {
+          "id": "reproduce-every-experiment-in-a-modality",
+          "text": "Reproduce every experiment in a modality"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-hybrid-16x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-16x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-hybrid-2x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-2x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ecg-spiht-8x",
+      "destination": "astro-site/src/content/docs/experiments/ecg-spiht-8x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-hybrid-32x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-32x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-hybrid-8x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-8x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-hybrid-4x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-hybrid-4x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-rvq-16x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-16x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-rvq-32x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-32x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-rvq-2x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-2x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-rvq-4x-prior",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-4x-prior.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-rvq-4x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-4x.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-rvq-8x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-8x.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-spiht-16x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-16x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-rvq-8x-prior",
+      "destination": "astro-site/src/content/docs/experiments/ppg-rvq-8x-prior.md",
+      "headings": 7,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-spiht-32x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-32x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-spiht-2x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-2x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-spiht-4x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-4x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "experiments/ppg-spiht-8x",
+      "destination": "astro-site/src/content/docs/experiments/ppg-spiht-8x.md",
+      "headings": 6,
+      "missing": [
+        {
+          "id": "dataset-license",
+          "text": "Dataset & License"
+        }
+      ]
+    },
+    {
+      "route": "huggingface",
+      "destination": "astro-site/src/content/docs/huggingface.md",
+      "headings": 4,
+      "missing": [
+        {
+          "id": "3-two-stage-codec-codec-entropy-prior",
+          "text": "3. Two-stage codec (codec + entropy prior)"
+        }
+      ]
+    },
+    {
+      "route": "",
+      "destination": "astro-site/src/content/docs/index.mdx",
+      "headings": 9,
+      "missing": [
+        {
+          "id": "what-compressionkit-is",
+          "text": "What compressionKIT is"
+        },
+        {
+          "id": "where-compressionkit-fits",
+          "text": "Where compressionKIT fits"
+        },
+        {
+          "id": "what-current-goldens-show",
+          "text": "What current goldens show"
+        },
+        {
+          "id": "how-to-read-the-evidence",
+          "text": "How to read the evidence"
+        },
+        {
+          "id": "guiding-principles",
+          "text": "Guiding principles"
+        },
+        {
+          "id": "high-level-getting-started",
+          "text": "High-level getting started"
+        },
+        {
+          "id": "current-v1-artifacts",
+          "text": "Current v1 artifacts"
+        },
+        {
+          "id": "where-to-go-next",
+          "text": "Where to go next"
+        }
+      ]
+    },
+    {
+      "route": "getting-started",
+      "destination": "astro-site/src/content/docs/getting-started.md",
+      "headings": 5,
+      "missing": []
+    },
+    {
+      "route": "methods/rvq",
+      "destination": "astro-site/src/content/docs/methods/rvq.md",
+      "headings": 9,
+      "missing": []
+    },
+    {
+      "route": "methods/cr_vs_fidelity_ppg",
+      "destination": "astro-site/src/content/docs/methods/cr_vs_fidelity_ppg.md",
+      "headings": 3,
+      "missing": [
+        {
+          "id": "noise-stratified-detail-clean-median-noisy-tertiles",
+          "text": "Noise-stratified detail (clean / median / noisy tertiles)"
+        },
+        {
+          "id": "how-to-read-this-table",
+          "text": "How to read this table"
+        }
+      ]
+    },
+    {
+      "route": "methods/cr_vs_fidelity_ecg",
+      "destination": "astro-site/src/content/docs/methods/cr_vs_fidelity_ecg.md",
+      "headings": 3,
+      "missing": [
+        {
+          "id": "noise-stratified-detail-clean-median-noisy-tertiles",
+          "text": "Noise-stratified detail (clean / median / noisy tertiles)"
+        },
+        {
+          "id": "how-to-read-this-table",
+          "text": "How to read this table"
+        }
+      ]
+    },
+    {
+      "route": "methods",
+      "destination": "astro-site/src/content/docs/methods/index.md",
+      "headings": 4,
+      "missing": []
+    },
+    {
+      "route": "models",
+      "destination": "astro-site/src/content/docs/models/index.md",
+      "headings": 5,
+      "missing": [
+        {
+          "id": "current-release-surface",
+          "text": "Current release surface"
+        },
+        {
+          "id": "evidence-router",
+          "text": "Evidence router"
+        },
+        {
+          "id": "what-each-model-page-should-answer",
+          "text": "What each model page should answer"
+        },
+        {
+          "id": "standard-comparison-rule",
+          "text": "Standard comparison rule"
+        },
+        {
+          "id": "deployment-artifacts",
+          "text": "Deployment artifacts"
+        }
+      ]
+    },
+    {
+      "route": "models/ecg",
+      "destination": "astro-site/src/content/docs/models/ecg.md",
+      "headings": 16,
+      "missing": []
+    },
+    {
+      "route": "models/ppg",
+      "destination": "astro-site/src/content/docs/models/ppg.md",
+      "headings": 16,
+      "missing": []
+    },
+    {
+      "route": "release-contract",
+      "destination": "astro-site/src/content/docs/release-contract.md",
+      "headings": 21,
+      "missing": [
+        {
+          "id": "composition-principle",
+          "text": "Composition Principle"
+        },
+        {
+          "id": "goals",
+          "text": "Goals"
+        },
+        {
+          "id": "golden-matrix",
+          "text": "Golden Matrix"
+        },
+        {
+          "id": "repository-implications",
+          "text": "Repository Implications"
+        },
+        {
+          "id": "milestones",
+          "text": "Milestones"
+        },
+        {
+          "id": "milestone-1-unified-package-contract",
+          "text": "Milestone 1: Unified package contract"
+        },
+        {
+          "id": "milestone-2-cross-runtime-validation",
+          "text": "Milestone 2: Cross-runtime validation"
+        },
+        {
+          "id": "milestone-3-imu-goldens",
+          "text": "Milestone 3: IMU goldens"
+        },
+        {
+          "id": "milestone-4-docs-and-release-automation",
+          "text": "Milestone 4: Docs and release automation"
+        },
+        {
+          "id": "non-goals-for-v1",
+          "text": "Non-goals for v1"
+        },
+        {
+          "id": "decision-summary",
+          "text": "Decision Summary"
+        }
+      ]
+    },
+    {
+      "route": "signals/ppg-workflow",
+      "destination": "astro-site/src/content/docs/signals/ppg-workflow.md",
+      "headings": 10,
+      "missing": []
+    },
+    {
+      "route": "signals/ecg",
+      "destination": "astro-site/src/content/docs/signals/ecg.md",
+      "headings": 7,
+      "missing": []
+    },
+    {
+      "route": "signals",
+      "destination": "astro-site/src/content/docs/signals/index.md",
+      "headings": 4,
+      "missing": []
+    },
+    {
+      "route": "validation-scorecard",
+      "destination": "astro-site/src/content/docs/validation-scorecard.md",
+      "headings": 26,
+      "missing": [
+        {
+          "id": "core-claim",
+          "text": "Core claim"
+        },
+        {
+          "id": "evidence-layers",
+          "text": "Evidence layers"
+        },
+        {
+          "id": "measurement-philosophy",
+          "text": "Measurement philosophy"
+        },
+        {
+          "id": "agreement-vs-accuracy",
+          "text": "Agreement vs accuracy"
+        },
+        {
+          "id": "algorithm-repeatability-baseline",
+          "text": "Algorithm repeatability baseline"
+        },
+        {
+          "id": "noise-preservation-vs-noise-removal",
+          "text": "Noise preservation vs noise removal"
+        },
+        {
+          "id": "implementation-tiers",
+          "text": "Implementation tiers"
+        },
+        {
+          "id": "hr-hrv-preservation",
+          "text": "HR / HRV preservation"
+        },
+        {
+          "id": "morphology-preservation",
+          "text": "Morphology preservation"
+        },
+        {
+          "id": "downstream-task-preservation",
+          "text": "Downstream task preservation"
+        },
+        {
+          "id": "hr-pulse-rate-preservation",
+          "text": "HR / Pulse-rate preservation"
+        },
+        {
+          "id": "morphology-preservation_1",
+          "text": "Morphology preservation"
+        },
+        {
+          "id": "spo2-sensitive-preservation",
+          "text": "SpO2-sensitive preservation"
+        },
+        {
+          "id": "downstream-task-preservation_1",
+          "text": "Downstream task preservation"
+        },
+        {
+          "id": "cross-cutting-validation",
+          "text": "Cross-cutting validation"
+        },
+        {
+          "id": "stitching-and-streaming-behavior",
+          "text": "Stitching and streaming behavior"
+        },
+        {
+          "id": "noise-and-artifact-behavior",
+          "text": "Noise and artifact behavior"
+        },
+        {
+          "id": "adaptive-bitrate-and-fallback",
+          "text": "Adaptive bitrate and fallback"
+        },
+        {
+          "id": "versioning-and-compatibility",
+          "text": "Versioning and compatibility"
+        },
+        {
+          "id": "ecg-buckets",
+          "text": "ECG buckets"
+        },
+        {
+          "id": "ppg-buckets",
+          "text": "PPG buckets"
+        },
+        {
+          "id": "positioning-guidance",
+          "text": "Positioning guidance"
+        },
+        {
+          "id": "passfail-summary-per-modality-and-profile",
+          "text": "Pass/fail summary (per modality and profile)"
+        }
+      ]
+    },
+    {
+      "route": "signals/ppg",
+      "destination": "astro-site/src/content/docs/signals/ppg.md",
+      "headings": 8,
+      "missing": []
+    },
+    {
+      "route": "use-cases",
+      "destination": "astro-site/src/content/docs/use-cases.mdx",
+      "headings": 10,
+      "missing": [
+        {
+          "id": "who-benefits",
+          "text": "Who benefits"
+        },
+        {
+          "id": "headline-benefits",
+          "text": "Headline benefits"
+        },
+        {
+          "id": "benefit-1-ondevice-memory",
+          "text": "Benefit 1 — On‑device memory"
+        },
+        {
+          "id": "ppg-continuous-recording-capacity",
+          "text": "PPG — continuous recording capacity"
+        },
+        {
+          "id": "ecg-continuous-recording-capacity",
+          "text": "ECG — continuous recording capacity"
+        },
+        {
+          "id": "benefit-2-radio-bandwidth-energy",
+          "text": "Benefit 2 — Radio, bandwidth & energy"
+        },
+        {
+          "id": "benefit-3-cloud-storage-ingestion",
+          "text": "Benefit 3 — Cloud storage & ingestion"
+        },
+        {
+          "id": "benefit-4-fidelity-that-survives-downstream-algorithms",
+          "text": "Benefit 4 — Fidelity that survives downstream algorithms"
+        },
+        {
+          "id": "choosing-an-operating-point",
+          "text": "Choosing an operating point"
+        },
+        {
+          "id": "getting-started",
+          "text": "Getting started"
+        }
+      ]
+    }
+  ]
+}
