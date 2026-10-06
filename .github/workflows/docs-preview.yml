@@ -1,0 +1,53 @@
+name: Astro documentation checks
+on:
+  pull_request:
+    paths:
+      - 'astro-site/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'compressionkit/**'
+      - 'examples/**'
+      - 'configs/**'
+      - 'scripts/**'
+      - '.github/workflows/docs-preview.yml'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: astro-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: astro-site/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v5
+      - run: npm ci
+      - name: Install browser for rendered checks
+        run: npx playwright install --with-deps chromium
+      - run: npm run check
+      - run: npm run check:content
+      - run: npm run build
+      - run: npm run check:links
+      - run: npm run check:migration
+      - name: Check rendered documentation
+        run: |
+          npm exec astro preview -- --host 127.0.0.1 --port 8878 > /tmp/astro-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8878/compressionkit/ > /dev/null && break
+            sleep 1
+          done
+          DOCS_AUDIT_URL=http://127.0.0.1:8878 npm run check:layout
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compressionkit-astro-preview
+          path: astro-site/dist

@@ -1,0 +1,407 @@
+{
+  "checkedAt": "2026-10-02T22:43:52.119Z",
+  "count": 81,
+  "results": [
+    {
+      "url": "https://ambiq.com/",
+      "status": 200,
+      "final": "https://ambiq.com/"
+    },
+    {
+      "url": "https://ambiqai.github.io/compressionkit-demo/",
+      "status": 200,
+      "final": "https://ambiqai.github.io/compressionkit-demo/"
+    },
+    {
+      "url": "https://colab.research.google.com/github/AmbiqAI/compressionkit/blob/main/examples/01_quickstart_golden_codec.ipynb",
+      "status": 200,
+      "final": "https://colab.research.google.com/github/AmbiqAI/compressionkit/blob/main/examples/01_quickstart_golden_codec.ipynb"
+    },
+    {
+      "url": "https://colab.research.google.com/github/AmbiqAI/compressionkit/blob/main/examples/02_evaluate_on_your_data.ipynb",
+      "status": 200,
+      "final": "https://colab.research.google.com/github/AmbiqAI/compressionkit/blob/main/examples/02_evaluate_on_your_data.ipynb"
+    },
+    {
+      "url": "https://colab.research.google.com/github/AmbiqAI/compressionkit/blob/main/examples/03_quickstart_golden_codec_ecg.ipynb",
+      "status": 200,
+      "final": "https://colab.research.google.com/github/AmbiqAI/compressionkit/blob/main/examples/03_quickstart_golden_codec_ecg.ipynb"
+    },
+    {
+      "url": "https://docs.astral.sh/uv/getting-started/installation/",
+      "status": 200,
+      "final": "https://docs.astral.sh/uv/getting-started/installation/"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/configs/ppg_rvq.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/configs/ppg_rvq.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/datasets/ppg.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/datasets/ppg.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/evaluation/artifacts.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/evaluation/artifacts.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/evaluation/metrics.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/evaluation/metrics.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/export/tflite.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/export/tflite.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/models/decoder.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/models/decoder.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/models/encoder.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/models/encoder.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/models/rvq_autoencoder.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/models/rvq_autoencoder.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/preprocessing/ppg.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/preprocessing/ppg.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/base.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/base.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/codec.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/codec.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/hybrid.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/hybrid.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/loader.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/loader.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/prior.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/prior.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/spiht.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/spiht.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/two_stage.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/69b94d836dd8a24f227d411e99ef4ff2a7de2b7d/compressionkit/runtime/two_stage.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/compressionkit/export/family_registry.py",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/compressionkit/export/family_registry.py"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_02x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_02x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden_prior.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden_prior.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_04x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden_prior.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden_prior.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_08x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_16x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_32x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_32x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_64x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ecg_rvq_256hz_64x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_02x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_02x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_04x_golden_prior.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_04x_golden_prior.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_04x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_04x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden_prior.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden_prior.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_08x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_16x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_16x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_32x_golden.yaml",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/configs/ppg_rvq_64hz_32x_golden.yaml"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/examples/01_quickstart_golden_codec.ipynb",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/examples/01_quickstart_golden_codec.ipynb"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/examples/02_evaluate_on_your_data.ipynb",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/examples/02_evaluate_on_your_data.ipynb"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/blob/main/examples/03_quickstart_golden_codec_ecg.ipynb",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/blob/main/examples/03_quickstart_golden_codec_ecg.ipynb"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/compressionkit/tree/main/examples",
+      "status": 200,
+      "final": "https://github.com/AmbiqAI/compressionkit/tree/main/examples"
+    },
+    {
+      "url": "https://github.com/AmbiqAI/helia-developer-hub/blob/main/src/content/docs/demos/signal-compression.mdx",
+      "status": 404,
+      "final": "https://github.com/AmbiqAI/helia-developer-hub/blob/main/src/content/docs/demos/signal-compression.mdx"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-16x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-16x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-2x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-2x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-32x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-32x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-4x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-4x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-64x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-64x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-8x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-8x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-16x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-16x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-2x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-2x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-32x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-32x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-4x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-4x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-64x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-64x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-8x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-hybrid-8x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-16x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-16x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-2x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-2x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-32x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-32x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-4x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-4x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-64x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-64x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-8x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ecg-spiht-8x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-16x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-16x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-2x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-2x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-32x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-32x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-4x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-4x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-8x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-8x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-16x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-16x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-2x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-2x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-32x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-32x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-4x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-4x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-8x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-hybrid-8x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-16x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-16x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-2x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-2x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-32x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-32x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-4x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-4x-v1.0"
+    },
+    {
+      "url": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-8x-v1.0",
+      "status": 200,
+      "final": "https://huggingface.co/Ambiq/compressionkit-ppg-spiht-8x-v1.0"
+    },
+    {
+      "url": "https://physionet.org/",
+      "error": "fetch failed"
+    },
+    {
+      "url": "https://physionet.org/content/ptb-xl/",
+      "error": "fetch failed"
+    },
+    {
+      "url": "https://physionet.org/content/ptb-xl/1.0.3/",
+      "error": "fetch failed"
+    },
+    {
+      "url": "https://sleepdata.org/",
+      "error": "fetch failed"
+    }
+  ]
+}

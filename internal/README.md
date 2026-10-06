@@ -26,7 +26,7 @@ internal/
 ## What does NOT belong here
 
 - Code that is reusable across the project — promote to `compressionkit/`.
-- Customer-facing docs — promote to `docs/`.
+- Customer-facing docs — promote to `astro-site/src/content/docs/`.
 - Finalized scripts — promote to `scripts/`.
 - Published results — golden runs go under `results/` (also git-ignored, but
   reproducible from configs) and are published to HuggingFace per the
@@ -38,7 +38,7 @@ When something in `internal/` is ready to be shared:
 
 1. Strip internal-only commentary (competitor names, unflushed numbers,
    weakness lists).
-2. Move to the appropriate public location (`docs/`, `scripts/`,
+2. Move to the appropriate public location (`astro-site/src/content/docs/`, `scripts/`,
    `compressionkit/`).
 3. Add tests if it's code.
-4. Update `docs/index.md` if it's customer-facing documentation.
+4. Update `astro-site/src/content/docs/index.mdx` if it's customer-facing documentation.

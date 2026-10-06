@@ -28,5 +28,5 @@ exclude: |
     site/.*|
     slides/.*|
     results/.*|
-    docs/assets/plots/.*
+    astro-site/public/assets/plots/.*
   )$

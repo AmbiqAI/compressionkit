@@ -1,0 +1,17 @@
+---
+import experiments from '../data/experiments.json';
+interface Props { id: string }
+const { id } = Astro.props;
+const experiment = experiments.find(item => item.experiment_id === id);
+if (!experiment) throw new Error(`Unknown experiment in documentation: ${id}`);
+---
+<ul>
+  <li><strong>Modality:</strong> {experiment.modality.toUpperCase()}</li>
+  <li><strong>Structure:</strong> <code>{experiment.structure}</code></li>
+  <li><strong>Target compression ratio:</strong> {experiment.compression_ratio}×</li>
+  <li><strong>Sample rate:</strong> {experiment.sample_rate} Hz</li>
+  {experiment.recipe && <li><strong>Recipe:</strong> <code>{experiment.recipe}</code></li>}
+  <li><strong>Config:</strong> {experiment.config_path ? <a href={`https://github.com/AmbiqAI/compressionkit/blob/main/${experiment.config_path}`}><code>{experiment.config_path}</code></a> : 'Operating point declared in the registry; no training config.'}</li>
+  <li><strong>Run name:</strong> <code>{experiment.run_name}</code></li>
+  <li><strong>Hugging Face target:</strong> <a href={`https://huggingface.co/${experiment.hf_repo_id}`}><code>{experiment.hf_repo_id}</code></a></li>
+</ul>

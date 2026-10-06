@@ -1,0 +1,56 @@
+---
+title: "ECG SPIHT · 8×"
+description: "Configuration, dataset requirements and reproduction steps for the ecg-spiht-8x experiment."
+---
+
+import ExperimentFacts from "../../../components/ExperimentFacts.astro";
+
+
+Reproduce the `ecg-spiht-8x` configuration. Prepare its dataset before running the workflow; use the linked configuration to inspect the exact settings.
+
+## Overview
+
+<ExperimentFacts id="ecg-spiht-8x" />
+
+<span id="dataset-license"></span>
+
+## Dataset & License
+
+- **Dataset**: [PTB-XL](https://physionet.org/content/ptb-xl/) (`dataset_id: ptb-xl`)
+- **License**: CC BY 4.0 (open)
+- **Notes**: Auto-downloaded on first use.
+
+The lifecycle runner pre-flights dataset availability before training (see the
+[dataset contract](/compressionkit/api/datasets/)).
+
+## Reproduction
+
+```bash
+# Single command, end-to-end.
+uv run compressionkit golden run ecg-spiht-8x
+
+```
+
+Results land under `results/ecg_spiht_256hz_08x_golden/`; deploy artifacts under `results/ecg_spiht_256hz_08x_golden/deploy/`.
+
+## Evaluation Metrics
+
+See the modality model zoo for the full metrics table:
+
+- [ECG models](/compressionkit/models/ecg/)
+
+Evaluation writes `quality_scorecard.json` and `summary.json` under its `results/<run>/`.
+
+## Deploy Artifacts
+
+The deploy package contains the following artifacts, depending on the export configuration:
+
+- `spiht_config.json` / `spiht_app_config.h` — codec parameters (language-neutral + C header).
+- `c_sources/spiht.[ch]` — portable C99 SPIHT reference.
+- `sample_stimulus.npz` / `reference_vectors.npz` — license-safe test frames and known-good encode/decode vectors.
+- `model_card.json`, `deploy_manifest.json` — metadata.
+
+## Customization Notes
+
+- This operating point is declared directly in `compressionkit/experiments/registry.py` (no training YAML) — add a new registry entry to explore a neighbouring operating point.
+- To resume publishing without retraining, pass `--skip-train` to `compressionkit golden run ecg-spiht-8x --publish`.

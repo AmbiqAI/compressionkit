@@ -21,7 +21,7 @@ def _imported_modules(path: Path) -> set[str]:
 
 
 def test_experiment_architecture_doc_keeps_contract_at_artifacts() -> None:
-    text = (ROOT / "docs" / "experiment-architecture.md").read_text()
+    text = (ROOT / "astro-site" / "src" / "content" / "docs" / "experiment-architecture.md").read_text()
     assert "experiments pull in capabilities" in text
     assert "The v1 contract applies to artifacts" in text
     assert "one base class" in text
