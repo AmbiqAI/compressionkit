@@ -7,7 +7,7 @@ The 2026-10-06 v1.1 release corrects the deployment exports of eleven existing
 RVQ checkpoints. It removes EMA embedding-sum accumulators that were incorrectly
 exported as extra codebooks. No models were retrained.
 
-The [release inventory](https://github.com/AmbiqAI/compressionkit/blob/issue-66-corrected-rvq-releases/releases/rvq-v1.1.json)
+The [release inventory](https://github.com/AmbiqAI/compressionkit/blob/9a3b07806a76de718a0dfa7105a23097853e2fac/releases/rvq-v1.1.json)
 records every published repository, immutable revision, checksum-manifest hash,
 checkpoint provenance, precision report and complete packet size.
 
