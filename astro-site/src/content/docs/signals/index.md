@@ -24,7 +24,7 @@ These pages cover the PPG signal path:
 
 1. [PPG](/compressionkit/signals/ppg/) for signal context and preprocessing details.
 2. [PPG Workflow](/compressionkit/signals/ppg-workflow/) for the end-to-end supported task.
-3. [PPG Models (v1.0)](/compressionkit/models/ppg/) for the five golden reference operating points.
+3. [PPG Models (v1.1 exports)](/compressionkit/models/ppg/) for the five golden reference operating points.
 4. [PPG Codec Demo](/compressionkit/demo/ppg-codec/) for the browser and hardware evaluation experience.
 
 ## ECG Section
@@ -32,7 +32,7 @@ These pages cover the PPG signal path:
 These pages cover the ECG signal path:
 
 1. [ECG](/compressionkit/signals/ecg/) for signal context and preprocessing details.
-2. [ECG Models (v1.0)](/compressionkit/models/ecg/) for the six golden reference operating points.
+2. [ECG Models (v1.1 exports)](/compressionkit/models/ecg/) for the six golden reference operating points.
 
 ## Signal Properties Comparison
 

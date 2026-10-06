@@ -40,7 +40,7 @@ DSP baseline, and hybrid AI+DSP runs help characterize artifact-heavy regimes.
 
 ### Golden Models
 
-See **[ECG Models (v1.0)](/compressionkit/models/ecg/)** for the full results table, architecture breakdown, and training instructions.
+See **[ECG Models (v1.1 exports)](/compressionkit/models/ecg/)** for the full results table, architecture breakdown, and training instructions.
 
 | Model | CR | PRD (%) | Cosine |
 |-------|----|---------|--------|

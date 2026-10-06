@@ -13,7 +13,7 @@ golden lanes for deeper evaluation.
 The current supported task is:
 
 - Input: 64 Hz PPG windows from the open unified PPG v1 cache or from your own signal.
-- Published runtime path: load `Ambiq/compressionkit-ppg-{2,4,8,16,32}x-v1.0` bundles.
+- Published runtime path: load `Ambiq/compressionkit-ppg-{2,4,8,16,32}x-v1.1` bundles.
 - Golden comparison lanes: RVQ, SPIHT, and hybrid runs evaluated through the same scorecard shape.
 - Deployment path: export encoder/codebook artifacts plus manifests, checksums, and reference vectors.
 - Evaluation path: compare waveform metrics, HR/HRV preservation, noise buckets, and artifact sweeps.
@@ -66,7 +66,7 @@ Use the published runtime path when you only need to try a codec:
 ```python
 from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-8x-v1.0")
+codec = load_codec("Ambiq/compressionkit-ppg-8x-v1.1")
 ```
 
 ## Reference Operating Points

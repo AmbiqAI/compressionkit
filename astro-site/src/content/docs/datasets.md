@@ -174,7 +174,7 @@ Load a one-dimensional waveform, resample it to the codec sample rate, and follo
 import numpy as np
 from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-4x-v1.0")
+codec = load_codec("Ambiq/compressionkit-ppg-4x-v1.1")
 fs, n = codec.sample_rate, codec.frame_size   # PPG: 64 Hz
 
 # your_signal: 1-D float32 sampled at `fs`

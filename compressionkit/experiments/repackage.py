@@ -218,6 +218,7 @@ def repackage_rvq_golden(
         sample_inputs=sample_inputs,
         sample_targets=sample_inputs,
         model_name=experiment.run_name,
+        model_version=experiment.hf_version.removeprefix("v"),
         export_decoder_float32=True,
         export_decoder_int8=export_decoder_int8,
         model_card_info=model_card_info,

@@ -31,15 +31,15 @@ Published v1 RVQ bundles are available for PPG and ECG:
 
 | Signal | HuggingFace repos | Frame |
 |--------|-------------------|-------|
-| PPG | `Ambiq/compressionkit-ppg-{2,4,8,16,32}x-v1.0` | 5 s at 64 Hz |
-| ECG | `Ambiq/compressionkit-ecg-{2,4,8,16,32,64}x-v1.0` | 2 s at 256 Hz |
+| PPG | `Ambiq/compressionkit-ppg-{2,4,8,16,32}x-v1.1` | 5 s at 64 Hz |
+| ECG | `Ambiq/compressionkit-ecg-{2,4,8,16,32,64}x-v1.1` | 2 s at 256 Hz |
 
 ```python
 import numpy as np
 
 from compressionkit.runtime import load_codec
 
-codec = load_codec("Ambiq/compressionkit-ppg-4x-v1.0")
+codec = load_codec("Ambiq/compressionkit-ppg-4x-v1.1")
 
 t = np.arange(codec.frame_size, dtype=np.float32) / codec.sample_rate
 frame = 0.6 * np.sin(2.0 * np.pi * 1.2 * t)

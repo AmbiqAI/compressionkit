@@ -31,7 +31,7 @@ Each notebook exposes a single `CODEC_SOURCE` knob at the top:
 
 ```python
 # A published golden codec (downloads from HuggingFace) ...
-CODEC_SOURCE = "Ambiq/compressionkit-ppg-4x-v1.0"
+CODEC_SOURCE = "Ambiq/compressionkit-ppg-4x-v1.1"
 # ... or a local deploy package you built yourself (runs offline):
 # CODEC_SOURCE = "results/ppg_rvq_64hz_04x_golden/deploy"
 ```

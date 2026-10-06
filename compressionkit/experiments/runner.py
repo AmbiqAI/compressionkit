@@ -168,6 +168,8 @@ def _validate_release_package(
 
 
 def _publish(experiment: GoldenExperiment, run_dir: Path, dry_run: bool) -> int:
+    if experiment.parent and get_golden(experiment.parent).hf_version != experiment.hf_version:
+        raise ValueError("Requalify the entropy prior against its parent's release track before publication")
     deploy_dir = run_dir / "deploy"
     if not deploy_dir.is_dir():
         raise FileNotFoundError(f"deploy directory missing for {experiment.experiment_id!r}: {deploy_dir}")
