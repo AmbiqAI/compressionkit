@@ -139,7 +139,7 @@ def repackage_rvq_golden(
     import keras
 
     from compressionkit.export.deploy import export_for_deployment
-    from compressionkit.export.stimulus import export_stimulus_npz
+    from compressionkit.export.stimulus import export_stimulus_npz, generate_normalized_stimulus
 
     output_dir = output_dir or (run_dir / "deploy")
     resolved_scorecard_path = resolve_scorecard_path(run_dir, scorecard_path)
@@ -198,7 +198,14 @@ def repackage_rvq_golden(
     if scorecard_payload is not None:
         model_card_info["scorecard_summary"] = scorecard_payload
 
-    sample_inputs = rep_dataset[:10]
+    # Calibration stays real; reference/demo artifacts may be redistributed.
+    sample_inputs = generate_normalized_stimulus(
+        modality=experiment.modality,
+        num_samples=num_stimulus,
+        frame_size=frame_size,
+        sample_rate=experiment.sample_rate,
+        epsilon=preprocessing_contract["normalization"]["epsilon"],
+    )
     latents = encoder.predict(sample_inputs, verbose=0)
     sample_reconstructions = decoder.predict(latents, verbose=0)
     if isinstance(sample_reconstructions, dict):

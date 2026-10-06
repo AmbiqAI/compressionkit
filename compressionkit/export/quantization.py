@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -87,6 +88,12 @@ def evaluate_rvq_encoder_quantization(
     )
     float_input, float_output = float_encoder.get_input_details()[0], float_encoder.get_output_details()[0]
     codec = RVQCodec(root)
+    decode = codec.decode_latent
+    if not codec.has_decoder:
+        from compressionkit.export.keras_reference import decode_keras_reference, load_keras_reference_decoder
+
+        keras_decoder = load_keras_reference_decoder(root / ArtifactFile.DECODER_KERAS)
+        decode = partial(decode_keras_reference, keras_decoder)
 
     input_saturation: list[float] = []
     latent_prd: list[float] = []
@@ -111,8 +118,8 @@ def evaluate_rvq_encoder_quantization(
         float_latent = float_encoder.get_tensor(float_output["index"]).astype(np.float32)
         candidate_indices = codec.quantize_latent(candidate_latent)
         float_indices = codec.quantize_latent(float_latent)
-        candidate_reconstruction = codec.decode_latent(codec.dequantize_indices(candidate_indices))
-        float_reconstruction = codec.decode_latent(codec.dequantize_indices(float_indices))
+        candidate_reconstruction = decode(codec.dequantize_indices(candidate_indices))
+        float_reconstruction = decode(codec.dequantize_indices(float_indices))
         latent_prd.append(_prd_percent(candidate_latent, float_latent))
         reconstruction_prd.append(_prd_percent(candidate_reconstruction, float_reconstruction))
         index_match.append(float(np.mean(candidate_indices == float_indices)))

@@ -91,3 +91,22 @@ def test_quantization_partitions_are_disjoint_and_seeded() -> None:
     assert calibration.shape[0] == 8
     assert validation.shape[0] == 6
     assert set(calibration[:, 0, 0, 0]).isdisjoint(validation[:, 0, 0, 0])
+
+
+def test_repeated_validation_stream_cannot_reuse_frame_content() -> None:
+    frames = np.arange(8, dtype=np.float32).reshape(8, 1, 1, 1)
+    dataset = tf.data.Dataset.from_tensor_slices((frames, frames)).repeat().batch(4)
+    calibration, validation = collect_disjoint_quantization_datasets(
+        dataset, calibration_frames=4, validation_frames=4, sampling_pool_frames=32, seed=74
+    )
+    assert len(np.unique(np.concatenate((calibration, validation)))) == 8
+    assert set(calibration.ravel()).isdisjoint(validation.ravel())
+
+
+def test_repeated_stream_with_too_few_distinct_frames_fails_bounded_scan() -> None:
+    frames = np.arange(4, dtype=np.float32).reshape(4, 1, 1, 1)
+    dataset = tf.data.Dataset.from_tensor_slices((frames, frames)).repeat().batch(4)
+    with pytest.raises(ValueError, match="4 distinct frames from 16 samples"):
+        collect_disjoint_quantization_datasets(
+            dataset, calibration_frames=4, validation_frames=4, sampling_pool_frames=16, seed=74
+        )
