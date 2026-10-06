@@ -40,7 +40,7 @@ def _tiny_decoder() -> keras.Model:
     return keras.Model(inputs, outputs, name="smoke_decoder")
 
 
-def _build_smoke_rvq_deploy(tmp_path, *, use_ema=False, export_decoder_float32=True, quantization="FP32"):
+def _build_smoke_rvq_deploy(tmp_path, *, use_ema=False, export_decoder_float32=True, export_decoder_int8=True, quantization="FP32"):
     encoder = _tiny_encoder()
     decoder = _tiny_decoder()
 
@@ -78,6 +78,7 @@ def _build_smoke_rvq_deploy(tmp_path, *, use_ema=False, export_decoder_float32=T
         .uniform(-0.1, 0.1, rep_dataset.shape)
         .astype(np.float32),
         export_decoder_float32=export_decoder_float32,
+        export_decoder_int8=export_decoder_int8,
         model_name="ppg_rvq_smoke",
         model_card_info={
             "run_name": "ppg_rvq_64hz_04x_golden",
@@ -212,3 +213,18 @@ def test_int8_only_decoder_preserves_independent_float_parity(tmp_path) -> None:
     write_checksums(deploy_dir)
     result = validate_deploy_package(deploy_dir, strict_release=True, max_vectors=2)
     assert any("RVQ reference reconstruction mismatch" in error for error in result.errors)
+
+
+def test_int8_encoder_export_supports_keras_only_decoder(tmp_path) -> None:
+    from pathlib import Path
+
+    deploy_dir, artifacts = _build_smoke_rvq_deploy(
+        tmp_path, quantization="INT8", export_decoder_float32=False, export_decoder_int8=False
+    )
+    assert artifacts.decoder_keras.exists()
+    assert not (deploy_dir / "decoder.tflite").exists()
+    assert not (deploy_dir / "decoder_float32.tflite").exists()
+    assert artifacts.reference_vectors == Path()
+    report = json.loads(artifacts.quantization_report.read_text())
+    assert report["metrics"]["frames_checked"] == 4
+    assert report["passed"]

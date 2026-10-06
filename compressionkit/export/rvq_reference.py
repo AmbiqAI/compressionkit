@@ -6,6 +6,7 @@ import keras
 import numpy as np
 import tensorflow as tf
 
+from compressionkit.export.keras_reference import decode_keras_reference
 from compressionkit.layers.ema_residual_vector_quantizer import EmaResidualVectorQuantizer
 from compressionkit.layers.residual_vector_quantizer import ResidualVectorQuantizer
 
@@ -57,9 +58,7 @@ def build_rvq_reference(
         latent = np.asarray(encoder(inputs, training=False), dtype=np.float32)
         indices = vq.encode(latent)
         quantized = keras.ops.convert_to_numpy(vq.decode(indices, latent.shape))
-        decoded = decoder(quantized, training=False)
-        if isinstance(decoded, dict):
-            decoded = decoded.get("reconstruction", decoded.get("output"))
+        decoded = decode_keras_reference(decoder, quantized)
         return {
             "source_latents": latent,
             "source_indices": np.stack([keras.ops.convert_to_numpy(i) for i in indices], axis=-1).reshape(

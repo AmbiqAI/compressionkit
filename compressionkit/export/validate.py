@@ -177,15 +177,13 @@ def _validate_reference_vectors(
                 # The runtime may select an INT8 decoder. Compare training
                 # references to the exported float Keras companion instead;
                 # quantized output has separate deployed reference vectors.
-                import keras
-                import tensorflow as tf
+                from compressionkit.export.keras_reference import decode_keras_reference, load_keras_reference_decoder
 
                 keras_decoder = decoder_spec.get("keras")
                 if not keras_decoder:
                     errors.append("RVQ training parity requires a float decoder companion")
                     return
-                with tf.device("/CPU:0"):
-                    float_decoder = keras.models.load_model(deploy_dir / keras_decoder)
+                float_decoder = load_keras_reference_decoder(deploy_dir / keras_decoder)
         for idx in range(min(max_vectors, frames.shape[0])):
             sample = frames[idx : idx + 1]
             actual_indices = codec.encode(sample)
@@ -214,11 +212,7 @@ def _validate_reference_vectors(
                 if float_decoder is None:
                     source_recon = codec.decode_latent(actual_latent)
                 else:
-                    with tf.device("/CPU:0"):
-                        source_recon = float_decoder(actual_latent, training=False)
-                    if isinstance(source_recon, dict):
-                        source_recon = source_recon.get("reconstruction", source_recon.get("output"))
-                    source_recon = np.asarray(source_recon, dtype=np.float32)
+                    source_recon = decode_keras_reference(float_decoder, actual_latent)
                 if not np.allclose(source_recon, blob["source_reconstructions"][idx : idx + 1], atol=1e-5, rtol=1e-5):
                     errors.append(f"RVQ trained-decoder reconstruction mismatch at sample {idx} (atol=rtol=1e-5)")
         return

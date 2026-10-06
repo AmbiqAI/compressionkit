@@ -140,8 +140,7 @@ def repackage_rvq_golden(
 
     from compressionkit.export.codebook import extract_codebooks, load_rvq_weights
     from compressionkit.export.deploy import export_for_deployment
-    from compressionkit.export.quantization import refresh_rvq_encoder_precision_reports
-    from compressionkit.export.stimulus import export_stimulus_npz
+    from compressionkit.export.stimulus import export_stimulus_npz, generate_normalized_stimulus
 
     output_dir = output_dir or (run_dir / "deploy")
     resolved_scorecard_path = resolve_scorecard_path(run_dir, scorecard_path)
@@ -196,7 +195,14 @@ def repackage_rvq_golden(
     if scorecard_payload is not None:
         model_card_info["scorecard_summary"] = scorecard_payload
 
-    sample_inputs = rep_dataset[:10]
+    # Calibration stays real; reference/demo artifacts may be redistributed.
+    sample_inputs = generate_normalized_stimulus(
+        modality=experiment.modality,
+        num_samples=num_stimulus,
+        frame_size=frame_size,
+        sample_rate=experiment.sample_rate,
+        epsilon=preprocessing_contract["normalization"]["epsilon"],
+    )
 
     artifacts = export_for_deployment(
         encoder=encoder,

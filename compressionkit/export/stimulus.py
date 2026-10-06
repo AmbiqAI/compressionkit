@@ -57,6 +57,24 @@ def generate_stimulus(
         raise ValueError(f"Unsupported modality: {modality!r}. Use 'ecg' or 'ppg'.")
 
 
+def generate_normalized_stimulus(
+    *, modality: str, num_samples: int, frame_size: int, sample_rate: int, epsilon: float = 1e-3, seed: int = 42
+) -> np.ndarray:
+    """Generate license-safe RVQ frames using the training preprocessing block."""
+    if modality.lower() == "ecg":
+        from compressionkit.preprocessing.ecg import build_preprocessor
+    elif modality.lower() == "ppg":
+        from compressionkit.preprocessing.ppg import build_preprocessor
+    else:
+        raise ValueError(f"Unsupported modality: {modality!r}")
+    raw = generate_stimulus(
+        modality=modality, num_samples=num_samples, frame_size=frame_size, sample_rate=sample_rate, seed=seed
+    )
+    preprocessor = build_preprocessor(frame_size=frame_size, epsilon=epsilon, seed=seed)
+    normalized = preprocessor(raw[..., np.newaxis], training=True)
+    return np.asarray(normalized, dtype=np.float32).reshape(num_samples, 1, frame_size, 1)
+
+
 def export_stimulus_npz(
     *,
     modality: str,
