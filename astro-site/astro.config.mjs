@@ -64,6 +64,7 @@ export default defineConfig({
           sidebar: "always",
           header: {
             title: "compressionKIT",
+            titleRegularPrefix: "compression",
             hub: {
               label: "HELIA",
               href: "https://ambiqai.github.io/helia-developer-hub/",
