@@ -3,7 +3,7 @@
 Goal: align compressionKIT with the KIT documentation sites and physioKIT.
 
 State:
-- Done locally in `codex/kit-home-consistency`: replace the hero dot with the existing product icon, render the links below the hero with the shared helia-ui Button, and set `header.titleRegularPrefix` so the prefix is regular and KIT stays bold. The hero headline blends from icon-matched yellow on “Carry” toward bright green across “less data.” The home body follows the shared order: overview, four feature cards, source-checkout installation, and four navigation cards. Cards use CardHeader's full-card link and shared interactive focus treatment.
+- Done locally in `issue-79-kit-home-consistency`: replace the hero dot with the existing product icon, render the links below the hero with the shared helia-ui Button, and set `header.titleRegularPrefix` so the prefix is regular and KIT stays bold. The hero headline blends from icon-matched yellow on “Carry” toward bright green across “less data.” The home body follows the shared order: overview, four feature cards, source-checkout installation, and four navigation cards. Cards use CardHeader's full-card link and shared interactive focus treatment.
 - Verified: Astro check and build pass. Link and layout audits pass (1,867 links; 404 layout checks), as do 12 content checks. Pointer clicks in card bodies reach their intended pages. Desktop, 785px and 390px mobile screenshots were inspected in light and dark mode; the icon renders and the page has no horizontal overflow.
 - Preview: http://127.0.0.1:8778/compressionkit/
 - Tracked by AmbiqAI/compressionkit#79. The site PR is pending; no release or deployment has occurred.
