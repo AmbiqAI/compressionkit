@@ -46,6 +46,9 @@ try {
           failures.push({ width, theme, route, status: response.status(), resourceFailures, ...issues });
         }
         if (route === '/compressionkit/') {
+          const prefix = page.locator('.helia-site-header__prefix');
+          if (await prefix.textContent() !== 'compression') failures.push({ width, theme, route, titlePrefix: await prefix.textContent() });
+          if (!await page.locator('.hero-meta img').isVisible()) failures.push({ width, theme, route, missingHeroLogo: true });
           const card = page.locator('.kit-home-nav .helia-card').first();
           const destination = await card.locator('a').first().getAttribute('href');
           const description = card.locator('.helia-card-content p').first();

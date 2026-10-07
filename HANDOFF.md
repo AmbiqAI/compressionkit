@@ -11,15 +11,11 @@ State:
 Decisions:
 - Reuse the repository's existing product icon and keep its current hero color and destination links.
 - Use the shared Button component for the links under the hero; do not introduce a site-specific pill design.
-- The header option is implemented in the local helia-ui worktree `/Users/adam.page/Ambiq/helia/helia-ui-header-prefix` but is not released. Preview dependencies have a local, untracked copy of that implementation. The consumer package pin stays at its current immutable version until a new helia-ui tag exists.
+- Pin helia-ui v0.1.0-alpha.24, published from f7158bf, with an npm 11.19.0 lockfile. Clean installs reproduce the shared header without a local patch.
 
-Next:
-1. Review draft site PR #80, linked to issue #79 and request review.
-2. After helia-ui#193 is merged and released, pin its immutable tag, regenerate the lockfile, rebuild, and review both themes.
-3. Resolve review and CI findings, then ask Adam for approval. Do not merge without that approval.
-
-Gotcha: `npm ci` resets the preview-only helia-ui copy in `node_modules`; restore or use the released tag before rebuilding.
-
-Publication: final review fixes are pushed. Fresh CI and Copilot re-reviews requested; verify the final head before approval. Product PRs remain draft pending shared helia-ui approval, release and immutable dependency pins.
+Next: finish checks against the released package, final review and CI, merge under Adam's authorization, then verify the Pages deployment.
 
 Not-found handling: restrict the product hero to the home route so unknown routes show the 404 page; built output and browser checks cover the fallback.
+
+
+Release validation: clean installation of alpha.24 passed. Final check/build/output checks pass, with 404 rendered acceptance checks passing against the clean released dependency. User authorized merging after green CI.
