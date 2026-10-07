@@ -56,6 +56,12 @@ try {
           if (new URL(page.url()).pathname !== destination) failures.push({ width, theme, route, cardDestination: page.url(), expected: destination });
         }
       }
+      const missingRoute = '/compressionkit/this-route-does-not-exist/';
+      const missingResponse = await page.goto(base + missingRoute);
+      const missingTitle = await page.locator('main h1').textContent();
+      if (missingResponse.status() !== 404 || missingTitle.trim() !== '404') {
+        failures.push({ width, theme, route: missingRoute, status: missingResponse.status(), title: missingTitle });
+      }
       await page.close();
     }
   }

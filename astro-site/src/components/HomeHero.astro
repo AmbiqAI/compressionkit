@@ -7,6 +7,7 @@ const source = readFileSync('../pyproject.toml', 'utf8');
 const version = source.match(/^version\s*=\s*"([^"]+)"/m)?.[1];
 if (!version) throw new Error('Missing compressionKIT version in pyproject.toml');
 const base = import.meta.env.BASE_URL;
+const isHome = Astro.url.pathname.replace(/\/+$/, '') === base.replace(/\/+$/, '');
 const tasks = [['PPG codecs', 'signals/ppg'], ['ECG codecs', 'signals/ecg'], ['Build your own codec', 'adding-a-codec-family']];
 const capabilities = [
   ['01', 'Prepare signals', 'ECG and PPG preprocessing'],
@@ -15,7 +16,7 @@ const capabilities = [
   ['04', 'Prepare for the edge', 'Models, manifests and reference vectors'],
 ];
 ---
-{data.hero?.tagline ? <>
+{isHome && data.hero?.tagline ? <>
   <section class="compressionkit-hero" aria-labelledby="_top">
     <div class="hero-meta"><span class="product"><img src={`${base}/assets/compressionkit-icon.png`} alt="" width="28" height="28" />compressionKIT</span><span class="version">v{version}</span></div>
     <div class="hero-layout">
